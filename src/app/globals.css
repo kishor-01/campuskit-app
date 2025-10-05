@@ -1,0 +1,203 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ======================================================
+   Base Theme Variables (Dark Mode as Default)
+   ====================================================== */
+:root {
+  --background: 15 23 42;       /* slate-900 */
+  --foreground: 248 250 252;    /* slate-50 */
+
+  --muted: 48 59 82;            /* slate-800 */
+  --muted-foreground: 148 163 184; /* slate-400 */
+
+  --primary: 56 189 248;        /* sky-400 */
+  --primary-foreground: 15 23 42; /* dark text on buttons */
+}
+
+/* ======================================================
+   Light Theme
+   ====================================================== */
+.light {
+  --background: 248 250 252;     /* slate-50 */
+  --foreground: 15 23 42;        /* slate-900 */
+
+  --muted: 226 232 240;          /* slate-200 */
+  --muted-foreground: 100 116 139; /* slate-500 */
+
+  --primary: 2 132 199;          /* sky-600 */
+  --primary-foreground: 255 255 255;
+}
+
+/* ======================================================
+   New Themes
+   ====================================================== */
+
+/* 🌅 Aurora Theme — balanced cool/warm contrast */
+.theme-aurora {
+  --background: 230 25% 10%;      /* deep navy */
+  --foreground: 210 40% 96%;      /* soft white */
+
+  --muted: 230 25% 18%;           /* slightly lighter navy */
+  --muted-foreground: 220 15% 70%; /* cool gray */
+
+  --primary: 160 84% 39%;         /* teal green */
+  --primary-foreground: 0 0% 100%; /* white */
+}
+
+/* 🌸 Blossom Theme — elegant pink tones */
+.theme-blossom {
+  --background: 340 30% 96%;       /* soft pink */
+  --foreground: 330 25% 25%;       /* deep rose */
+
+  --muted: 340 20% 90%;            /* pale pink */
+  --muted-foreground: 330 15% 50%; /* muted rose */
+
+  --primary: 330 70% 55%;          /* bright rose */
+  --primary-foreground: 0 0% 100%; /* white */
+}
+
+/* 🌆 Cyber Theme — neon futuristic */
+.theme-cyber {
+  --background: 260 60% 5%;        /* deep purple-black */
+  --foreground: 180 100% 95%;      /* neon aqua */
+
+  --muted: 260 50% 10%;            /* darker purple */
+  --muted-foreground: 180 60% 70%; /* cyan gray */
+
+  --primary: 300 80% 60%;          /* neon magenta */
+  --primary-foreground: 0 0% 100%; /* white */
+}
+
+/* 🌿 Verdant Theme — natural and calm */
+.theme-verdant {
+  --background: 100 20% 95%;       /* pale green */
+  --foreground: 140 25% 20%;       /* dark forest green */
+
+  --muted: 100 15% 85%;            /* light leaf */
+  --muted-foreground: 120 10% 40%; /* muted olive */
+
+  --primary: 150 60% 40%;          /* deep green */
+  --primary-foreground: 0 0% 100%; /* white */
+}
+
+/* ======================================================
+   Experimental Themes (optional)
+   ====================================================== */
+.celestial {
+  --background: 236 248 255; /* blue-50 */
+  --foreground: 23 37 84;   /* indigo-900 */
+  --primary: 29 78 216;     /* blue-700 */
+  --muted: 219 234 254;     /* blue-200 */
+  --muted-foreground: 67 85 119;
+}
+
+.twilight {
+  --background: 26 24 43;
+  --foreground: 235 229 255;
+  --primary: 167 139 250;
+  --muted: 56 52 81;
+  --muted-foreground: 155 146 187;
+}
+
+
+
+
+
+
+
+
+
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+:root {
+  --background: 0 0% 100%; /* White */
+  --foreground: 222.2 84% 4.9%; /* Dark Slate Gray */
+  
+  --muted: 210 40% 96.1%; /* Light Gray */
+  --muted-foreground: 215.4 16.3% 46.9%; /* Medium Slate Gray */
+
+  --primary: 346.8 77.2% 49.8%; /* Our Brand's Pink/Red */
+  --primary-foreground: 355.7 100% 97.3%; /* Light Pink */
+}
+
+/* Define the colors for our dark theme.
+  When the ThemeProvider adds the 'dark' class to our app,
+  these variables will override the default ones.
+*/
+.dark {
+  --background: 222.2 84% 4.9%; /* Dark Slate Gray */
+  --foreground: 210 40% 98%; /* Off-White */
+
+  --muted: 217.2 32.6% 17.5%; /* Lighter Dark Slate */
+  --muted-foreground: 215 20.2% 65.1%; /* Light Gray */
+  
+  --primary: 346.8 77.2% 49.8%; /* Our Brand's Pink/Red (Stays the same) */
+  --primary-foreground: 355.7 100% 97.3%; /* Light Pink (Stays the same) */
+}
+
+/* NEW: Define the colors for our Solarized theme */
+.theme-solarized {
+  --background: 225 18% 96%; /* Creamy White */
+  --foreground: 224 23% 44%; /* Muted Blue */
+
+  --muted: 225 18% 91%; /* Lighter Cream */
+  --muted-foreground: 224 16% 56%; /* Grayer Blue */
+  
+  --primary: 207 90% 54%; /* Bright Blue */
+  --primary-foreground: 0 0% 100%; /* White */
+}
+
+/* NEW: Define the colors for our Rose Pine theme */
+.theme-rose-pine {
+  --background: 300 13% 15%; /* Dark Purple */
+  --foreground: 300 20% 90%; /* Light Rose */
+
+  --muted: 300 13% 20%; /* Slightly Lighter Purple */
+  --muted-foreground: 300 11% 55%; /* Muted Rose */
+  
+  --primary: 300 60% 70%; /* Bright Pink/Rose */
+  --primary-foreground: 300 13% 10%; /* Dark Purple for text on buttons */
+}
+
+@layer base {
+  :root { /* This is our default "light" theme */
+    --background: 248 250 252; /* slate-50 */
+    --foreground: 15 23 42;    /* slate-900 */
+    --primary: 2 132 199;     /* sky-600 */
+    --primary-foreground: 255 255 255;
+    --muted: 226 232 240;      /* slate-200 */
+    --muted-foreground: 100 116 139; /* slate-500 */
+  }
+
+  .dark { /* This is our "dark" theme */
+    --background: 15 23 42;    /* slate-900 */
+    --foreground: 248 250 252; /* slate-50 */
+    --primary: 56 189 248;     /* sky-400 */
+    --primary-foreground: 15 23 42;
+    --muted: 48 59 82;         /* slate-800 */
+    --muted-foreground: 148 163 184; /* slate-400 */
+  }
+
+  /* Experimental Themes */
+  .celestial {
+    --background: 236 248 255; /* blue-50 */
+    --foreground: 23 37 84;   /* indigo-900 */
+    --primary: 29 78 216;      /* blue-700 */
+    --muted: 219 234 254;      /* blue-200 */
+    --muted-foreground: 67 85 119;
+  }
+  .twilight {
+    --background: 26 24 43;
+    --foreground: 235 229 255;
+    --primary: 167 139 250;
+    --muted: 56 52 81;
+    --muted-foreground: 155 146 187;
+  }
+}
