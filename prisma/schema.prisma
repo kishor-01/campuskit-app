@@ -1,8 +1,5 @@
 // prisma/schema.prisma
 
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,63 +9,63 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ------------------------------------------
-// --- New Enum Definitions
-// ------------------------------------------
-
+// --- Enums ---
 enum ResourceStatus {
   PENDING
   APPROVED
   REJECTED
 }
 
-// ------------------------------------------
-// --- Main Application Models
-// ------------------------------------------
+enum OpportunityType {
+  INTERNSHIP
+  FULL_TIME
+  HACKATHON
+  WORKSHOP
+  SEMINAR
+  SCHOLARSHIP
+  COMPETITION
+  DEAL // ✅ Kept as type of Opportunity
+}
 
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+}
+
+// --- Main Application Models ---
 model User {
-  id               String    @id @default(cuid())
-  name             String?
-  username         String?   @unique
-  email            String?   @unique
-  emailVerified    DateTime?
-  image            String?
-  password         String?
-  education        String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  name               String?
+  username           String?   @unique
+  email              String?   @unique
+  emailVerified      DateTime?
+  image              String?
+  password           String?
+  education          String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  isAdmin            Boolean   @default(false)
 
-  // NEW: Add a role to identify admins
-  isAdmin          Boolean   @default(false)
-
-  // Relations
   accounts           Account[]
   sessions           Session[]
   savedResources     SavedResource[]
   submittedResources Resource[]      @relation("UserSubmissions")
+  articles           Article[]       @relation("ArticleAuthor")
 }
 
 model Resource {
-  id            String   @id @default(cuid())
+  id            String         @id @default(cuid())
   name          String
-  description   String   @db.Text
+  description   String         @db.Text
   url           String
   imageUrl      String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // NEW: Add a status field for moderation
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   status        ResourceStatus @default(PENDING)
-
-  // Relation to Category
-  categoryId String
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-
-  // Relation to Users who have saved this resource
-  savedByUsers SavedResource[]
-
-  // Relation to the User who submitted this resource
-  submittedBy   User?   @relation("UserSubmissions", fields: [submittedById], references: [id], onDelete: SetNull)
+  categoryId    String
+  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  savedByUsers  SavedResource[]
+  submittedBy   User?          @relation("UserSubmissions", fields: [submittedById], references: [id], onDelete: SetNull)
   submittedById String?
 }
 
@@ -86,27 +83,50 @@ model ContactMessage {
   createdAt DateTime @default(now())
 }
 
-// ------------------------------------------
-// --- Join Table for Many-to-Many Relations
-// ------------------------------------------
+model Opportunity {
+  id           String          @id @default(cuid())
+  title        String
+  organization String
+  location     String
+  type         OpportunityType
+  description  String          @db.Text
+  applyUrl     String
+  imageUrl     String?
+  startDate    DateTime?
+  endDate      DateTime?
+  status       ResourceStatus  @default(PENDING)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
 
+model Article {
+  id        String        @id @default(cuid())
+  title     String
+  slug      String        @unique
+  content   String        @db.Text
+  excerpt   String        @db.Text
+  imageUrl  String?
+  status    ArticleStatus @default(DRAFT)
+
+  author    User          @relation("ArticleAuthor", fields: [authorId], references: [id])
+  authorId  String
+
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+// --- Join Table ---
 model SavedResource {
   userId     String
   resourceId String
   createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
 
-  // Relations to the other tables
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
-
-  // This ensures a user can only save a specific resource one time
   @@id([userId, resourceId])
 }
 
-// ------------------------------------------
-// --- Auth Models (Required by NextAuth.js)
-// ------------------------------------------
-
+// --- Auth Models ---
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -120,8 +140,7 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -140,17 +159,4 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
-}
-
-// NEW: Add this model for the Perks & Deals feature
-model Deal {
-  id           String   @id @default(cuid())
-  title        String   // e.g., "6 Months of Spotify Premium Free"
-  company      String   // e.g., "Spotify"
-  description  String   @db.Text
-  affiliateUrl String
-  imageUrl     String?
-  category     String   // e.g., "Software", "Services", "Hardware"
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
 }

@@ -8,27 +8,47 @@ import { authConfig } from './auth.config'; // Import the safe config
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig, // Spread the safe config
-  adapter: PrismaAdapter(prisma), // Add the Node.js-dependent adapter
+  adapter: PrismaAdapter(prisma),
   providers: [
     Credentials({
       async authorize(credentials) {
-        if (!credentials?.email || !credentials.password) return null;
+        // UPDATED LOGIC STARTS HERE
+        // We now expect a generic 'login' field that can be email or username
+        const login = credentials?.login as string | undefined;
+        const password = credentials?.password as string | undefined;
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
-        });
+        if (!login || !password) {
+          return null;
+        }
 
-        if (!user || !user.password) return null;
+        let user;
 
-        const passwordsMatch = await bcrypt.compare(
-          credentials.password as string,
-          user.password
-        );
+        // Check if the input is an email or a username
+        if (login.includes('@')) {
+          user = await prisma.user.findUnique({
+            where: { email: login },
+          });
+        } else {
+          user = await prisma.user.findUnique({
+            where: { username: login },
+          });
+        }
+        
+        // If no user was found, or the user has no password (e.g., social login)
+        if (!user || !user.password) {
+          return null;
+        }
 
-        if (passwordsMatch) return user;
-        return null;
+        // Compare the provided password with the stored hash
+        const passwordsMatch = await bcrypt.compare(password, user.password);
+
+        if (passwordsMatch) {
+          return user; // Return the user object on success
+        }
+        
+        return null; // Return null on password mismatch
+        // UPDATED LOGIC ENDS HERE
       },
     }),
-    // Other providers like Google/GitHub would go here
   ],
 });

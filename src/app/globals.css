@@ -2,118 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ======================================================
-   Base Theme Variables (Dark Mode as Default)
-   ====================================================== */
-:root {
-  --background: 15 23 42;       /* slate-900 */
-  --foreground: 248 250 252;    /* slate-50 */
-
-  --muted: 48 59 82;            /* slate-800 */
-  --muted-foreground: 148 163 184; /* slate-400 */
-
-  --primary: 56 189 248;        /* sky-400 */
-  --primary-foreground: 15 23 42; /* dark text on buttons */
-}
-
-/* ======================================================
-   Light Theme
-   ====================================================== */
-.light {
-  --background: 248 250 252;     /* slate-50 */
-  --foreground: 15 23 42;        /* slate-900 */
-
-  --muted: 226 232 240;          /* slate-200 */
-  --muted-foreground: 100 116 139; /* slate-500 */
-
-  --primary: 2 132 199;          /* sky-600 */
-  --primary-foreground: 255 255 255;
-}
-
-/* ======================================================
-   New Themes
-   ====================================================== */
-
-/* 🌅 Aurora Theme — balanced cool/warm contrast */
-.theme-aurora {
-  --background: 230 25% 10%;      /* deep navy */
-  --foreground: 210 40% 96%;      /* soft white */
-
-  --muted: 230 25% 18%;           /* slightly lighter navy */
-  --muted-foreground: 220 15% 70%; /* cool gray */
-
-  --primary: 160 84% 39%;         /* teal green */
-  --primary-foreground: 0 0% 100%; /* white */
-}
-
-/* 🌸 Blossom Theme — elegant pink tones */
-.theme-blossom {
-  --background: 340 30% 96%;       /* soft pink */
-  --foreground: 330 25% 25%;       /* deep rose */
-
-  --muted: 340 20% 90%;            /* pale pink */
-  --muted-foreground: 330 15% 50%; /* muted rose */
-
-  --primary: 330 70% 55%;          /* bright rose */
-  --primary-foreground: 0 0% 100%; /* white */
-}
-
-/* 🌆 Cyber Theme — neon futuristic */
-.theme-cyber {
-  --background: 260 60% 5%;        /* deep purple-black */
-  --foreground: 180 100% 95%;      /* neon aqua */
-
-  --muted: 260 50% 10%;            /* darker purple */
-  --muted-foreground: 180 60% 70%; /* cyan gray */
-
-  --primary: 300 80% 60%;          /* neon magenta */
-  --primary-foreground: 0 0% 100%; /* white */
-}
-
-/* 🌿 Verdant Theme — natural and calm */
-.theme-verdant {
-  --background: 100 20% 95%;       /* pale green */
-  --foreground: 140 25% 20%;       /* dark forest green */
-
-  --muted: 100 15% 85%;            /* light leaf */
-  --muted-foreground: 120 10% 40%; /* muted olive */
-
-  --primary: 150 60% 40%;          /* deep green */
-  --primary-foreground: 0 0% 100%; /* white */
-}
-
-/* ======================================================
-   Experimental Themes (optional)
-   ====================================================== */
-.celestial {
-  --background: 236 248 255; /* blue-50 */
-  --foreground: 23 37 84;   /* indigo-900 */
-  --primary: 29 78 216;     /* blue-700 */
-  --muted: 219 234 254;     /* blue-200 */
-  --muted-foreground: 67 85 119;
-}
-
-.twilight {
-  --background: 26 24 43;
-  --foreground: 235 229 255;
-  --primary: 167 139 250;
-  --muted: 56 52 81;
-  --muted-foreground: 155 146 187;
-}
-
-
-
-
-
-
-
-
-
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 
 
 :root {
@@ -167,37 +55,39 @@
 }
 
 @layer base {
-  :root { /* This is our default "light" theme */
-    --background: 248 250 252; /* slate-50 */
-    --foreground: 15 23 42;    /* slate-900 */
-    --primary: 2 132 199;     /* sky-600 */
+  :root { /* Default "dark" monochrome theme */
+    --background: 18 18 18;      /* #121212 */
+    --foreground: 224 224 224;   /* #E0E0E0 */
+    --primary: 136 136 136;      /* #888888 */
+    --primary-foreground: 18 18 18;
+    --muted: 68 68 68;           /* #444444 */
+    --muted-foreground: 176 176 176; /* #B0B0B0 */
+  }
+
+  .dark { /* Mapped from sapphire */
+    --background: 17 45 78;      /* #112d4e */
+    --foreground: 247 232 211;   /* #f7e8d3 */
+    --primary: 19 125 197;       /* #137dc5 */
     --primary-foreground: 255 255 255;
-    --muted: 226 232 240;      /* slate-200 */
-    --muted-foreground: 100 116 139; /* slate-500 */
+    --muted: 0 207 200;          /* #00cfc8 */
+    --muted-foreground: 191 25 34; /* #bf1922 */
   }
 
-  .dark { /* This is our "dark" theme */
-    --background: 15 23 42;    /* slate-900 */
-    --foreground: 248 250 252; /* slate-50 */
-    --primary: 56 189 248;     /* sky-400 */
-    --primary-foreground: 15 23 42;
-    --muted: 48 59 82;         /* slate-800 */
-    --muted-foreground: 148 163 184; /* slate-400 */
+  .celestial { /* Mapped from apricot-crush */
+    --background: 252 227 138;   /* #fce38a */
+    --foreground: 191 25 34;     /* #bf1922 */
+    --primary: 255 201 60;       /* #ffc93c */
+    --primary-foreground: 23 37 84;
+    --muted: 250 207 57;         /* #facf39 */
+    --muted-foreground: 201 147 131; /* #c99383 */
   }
-
-  /* Experimental Themes */
-  .celestial {
-    --background: 236 248 255; /* blue-50 */
-    --foreground: 23 37 84;   /* indigo-900 */
-    --primary: 29 78 216;      /* blue-700 */
-    --muted: 219 234 254;      /* blue-200 */
-    --muted-foreground: 67 85 119;
-  }
-  .twilight {
-    --background: 26 24 43;
-    --foreground: 235 229 255;
-    --primary: 167 139 250;
-    --muted: 56 52 81;
-    --muted-foreground: 155 146 187;
+  
+  .twilight { /* Mapped from deep-jewel */
+    --background: 26 26 26;      /* #1A1A1A */
+    --foreground: 240 240 240;   /* #F0F0F0 */
+    --primary: 0 77 97;          /* #004D61 */
+    --primary-foreground: 255 255 255;
+    --muted: 130 38 89;          /* #822659 */
+    --muted-foreground: 62 86 65; /* #3E5641 */
   }
 }

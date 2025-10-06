@@ -1,11 +1,13 @@
 // src/app/admin/page.tsx
 
-import prisma from "@/lib/prisma"; // ✅ CORRECTED: Changed { prisma } to prisma
-import { Users, Book, Folder, BadgePercent } from "lucide-react";
+import prisma from "@/lib/prisma";
+import { Users, Book, Folder, Briefcase, FileText } from "lucide-react"; // ✅ Added FileText
 import CategoryManager from "@/components/admin/CategoryManager";
 import ResourceManager from "@/components/admin/ResourceManager";
-import DealManager from "@/components/admin/DealManager"; // ✅ Added new component
+import OpportunityManager from "@/components/admin/OpportunityManager";
+import BlogManager from "@/components/admin/BlogManager"; // ✅ New import
 
+// ✅ StatCard component retained from original
 const StatCard = ({
   title,
   value,
@@ -27,26 +29,30 @@ const StatCard = ({
 );
 
 export default async function AdminPage() {
-  // ✅ Fetch all necessary dashboard stats and data (including deals)
+  // ✅ Fetch all required data including new "articles"
   const [
     userCount,
     resourceCount,
     categoryCount,
-    dealCount,
+    opportunityCount,
+    articleCount,
     categories,
     resources,
-    deals,
+    opportunities,
+    articles,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.resource.count(),
     prisma.category.count(),
-    prisma.deal.count(),
+    prisma.opportunity.count(),
+    prisma.article.count(), // ✅ New
     prisma.category.findMany({ orderBy: { name: "asc" } }),
     prisma.resource.findMany({
       include: { category: true },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.deal.findMany({ orderBy: { createdAt: "desc" } }),
+    prisma.opportunity.findMany({ orderBy: { createdAt: "desc" } }),
+    prisma.article.findMany({ orderBy: { createdAt: "desc" } }), // ✅ New
   ]);
 
   return (
@@ -56,18 +62,27 @@ export default async function AdminPage() {
       </h1>
 
       {/* ✅ Dashboard Stats Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-12">
         <StatCard title="Total Users" value={userCount} icon={<Users />} />
         <StatCard title="Total Resources" value={resourceCount} icon={<Book />} />
         <StatCard title="Total Categories" value={categoryCount} icon={<Folder />} />
-        <StatCard title="Total Deals" value={dealCount} icon={<BadgePercent />} />
+        <StatCard title="Total Opportunities" value={opportunityCount} icon={<Briefcase />} />
+        <StatCard title="Total Articles" value={articleCount} icon={<FileText />} />
       </div>
 
       {/* ✅ Management Section */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        <CategoryManager categories={categories} />
-        <ResourceManager resources={resources} categories={categories} />
-        <DealManager deals={deals} /> {/* ✅ Added DealManager */}
+      <div className="grid grid-cols-1 gap-8">
+        {/* New BlogManager Section */}
+        <BlogManager articles={articles} />
+
+        {/* Keep existing Category & Resource Managers */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          <CategoryManager categories={categories} />
+          <ResourceManager resources={resources} categories={categories} />
+        </div>
+
+        {/* Keep OpportunityManager below */}
+        <OpportunityManager opportunities={opportunities} />
       </div>
     </div>
   );

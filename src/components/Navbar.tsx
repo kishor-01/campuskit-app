@@ -32,6 +32,9 @@ export default function Navbar() {
             >
               Resources
             </Link>
+            
+            <Link href="/opportunities" className="text-muted-foreground hover:text-foreground px-3 py-2 rounded-md text-sm font-medium transition-colors">Opportunities</Link>
+            
             {/* <Link href="/blog" ...>Blog</Link> – can enable later */}
             <Link
               href="/about"
