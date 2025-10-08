@@ -2,92 +2,137 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   Theme variables and semantic surface colors
+   - Adds --surface (for navbar/footer/cards)
+   - Strengthens light theme muted/surface colors for visible blocks
+   ========================================================================== */
 
-
+/* ---------- LIGHT (default) ---------- */
 :root {
-  --background: 0 0% 100%; /* White */
-  --foreground: 222.2 84% 4.9%; /* Dark Slate Gray */
-  
-  --muted: 210 40% 96.1%; /* Light Gray */
-  --muted-foreground: 215.4 16.3% 46.9%; /* Medium Slate Gray */
+  --background: 0 0% 100%;        /* #fff */
+  --foreground: 330 8% 12%;       /* near-black */
 
-  --primary: 346.8 77.2% 49.8%; /* Our Brand's Pink/Red */
-  --primary-foreground: 355.7 100% 97.3%; /* Light Pink */
+  /* Surface is slightly darker than background to make nav/cards visible */
+  --surface: 342 60% 98%;         /* very light warm-pink tint */
+  --surface-border: 330 10% 90%;  /* subtle border color for surfaces */
+
+  /* Muted used for cards/components — now more visible than pure white */
+  --muted: 220 12% 96%;           /* light grayish */
+  --muted-foreground: 215 8% 28%;
+
+  --primary: 330 80% 48%;         /* vivid pink */
+  --primary-foreground: 330 6% 98%;
+  --glass: 0 0% 100% / 0.6;
 }
 
-/* Define the colors for our dark theme.
-  When the ThemeProvider adds the 'dark' class to our app,
-  these variables will override the default ones.
-*/
+/* ---------- DARK ---------- */
 .dark {
-  --background: 222.2 84% 4.9%; /* Dark Slate Gray */
-  --foreground: 210 40% 98%; /* Off-White */
+  --background: 220 18% 7%;
+  --foreground: 220 14% 96%;
 
-  --muted: 217.2 32.6% 17.5%; /* Lighter Dark Slate */
-  --muted-foreground: 215 20.2% 65.1%; /* Light Gray */
-  
-  --primary: 346.8 77.2% 49.8%; /* Our Brand's Pink/Red (Stays the same) */
-  --primary-foreground: 355.7 100% 97.3%; /* Light Pink (Stays the same) */
+  --surface: 220 14% 12%;         /* dark surface slightly lighter than bg */
+  --surface-border: 220 12% 18%;
+
+  --muted: 220 14% 14%;
+  --muted-foreground: 220 10% 68%;
+
+  --primary: 340 85% 55%;
+  --primary-foreground: 330 6% 98%;
 }
 
-/* NEW: Define the colors for our Solarized theme */
-.theme-solarized {
-  --background: 225 18% 96%; /* Creamy White */
-  --foreground: 224 23% 44%; /* Muted Blue */
+/* ---------- CELESTIAL (warm & energetic) ---------- */
+.celestial {
+  --background: 46 95% 96%;
+  --foreground: 213 25% 14%;
 
-  --muted: 225 18% 91%; /* Lighter Cream */
-  --muted-foreground: 224 16% 56%; /* Grayer Blue */
-  
-  --primary: 207 90% 54%; /* Bright Blue */
-  --primary-foreground: 0 0% 100%; /* White */
+  --surface: 46 90% 92%;          /* warm cream surface (darker than bg) */
+  --surface-border: 215 14% 86%;
+
+  --muted: 46 90% 88%;
+  --muted-foreground: 212 18% 38%;
+
+  --primary: 208 95% 45%;
+  --primary-foreground: 210 100% 100%;
 }
 
-/* NEW: Define the colors for our Rose Pine theme */
-.theme-rose-pine {
-  --background: 300 13% 15%; /* Dark Purple */
-  --foreground: 300 20% 90%; /* Light Rose */
+/* ---------- TWILIGHT (moody teal/purple) ---------- */
+.twilight {
+  --background: 210 14% 8%;
+  --foreground: 195 20% 94%;
 
-  --muted: 300 13% 20%; /* Slightly Lighter Purple */
-  --muted-foreground: 300 11% 55%; /* Muted Rose */
-  
-  --primary: 300 60% 70%; /* Bright Pink/Rose */
-  --primary-foreground: 300 13% 10%; /* Dark Purple for text on buttons */
+  --surface: 210 18% 12%;         /* slightly lighter than bg */
+  --surface-border: 210 20% 16%;
+
+  --muted: 210 22% 18%;
+  --muted-foreground: 200 18% 70%;
+
+  --primary: 280 60% 58%;
+  --primary-foreground: 0 0% 100%;
 }
 
-@layer base {
-  :root { /* Default "dark" monochrome theme */
-    --background: 18 18 18;      /* #121212 */
-    --foreground: 224 224 224;   /* #E0E0E0 */
-    --primary: 136 136 136;      /* #888888 */
-    --primary-foreground: 18 18 18;
-    --muted: 68 68 68;           /* #444444 */
-    --muted-foreground: 176 176 176; /* #B0B0B0 */
-  }
+/* ==========================================================================
+   Base mappings — make sure the semantic classes work across the app
+   ========================================================================== */
 
-  .dark { /* Mapped from sapphire */
-    --background: 17 45 78;      /* #112d4e */
-    --foreground: 247 232 211;   /* #f7e8d3 */
-    --primary: 19 125 197;       /* #137dc5 */
-    --primary-foreground: 255 255 255;
-    --muted: 0 207 200;          /* #00cfc8 */
-    --muted-foreground: 191 25 34; /* #bf1922 */
-  }
-
-  .celestial { /* Mapped from apricot-crush */
-    --background: 252 227 138;   /* #fce38a */
-    --foreground: 191 25 34;     /* #bf1922 */
-    --primary: 255 201 60;       /* #ffc93c */
-    --primary-foreground: 23 37 84;
-    --muted: 250 207 57;         /* #facf39 */
-    --muted-foreground: 201 147 131; /* #c99383 */
-  }
-  
-  .twilight { /* Mapped from deep-jewel */
-    --background: 26 26 26;      /* #1A1A1A */
-    --foreground: 240 240 240;   /* #F0F0F0 */
-    --primary: 0 77 97;          /* #004D61 */
-    --primary-foreground: 255 255 255;
-    --muted: 130 38 89;          /* #822659 */
-    --muted-foreground: 62 86 65; /* #3E5641 */
-  }
+/* Apply background / foreground using HSL var triplets */
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  transition: background-color 180ms ease, color 180ms ease;
 }
+
+/* Semantic helpers used in components */
+.bg-background { background-color: hsl(var(--background)); }
+.text-foreground { color: hsl(var(--foreground)); }
+
+.bg-surface { background-color: hsl(var(--surface)); }
+.border-surface { border-color: hsl(var(--surface-border)); }
+
+.bg-muted { background-color: hsl(var(--muted)); }
+.text-muted-foreground { color: hsl(var(--muted-foreground)); }
+
+/* Primary button helper */
+.btn-primary {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+/* Card / surface styling — makes blocks visible on light theme */
+.card {
+  background-color: hsl(var(--surface));
+  border: 1px solid hsl(var(--surface-border));
+  border-radius: 0.5rem;
+  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.06);
+  padding: 1rem;
+  transition: background-color 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+/* Navbar and footer default helpers */
+.app-header,
+.app-footer {
+  background-color: hsl(var(--surface));
+  border-top: 1px solid hsl(var(--surface-border));
+  border-bottom: 1px solid hsl(var(--surface-border));
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+/* Make sure interactive elements read well on surfaces */
+button, input, textarea, select {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+}
+
+/* Focus outlines for accessibility */
+:focus {
+  outline: 3px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Small utility classes to help keep consistent spacing/contrast in components */
+.surface-strong {
+  background-color: hsl(var(--surface));
+  border: 1px solid hsl(var(--surface-border));
+}
+
+/* Keep the rest of Tailwind stack intact */

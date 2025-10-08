@@ -1,11 +1,9 @@
 // src/app/layout.tsx
-
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "react-hot-toast";
-
-import Providers from "./providers"; // We only need this one provider component
+import { ThemeProvider } from "@/components/ThemeProvider";
+import Providers from "./providers";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -20,14 +18,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} bg-background text-foreground`}>
-        {/* We wrap everything in our single Providers component */}
-        <Providers>
-          <div className="flex flex-col min-h-screen">
-            <Navbar />
-            <main className="flex-grow">{children}</main>
-            <Footer />
-          </div>
-        </Providers>
+        {/* ThemeProvider must wrap the entire app so the 'class' attribute is set on the root */}
+        <ThemeProvider>
+          {/* Providers (e.g. SessionProvider) should be inside ThemeProvider or include it — keep them here */}
+          <Providers>
+            <div className="flex flex-col min-h-screen">
+              <Navbar />
+              <main className="flex-grow">{children}</main>
+              <Footer />
+            </div>
+          </Providers>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -6,37 +6,63 @@ export const authConfig = {
     signIn: "/login",
   },
   session: { strategy: "jwt" },
-  callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
-      console.log("IN MIDDLEWARE, auth object is:", auth);
 
+  // Make cookie settings explicit and safe for local dev vs production.
+  useSecureCookies: process.env.NODE_ENV === "production",
+
+  cookies: {
+    sessionToken: {
+      name: "authjs.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+    csrfToken: {
+      name: "authjs.csrf-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+    callbackUrl: {
+      name: "authjs.callback-url",
+      options: {
+        httpOnly: false,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
+
+  callbacks: {
+    // Keep your existing authorized logic
+    authorized({ auth, request: { nextUrl } }: any) {
       const isLoggedIn = !!auth?.user;
       const isAdminRoute = nextUrl.pathname.startsWith("/admin");
-
-      // ✅ NEW: Define additional protected routes for logged-in users
       const isProtectedRoute =
-        nextUrl.pathname.startsWith("/perks") ||
-        nextUrl.pathname.startsWith("/my-resources") ||
-        nextUrl.pathname.startsWith("/profile");
+        nextUrl.pathname.startsWith("/profile") ||
+        nextUrl.pathname.startsWith("/my-resources");
 
-      // ✅ Admin route protection
       if (isAdminRoute) {
-        if (isLoggedIn && auth.user.isAdmin) return true; // Allow if admin
-        return false; // Deny non-admins
+        if (isLoggedIn && auth.user.isAdmin) return true;
+        return false;
       }
 
-      // ✅ Logged-in-only routes (non-admin protected areas)
       if (isProtectedRoute) {
-        if (isLoggedIn) return true; // Allow if logged in
-        return false; // Redirect to login if not authenticated
+        if (isLoggedIn) return true;
+        return false;
       }
 
-      // ✅ Public routes (always accessible)
       return true;
     },
 
-    jwt({ token, user }) {
-      // ✅ Store user info in token on login
+    jwt({ token, user }: any) {
       if (user) {
         token.id = user.id;
         token.isAdmin = user.isAdmin;
@@ -44,14 +70,30 @@ export const authConfig = {
       return token;
     },
 
-    session({ session, token }) {
-      // ✅ Attach token data to session for client use
-      if (session.user) {
+    session({ session, token }: any) {
+      if (session.user && token) {
         session.user.id = token.id as string;
         session.user.isAdmin = token.isAdmin as boolean;
       }
       return session;
     },
+
+    // Sanitize where NextAuth will redirect after sign-in/sign-out.
+    redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
+      try {
+        // Create absolute URL
+        const resolved = new URL(url, baseUrl);
+        // Prevent redirecting to the sign-in page or other internal traps
+        if (resolved.pathname === "/login") return baseUrl + "/";
+        // Prevent open redirect to external origin
+        if (resolved.origin !== baseUrl) return baseUrl + "/";
+        // Otherwise allow relative or same-origin redirect
+        return resolved.toString();
+      } catch (e) {
+        return baseUrl + "/";
+      }
+    },
   },
-  providers: [], // ✅ Providers are defined in the main auth.ts file
+
+  providers: [],
 } satisfies NextAuthConfig;
