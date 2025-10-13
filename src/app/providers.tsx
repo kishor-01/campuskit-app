@@ -1,32 +1,24 @@
-// // src/app/providers.tsx
-
-// "use client";
-
-// import { SessionProvider } from "next-auth/react";
-// import { ThemeProvider } from "next-themes"; // Corrected import path
-
-// export default function Providers({ children }: { children: React.ReactNode }) {
-//   return (
-//     <SessionProvider>
-//       <ThemeProvider
-//         attribute="class"
-//         defaultTheme="light"
-//         themes={['light', 'dark', 'theme-solarized', 'theme-rose-pine']}
-//       >
-//         {children}
-//       </ThemeProvider>
-//     </SessionProvider>
-//   );
-// }
-
-// src/app/providers.tsx (Temporary Test)
-
+// src/app/providers.tsx
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-// We are temporarily removing ThemeProvider to isolate the issue
+import { Toaster } from "react-hot-toast";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-  // Only render the SessionProvider for now
-  return <SessionProvider>{children}</SessionProvider>;
+  return (
+    <SessionProvider>
+      {children}
+      {/* Global toast container */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            borderRadius: 8,
+            padding: '8px 12px',
+            fontSize: '14px',
+          },
+        }}
+      />
+    </SessionProvider>
+  );
 }

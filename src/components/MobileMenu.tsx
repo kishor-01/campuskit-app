@@ -1,10 +1,10 @@
+// src/components/MobileMenu.tsx
 "use client";
 
 import React, { useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSession, signOut } from "next-auth/react";
-import ThemeToggle from "./ThemeToggle";
+import useFocusTrap from "@/hooks/useFocusTrap";
 import { X } from "lucide-react";
 
 type MobileMenuProps = {
@@ -13,139 +13,45 @@ type MobileMenuProps = {
 };
 
 export default function MobileMenu({ open, onClose }: MobileMenuProps) {
-  const { status, data: session } = useSession();
   const panelRef = useRef<HTMLDivElement | null>(null);
 
-  // Close on Escape or outside clicks
+  // focus trap when open
+  useFocusTrap(panelRef, open);
+
+  // Close on Escape
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
-    function onPointer(e: PointerEvent) {
-      const t = e.target as Node | null;
-      if (!open) return;
-      if (!panelRef.current) return;
-      if (!panelRef.current.contains(t)) onClose();
-    }
-
+    if (!open) return;
     document.addEventListener("keydown", onKey);
-    document.addEventListener("pointerdown", onPointer);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("pointerdown", onPointer);
-    };
+    return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
   // prevent body scroll when open
   useEffect(() => {
     if (open) {
+      const prev = document.body.style.overflow;
       document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
+      return () => {
+        document.body.style.overflow = prev;
+      };
     }
-    return () => {
-      document.body.style.overflow = "";
-    };
   }, [open]);
 
-  const panel = (
-    <motion.div
-      ref={panelRef}
-      initial={{ x: "100%" }}
-      animate={{ x: 0 }}
-      exit={{ x: "100%" }}
-      transition={{ type: "spring", stiffness: 280, damping: 30 }}
-      className="fixed inset-y-0 right-0 w-full max-w-xs sm:max-w-sm bg-surface shadow-2xl z-50 border-l border-surface-border"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="flex items-center justify-between px-4 py-3 border-b border-surface-border">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center font-bold text-primary">CK</div>
-          <span className="font-semibold text-lg text-foreground">CampusKit</span>
-        </div>
-        <button
-          onClick={onClose}
-          aria-label="Close menu"
-          className="p-2 rounded-md hover:bg-muted transition-colors"
-        >
-          <X className="h-5 w-5 text-muted-foreground" />
-        </button>
-      </div>
-
-      <nav className="px-4 py-6 space-y-4">
-        <Link onClick={onClose} href="/resources" className="block text-foreground font-medium px-2 py-2 rounded-md hover:bg-muted">
-          Resources
-        </Link>
-        <Link onClick={onClose} href="/opportunities" className="block text-foreground font-medium px-2 py-2 rounded-md hover:bg-muted">
-          Opportunities
-        </Link>
-        <Link onClick={onClose} href="/blog" className="block text-foreground font-medium px-2 py-2 rounded-md hover:bg-muted">
-          Blog
-        </Link>
-        <Link onClick={onClose} href="/about" className="block text-foreground font-medium px-2 py-2 rounded-md hover:bg-muted">
-          About
-        </Link>
-        <Link onClick={onClose} href="/contact" className="block text-foreground font-medium px-2 py-2 rounded-md hover:bg-muted">
-          Contact
-        </Link>
-
-        <div className="border-t border-surface-border mt-4 pt-4 space-y-3">
-          {status === "loading" && <div className="h-8 w-full bg-muted rounded-md animate-pulse" />}
-
-          {status === "unauthenticated" && (
-            <>
-              <Link onClick={onClose} href="/login" className="block w-full text-center px-4 py-2 rounded-md bg-primary text-primary-foreground font-semibold">
-                Login
-              </Link>
-              <Link onClick={onClose} href="/signup" className="block w-full text-center px-4 py-2 rounded-md border border-surface-border">
-                Sign Up
-              </Link>
-            </>
-          )}
-
-          {status === "authenticated" && session && (
-            <>
-              <div className="px-2">
-                <p className="text-sm font-semibold text-foreground truncate">{session.user?.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{session.user?.email}</p>
-              </div>
-
-              <Link onClick={onClose} href="/profile" className="block px-2 py-2 text-foreground hover:bg-muted rounded-md">
-                My Profile
-              </Link>
-
-              <Link onClick={onClose} href="/my-resources" className="block px-2 py-2 text-foreground hover:bg-muted rounded-md">
-                Saved Resources
-              </Link>
-
-              <button
-                onClick={() => { onClose(); signOut({ callbackUrl: "/" }); }}
-                className="w-full text-left px-4 py-2 rounded-md text-sm text-red-500 hover:bg-red-500/10"
-              >
-                Logout
-              </button>
-            </>
-          )}
-        </div>
-
-        <div className="pt-4 border-t border-surface-border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Theme</p>
-              <p className="text-xs text-muted-foreground/80">Tap to cycle</p>
-            </div>
-            <div>
-              <ThemeToggle />
-            </div>
-          </div>
-        </div>
-      </nav>
-    </motion.div>
-  );
+  const navItems = [
+    { href: "/resources", label: "Resources" },
+    { href: "/opportunities", label: "Opportunities" },
+    { href: "/tools", label: "Tools" },
+    { href: "/roadmaps", label: "Roadmaps" },
+    { href: "/goals", label: "Goals" },
+    { href: "/blog", label: "Blog" },
+    { href: "/about", label: "About" },
+    { href: "/contact", label: "Contact" },
+  ];
 
   return (
-    <AnimatePresence>
+    <AnimatePresence initial={false}>
       {open && (
         <>
           {/* backdrop */}
@@ -159,7 +65,62 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
             onClick={onClose}
             aria-hidden="true"
           />
-          {panel}
+
+          {/* Sliding panel: Narrow, clamped width */}
+          <motion.div
+            ref={panelRef}
+            id="mobile-menu"
+            key="panel"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", stiffness: 280, damping: 30 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Mobile menu"
+            className="fixed inset-y-0 right-0 z-50 border-l border-surface-border bg-surface shadow-2xl
+                       w-[min(68vw,320px)] sm:w-[min(56vw,360px)] mobile-safe overflow-y-auto"
+          >
+            {/* Header: CampusKit name and close button (2rem gap: ml-8) */}
+            <div className="flex items-center px-4 py-3">
+              <span className="font-semibold text-lg text-foreground">CampusKit</span>
+
+              <button
+                onClick={onClose}
+                aria-label="Close menu"
+                className="ml-8 p-2 rounded-md hover:bg-muted transition-colors"
+                title="Close menu"
+              >
+                <X className="h-5 w-5 text-muted-foreground" />
+              </button>
+            </div>
+
+            {/* Short centered divider */}
+            <div className="flex justify-center" aria-hidden="true">
+              <span className="block w-12 h-px bg-surface-border rounded" />
+            </div>
+
+            {/* Nav links (left aligned, do not stretch full width) */}
+            <nav className="px-4 py-6" aria-label="Mobile primary">
+              <div className="flex flex-col gap-2">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => {
+                      onClose();
+                    }}
+                    className="self-start inline-flex items-center px-3 py-2 rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+
+              {/* bottom spacer to respect safe-area */}
+              <div className="h-6" />
+            </nav>
+          </motion.div>
         </>
       )}
     </AnimatePresence>

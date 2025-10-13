@@ -1,5 +1,3 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -24,12 +22,18 @@ enum OpportunityType {
   SEMINAR
   SCHOLARSHIP
   COMPETITION
-  DEAL // ✅ Kept as type of Opportunity
+  DEAL
 }
 
 enum ArticleStatus {
   DRAFT
   PUBLISHED
+}
+
+enum OpportunityStatus {
+  PENDING
+  PUBLISHED
+  REJECTED
 }
 
 // --- Main Application Models ---
@@ -51,6 +55,7 @@ model User {
   savedResources     SavedResource[]
   submittedResources Resource[]      @relation("UserSubmissions")
   articles           Article[]       @relation("ArticleAuthor")
+  goals              Goal[]          // ADDED: Goal Architect relation
 }
 
 model Resource {
@@ -67,6 +72,11 @@ model Resource {
   savedByUsers  SavedResource[]
   submittedBy   User?          @relation("UserSubmissions", fields: [submittedById], references: [id], onDelete: SetNull)
   submittedById String?
+  
+  // This is the other side of the many-to-many relationship
+  partOfRoadmapSteps RoadmapStepResource[]
+  linkedToGoals      GoalResource[] // ADDED: Goal Architect relation
+  linkedToTopics     TopicResource[] // ADDED: Topic -> Resource relation
 }
 
 model Category {
@@ -84,19 +94,19 @@ model ContactMessage {
 }
 
 model Opportunity {
-  id           String          @id @default(cuid())
+  id           String           @id @default(cuid())
   title        String
   organization String
   location     String
   type         OpportunityType
-  description  String          @db.Text
+  description  String           @db.Text
   applyUrl     String
   imageUrl     String?
   startDate    DateTime?
   endDate      DateTime?
-  status       ResourceStatus  @default(PENDING)
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  status       OpportunityStatus @default(PUBLISHED)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 }
 
 model Article {
@@ -113,6 +123,139 @@ model Article {
 
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+}
+
+// --- Roadmap Hub Models ---
+model Roadmap {
+  id          String   @id @default(cuid())
+  title       String   @unique
+  slug        String   @unique
+  description String   @db.Text
+  imageUrl    String?
+  isPublished Boolean  @default(false)
+  
+  steps       RoadmapStep[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+}
+
+model RoadmapStep {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @db.Text
+  order       Int      // To define the sequence (1, 2, 3...)
+
+  roadmapId   String
+  roadmap     Roadmap  @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+
+  // This creates the many-to-many link to our existing Resource model
+  linkedResources RoadmapStepResource[]
+
+  @@unique([roadmapId, order])
+}
+
+// This is the "join table" connecting a step to multiple resources
+model RoadmapStepResource {
+  roadmapStepId String
+  resourceId    String
+
+  roadmapStep   RoadmapStep @relation(fields: [roadmapStepId], references: [id], onDelete: Cascade)
+  resource      Resource    @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@id([roadmapStepId, resourceId])
+}
+
+// --- Goal Architect Models ---
+model Goal {
+  id          String   @id @default(cuid())
+  title       String
+  targetDate  DateTime?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // For the Goal Templates feature
+  isTemplate  Boolean  @default(false)
+  
+  milestones  Milestone[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Milestone {
+  id        String   @id @default(cuid())
+  title     String   // e.g., "Data Structures & Algorithms"
+  order     Int      // For reordering
+  
+  goalId    String
+  goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  
+  topics    Topic[]
+  
+  @@unique([goalId, order])
+}
+
+model Topic {
+  id          String    @id @default(cuid())
+  title       String    // e.g., "Sorting Algorithms"
+  order       Int
+  
+  milestoneId String
+  milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  
+  subTopics   SubTopic[]
+
+  // NEW: general editor note for the topic
+  note        String?   @db.Text
+
+  // NEW: linked resources for topic
+  linkedResources TopicResource[]
+
+  @@unique([milestoneId, order])
+}
+
+model SubTopic {
+  id          String  @id @default(cuid())
+  title       String  // e.g., "Quicksort"
+  order       Int
+  isCompleted Boolean @default(false) // For progress tracking
+  
+  topicId     String
+  topic       Topic   @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  linkedResources GoalResource[]
+
+  // NEW: general editor note for the subtopic
+  note        String? @db.Text
+
+  @@unique([topicId, order])
+}
+
+// Join table for linking resources to sub-topics with a personal note
+model GoalResource {
+  id           String  @id @default(cuid())
+  personalNote String? @db.Text
+
+  subTopicId   String
+  subTopic     SubTopic @relation(fields: [subTopicId], references: [id], onDelete: Cascade)
+  
+  resourceId   String
+  resource     Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@unique([subTopicId, resourceId])
+}
+
+// NEW: join table for linking resources to topics (with personal note)
+model TopicResource {
+  id           String  @id @default(cuid())
+  personalNote String? @db.Text
+
+  topicId      String
+  topic        Topic   @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  resourceId   String
+  resource     Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@unique([topicId, resourceId])
 }
 
 // --- Join Table ---
@@ -159,4 +302,29 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// Affiliate engine models
+model AffiliatePartner {
+  id          String         @id @default(cuid())
+  name        String         @unique
+  website     String
+  description String?
+  
+  links       AffiliateLink[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @default(now()) @updatedAt
+}
+
+model AffiliateLink {
+  id          String   @id @default(cuid())
+  name        String
+  url         String   @unique
+  slug        String   @unique
+  
+  partnerId   String
+  partner     AffiliatePartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }

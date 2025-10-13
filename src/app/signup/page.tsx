@@ -9,7 +9,7 @@ import { useSession } from "next-auth/react";
 import { Lock, Mail, User, BookText, Eye, EyeOff } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { signIn } from "next-auth/react";
-import { registerUser } from "@/app/actions";
+import { registerUser } from "@/action";
 
 const containerVariants = {
   hidden: { opacity: 0 },

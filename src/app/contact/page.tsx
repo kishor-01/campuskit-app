@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useFormState } from "react-dom"; // UPDATED: Import useFormState from react-dom
 import { useFormStatus } from "react-dom";
-import { sendContactMessage } from "@/app/actions";
+import { sendContactMessage } from "@/actions";
 import { motion } from "framer-motion";
 import {
   Youtube,

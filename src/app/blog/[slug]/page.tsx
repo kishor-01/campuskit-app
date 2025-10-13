@@ -1,11 +1,11 @@
 // src/app/blog/[slug]/page.tsx
 
+import MarkdownRenderer from '@/components/shared/MarkdownRenderer'; // UPDATED: Use our custom renderer
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+// REMOVED: No longer need to import ReactMarkdown or remarkGfm directly here
 
 export default async function ArticlePage({ params }: { params: { slug: string } }) {
   // Fetch the specific article by its slug
@@ -50,9 +50,8 @@ export default async function ArticlePage({ params }: { params: { slug: string }
                         prose-headings:text-foreground prose-p:text-muted-foreground 
                         prose-a:text-primary prose-strong:text-foreground
                         prose-blockquote:border-primary prose-code:text-primary">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {article.content}
-            </ReactMarkdown>
+            {/* UPDATED: Replaced ReactMarkdown with our custom component */}
+            <MarkdownRenderer content={article.content} />
           </div>
         </article>
 

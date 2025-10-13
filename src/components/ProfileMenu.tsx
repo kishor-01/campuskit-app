@@ -1,10 +1,13 @@
+
+// src/components/ProfileMenu.tsx
+
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { UserCircle2, LogOut, LayoutGrid, User } from "lucide-react";
+import { UserCircle2, LogOut, LayoutGrid, User, Target } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 
 export default function ProfileMenu() {
@@ -70,6 +73,10 @@ export default function ProfileMenu() {
               </Link>
               <Link href="/my-resources" onClick={() => setIsOpen(false)} className="flex items-center w-full px-4 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
                 <LayoutGrid className="w-4 h-4 mr-2" /> Saved Resources
+              </Link>
+              {/* NEW: My Goals Link */}
+              <Link href="/my-goals" onClick={() => setIsOpen(false)} className="flex items-center w-full px-4 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+                <Target className="w-4 h-4 mr-2" /> My Goals
               </Link>
             </div>
 

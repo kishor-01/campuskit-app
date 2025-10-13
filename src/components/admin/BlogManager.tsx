@@ -1,15 +1,21 @@
-// src/components/admin/BlogManager.tsx
 "use client";
 
 import { useFormState } from "react-dom";
-import { createArticle, deleteArticle, updateArticle } from "@/app/actions";
+import { createArticle, deleteArticle, updateArticle } from "@/actions";
 import type { Article } from "@prisma/client";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Trash2, Edit, X, Check } from "lucide-react";
 import { SubmitButton } from "./SubmitButton";
 
-function ArticleRow({ article }: { article: Article }) {
+// FIX: ArticleRow now accepts the deleteAction prop from its parent
+function ArticleRow({ 
+    article,
+    deleteAction
+}: { 
+    article: Article;
+    deleteAction: (payload: FormData) => void;
+}) {
     const [isEditing, setIsEditing] = useState(false);
     const [updateState, updateAction] = useFormState(updateArticle, { message: "" });
     
@@ -25,6 +31,7 @@ function ArticleRow({ article }: { article: Article }) {
     }, [updateState]);
 
     if (isEditing) {
+        // The editing form is correct and remains the same
         return (
             <form action={updateAction} className="bg-background p-3 rounded-lg space-y-2 border border-primary">
                 <input type="hidden" name="id" value={article.id} />
@@ -56,9 +63,21 @@ function ArticleRow({ article }: { article: Article }) {
                 <button onClick={() => setIsEditing(true)} className="p-2 text-muted-foreground hover:bg-muted rounded-full">
                     <Edit className="w-4 h-4" />
                 </button>
-                <form action={deleteArticle}>
-                    <input type="hidden" name="articleId" value={article.id} />
-                    <button type="submit" className="p-2 text-red-500 hover:bg-red-500/10 rounded-full" aria-label="Delete article">
+                {/* FIX: The form now uses the deleteAction from props */}
+                <form action={deleteAction}>
+                    {/* FIX: The input name is now 'id' */}
+                    <input type="hidden" name="id" value={article.id} />
+                    {/* FIX: Added onClick for confirmation */}
+                    <button 
+                        type="submit" 
+                        className="p-2 text-red-500 hover:bg-red-500/10 rounded-full" 
+                        aria-label="Delete article"
+                        onClick={(e) => {
+                            if (!window.confirm("Are you sure you want to delete this article?")) {
+                                e.preventDefault();
+                            }
+                        }}
+                    >
                         <Trash2 className="w-4 h-4" />
                     </button>
                 </form>
@@ -69,6 +88,8 @@ function ArticleRow({ article }: { article: Article }) {
 
 export default function BlogManager({ articles }: { articles: Article[] }) {
   const [createState, createAction] = useFormState(createArticle, { message: "" });
+  // FIX: Added useFormState for the delete action here in the parent
+  const [deleteState, deleteAction] = useFormState(deleteArticle, { message: "" });
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -86,11 +107,22 @@ export default function BlogManager({ articles }: { articles: Article[] }) {
     }
   }, [createState]);
 
+  // FIX: Added useEffect to handle delete toasts
+  useEffect(() => {
+    if (deleteState?.message) {
+      toast.success(deleteState.message);
+    }
+    if (deleteState?.error) {
+      toast.error(deleteState.error);
+    }
+  }, [deleteState]);
+
+
   return (
     <div className="bg-muted/50 p-6 rounded-lg col-span-full">
       <h2 className="text-2xl font-bold text-foreground mb-4">Blog Manager</h2>
       
-      {/* CREATE FORM - Fixed with proper form structure */}
+      {/* The CREATE FORM is correct */}
       <form 
         ref={formRef} 
         action={createAction} 
@@ -105,7 +137,6 @@ export default function BlogManager({ articles }: { articles: Article[] }) {
             className="w-full p-2 bg-background border border-muted rounded-lg text-lg font-semibold"
           />
         </div>
-        
         <div>
           <textarea 
             name="excerpt" 
@@ -115,7 +146,6 @@ export default function BlogManager({ articles }: { articles: Article[] }) {
             className="w-full p-2 bg-background border border-muted rounded-lg text-sm"
           />
         </div>
-        
         <div>
           <textarea 
             name="content" 
@@ -125,7 +155,6 @@ export default function BlogManager({ articles }: { articles: Article[] }) {
             className="w-full p-2 bg-background border border-muted rounded-lg font-mono text-sm"
           />
         </div>
-        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <input 
@@ -135,7 +164,6 @@ export default function BlogManager({ articles }: { articles: Article[] }) {
               className="w-full p-2 bg-background border border-muted rounded-lg"
             />
           </div>
-          
           <div>
             <select 
               name="status" 
@@ -148,7 +176,6 @@ export default function BlogManager({ articles }: { articles: Article[] }) {
             </select>
           </div>
         </div>
-        
         <div>
           <SubmitButton text="Create Article" />
         </div>
@@ -157,7 +184,8 @@ export default function BlogManager({ articles }: { articles: Article[] }) {
       <div className="space-y-2">
         <h3 className="font-bold text-lg mb-2">Existing Articles</h3>
         {articles.map((article) => (
-          <ArticleRow key={article.id} article={article} />
+          // FIX: Pass the deleteAction down as a prop
+          <ArticleRow key={article.id} article={article} deleteAction={deleteAction} />
         ))}
         {articles.length === 0 && (
           <p className="text-muted-foreground text-center py-4">No articles yet. Create your first one above!</p>

@@ -1,3 +1,4 @@
+
 // src/app/opportunities/page.tsx
 
 import prisma from "@/lib/prisma";
@@ -6,7 +7,7 @@ import OpportunityList from "@/components/OpportunityList";
 export default async function OpportunitiesPage() {
   const opportunities = await prisma.opportunity.findMany({
     where: {
-      status: 'APPROVED',
+      status: 'PUBLISHED', // CHANGED: 'APPROVED' → 'PUBLISHED'
     },
     orderBy: {
       createdAt: 'desc',

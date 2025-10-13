@@ -27,6 +27,7 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "resend": "^6.1.2",
+    "use-debounce": "^10.0.6",
     "zod": "^4.1.11"
   },
   "devDependencies": {

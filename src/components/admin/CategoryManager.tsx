@@ -1,7 +1,7 @@
 // src/components/admin/CategoryManager.tsx
 "use client";
 import { useFormState } from "react-dom";
-import { manageCategory, deleteCategory } from "@/app/actions";
+import { manageCategory, deleteCategory } from "@/actions";
 import type { Category } from "@prisma/client";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";

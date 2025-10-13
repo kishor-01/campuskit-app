@@ -1,30 +1,42 @@
 // src/app/resources/page.tsx
+import { auth } from '@/auth';
+import prisma from '@/lib/prisma';
+import ResourceList from '@/components/ResourceList';
+import React from 'react';
 
-import { auth } from "@/auth";
-import prisma from "@/lib/prisma";
-import ResourceList from "@/components/ResourceList"; // Import our new Client Component
-
-// This page is now a pure Server Component. No "use client" here.
 export default async function ResourcesPage() {
-  const session = await auth();
-  const userId = session?.user?.id;
+  try {
+    const session = await auth();
+    const userId = session?.user?.id;
 
-  // Fetch all the initial data on the server
-  const [resources, savedResources] = await Promise.all([
-    prisma.resource.findMany({
-      include: { category: true },
-      orderBy: { createdAt: "desc" },
-    }),
-    userId ? prisma.savedResource.findMany({ where: { userId } }) : [],
-  ]);
+    // Fetch initial data
+    const [resources, savedResources] = await Promise.all([
+      prisma.resource.findMany({
+        where: { status: 'APPROVED' },
+        include: { category: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+      userId ? prisma.savedResource.findMany({ where: { userId } }) : [],
+    ]);
 
-  const savedResourceIds = new Set(savedResources.map((s) => s.resourceId));
+    const savedResourceIds = new Set(savedResources.map((s) => s.resourceId));
+    const allResources = resources.map((resource) => ({
+      ...resource,
+      isInitiallySaved: savedResourceIds.has(resource.id),
+    }));
 
-  const allResources = resources.map(resource => ({
-    ...resource,
-    isInitiallySaved: savedResourceIds.has(resource.id)
-  }));
-
-  // Render the Client Component and pass the data to it as props
-  return <ResourceList resources={allResources} />;
+    return <ResourceList resources={allResources} />;
+  } catch (err) {
+    console.error('ResourcesPage server error:', err);
+    return (
+      <div className="min-h-screen flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="mx-auto mb-6 w-28 h-28 rounded-full flex items-center justify-center animate-spin-slow" style={{ border: '6px solid rgba(0,0,0,0.06)', borderTopColor: 'hsl(var(--primary))' }} />
+          <h2 className="text-2xl font-bold mb-2">Hang tight — we’re fetching resources</h2>
+          <p className="text-muted-foreground max-w-md mx-auto">We hit a small snag loading resources. Our systems are looking into it; try refreshing in a bit.</p>
+        </div>
+        <style>{`.animate-spin-slow { animation: spin 1.6s linear infinite; } @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 }

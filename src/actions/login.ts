@@ -1,31 +1,70 @@
-// src/actions/login.ts
-"use server";
+// /src/actions/authActions.ts
+'use server';
 
-import { signIn } from "@/auth"; // server-side signIn from NextAuth
 import { AuthError } from "next-auth";
+import { signIn, auth } from "@/auth";
+import prisma from "@/lib/prisma";
+import bcrypt from "bcrypt";
+import { Resend } from "resend";
 
+/**
+ * Handles user login via credentials.
+ */
 export async function authenticate(prevState: string | undefined, formData: FormData) {
   try {
-    console.log("[Server Action] Authenticating user...");
-
-    // prefer explicit callbackUrl from the form
-    const providedCb = (formData.get("callbackUrl") as string) || "/";
-    // call signIn and pass callbackUrl explicitly — avoids stray cookie wins
-    await signIn("credentials", formData, { callbackUrl: providedCb });
-
-    console.log("[Server Action] Sign-in triggered (NextAuth will handle redirect).");
+    const callbackUrl = (formData.get("callbackUrl") as string) || "/";
+    await signIn("credentials", formData, { callbackUrl });
   } catch (error) {
     if (error instanceof AuthError) {
       switch (error.type) {
         case "CredentialsSignin":
-          console.log("[Server Action] Invalid credentials error caught.");
           return "Invalid credentials. Please try again.";
         default:
-          console.log("[Server Action] Unknown auth error caught.");
           return "Something went wrong. Please try again.";
       }
     }
-    // Re-throw non-AuthError so NEXT_REDIRECT works correctly
+    // Re-throw other errors for Next.js to handle
     throw error;
   }
+}
+
+/**
+ * Handles new user registration.
+ */
+export async function registerUser(prevState: any, formData: FormData) {
+  try {
+    const name = formData.get("name") as string;
+    const username = formData.get("username") as string;
+    const education = formData.get("education") as string;
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    if (!email || !password || !name || !username || !education) {
+      return { success: false, message: "All fields are required." };
+    }
+
+    const existingUser = await prisma.user.findFirst({
+      where: { OR: [{ email }, { username }] },
+    });
+
+    if (existingUser) {
+      return { success: false, message: "User with that email or username already exists." };
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await prisma.user.create({
+      data: { name, username, education, email, password: hashedPassword },
+    });
+
+    return { success: true, message: "Account created successfully!" };
+  } catch (error) {
+    return { success: false, message: "Something went wrong during signup." };
+  }
+}
+
+/**
+ * Handles the public contact form submission.
+ */
+export async function sendContactMessage(prevState: any, formData: FormData) {
+    // ... your full sendContactMessage function logic ...
 }
