@@ -21,6 +21,7 @@ export default async function AffiliateManagementPage({
   const sort = searchParams.sort || "createdAt-desc";
   const query = searchParams.q;
   const [field, order] = sort.split("-");
+
   const orderBy = { [field]: order };
 
   const where = query
@@ -53,6 +54,7 @@ export default async function AffiliateManagementPage({
           <SortControl options={sortOptions} />
         </div>
       </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1">
           <AffiliatePartnerManager partners={partners} />

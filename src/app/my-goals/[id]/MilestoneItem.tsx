@@ -1,162 +1,152 @@
+// src/app/my-goals/[id]/MilestoneItem.tsx
 'use client'
 
-import { useState } from 'react';
-import { Milestone, Topic, SubTopic, Resource } from '@prisma/client';
-import { createTopic, updateMilestone, deleteMilestone } from '@/actions/goalActions';
-import { createTopicTyped, deleteMilestoneTyped } from '@/actions/goalActions';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { useActionState, useEffect, useState, useTransition, useRef } from 'react';
+import { Milestone, Topic, SubTopic, Resource, GoalResource, TopicResource } from '@prisma/client';
+import { createTopic, updateMilestone } from '@/actions';
+import { Plus, Edit, Trash2, ChevronDown } from 'lucide-react';
 import TopicItem from './TopicItem';
 import ProgressBar from '@/components/ProgressBar';
-import toast from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
-type SubTopicWithLinks = SubTopic & { linkedResources?: any[], note?: string | null };
-type TopicWithSubTopics = Topic & { subTopics: SubTopicWithLinks[], linkedResources?: any[], note?: string | null };
+// Define the complex nested types for props
+type SubTopicWithLinks = SubTopic & { linkedResources: (GoalResource & { resource: { name: string, url: string } })[]; note?: string | null };
+type TopicWithSubTopics = Topic & { subTopics: SubTopicWithLinks[]; linkedResources: (TopicResource & { resource: { name: string, url: string } })[]; note?: string | null };
 type MilestoneWithTopics = Milestone & { topics: TopicWithSubTopics[] };
 
-export default function MilestoneItem({ milestone, allResources }: { milestone: MilestoneWithTopics, allResources: Resource[] }) {
+export default function MilestoneItem({ 
+  milestone, 
+  allResources,
+  deleteAction
+}: { 
+  milestone: MilestoneWithTopics, 
+  allResources: Resource[],
+  deleteAction: (payload: FormData) => void 
+}) {
   const [isEditing, setIsEditing] = useState(false);
-  const [localTopics, setLocalTopics] = useState<TopicWithSubTopics[]>((milestone.topics ?? []).map(t => ({ ...t, subTopics: t.subTopics ?? [], linkedResources: t.linkedResources ?? [], note: t.note ?? null })));
-  const [isCreating, setIsCreating] = useState(false);
-  const [titleValue, setTitleValue] = useState('');
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Compute milestone progress
+  const [updateState, updateAction] = useActionState(updateMilestone, { message: null, error: null });
+  const [createTopicState, createTopicAction] = useActionState(createTopic, { message: null, error: null });
+
+  useEffect(() => {
+    if (updateState?.message) {
+      toast.success(updateState.message);
+      setIsEditing(false);
+      startTransition(() => router.refresh());
+    }
+    if (updateState?.error) toast.error(updateState.error);
+  }, [updateState, router]);
+  
+  useEffect(() => {
+    if (createTopicState?.message) {
+      toast.success(createTopicState.message);
+      formRef.current?.reset();
+      startTransition(() => router.refresh());
+    }
+    if (createTopicState?.error) toast.error(createTopicState.error);
+  }, [createTopicState, router]);
+
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [isEditing]);
+
   const { totalSubTopics, completedSubTopics } = (() => {
-    let total = 0;
-    let completed = 0;
-    for (const t of localTopics) {
-      const subs = Array.isArray(t.subTopics) ? t.subTopics : [];
-      total += subs.length;
-      completed += subs.filter(s => s.isCompleted).length;
+    let total = 0, completed = 0;
+    for (const t of milestone.topics) {
+      for (const s of t.subTopics) {
+        total++;
+        if (s.isCompleted) completed++;
+      }
     }
     return { totalSubTopics: total, completedSubTopics: completed };
   })();
-
   const percent = totalSubTopics === 0 ? 0 : Math.round((completedSubTopics / totalSubTopics) * 100);
 
-  // Optimistic create topic
-  const handleCreateTopic = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    const title = titleValue.trim();
-    if (!title) {
-      toast.error('Topic title cannot be empty');
-      return;
-    }
-    const tmpId = `tmp-topic-${Date.now()}`;
-    const optimisticTopic: TopicWithSubTopics = { id: tmpId, title, order: (localTopics.length ? Math.max(...localTopics.map(t=>t.order)) + 1 : 1), milestoneId: milestone.id, subTopics: [], linkedResources: [], note: null };
-    setLocalTopics(prev => [...prev, optimisticTopic]);
-    setTitleValue('');
-    setIsCreating(true);
-
-    try {
-      const created: any = await createTopicTyped(milestone.id, title);
-      // normalize server result to include subTopics, linkedResources and note
-      const normalized = { ...created, subTopics: created.subTopics ?? [], linkedResources: created.linkedResources ?? [], note: created.note ?? null } as TopicWithSubTopics;
-      setLocalTopics(prev => prev.map(t => t.id === tmpId ? normalized : t));
-      toast.success('Topic created');
-    } catch (err) {
-      console.error('createTopicTyped failed', err);
-      setLocalTopics(prev => prev.filter(t => t.id !== tmpId));
-      toast.error('Failed to create topic');
-    } finally {
-      setIsCreating(false);
-    }
-  };
-
-  const handleDeleteMilestone = async (ev?: React.MouseEvent) => {
-    if (!confirm('Are you sure you want to delete this milestone?')) return;
-    try {
-      await deleteMilestoneTyped(milestone.id);
-      toast.success('Milestone deleted');
-    } catch (err) {
-      console.error('deleteMilestoneTyped failed', err);
-      toast.error('Failed to delete milestone');
-    }
-  };
-
   return (
-    <div className="bg-muted/50 p-6 rounded-lg">
-      {isEditing ? (
-        <form
-          action={async (formData) => {
-            await updateMilestone(formData);
-            setIsEditing(false);
-            toast.success('Milestone updated');
-          }}
-          className="flex items-center gap-2 mb-4"
-        >
-          <input type="hidden" name="id" value={milestone.id} />
-          <input
-            name="title"
-            defaultValue={milestone.title}
-            className="flex-grow p-2 text-2xl font-bold bg-input rounded-md"
-            autoFocus
-            required
-          />
-          <button type="submit" className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md font-semibold hover:bg-primary/90">
-            Save
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsEditing(false)}
-            className="px-4 py-2 text-sm bg-muted-foreground/20 rounded-md hover:bg-muted-foreground/30"
-          >
-            Cancel
-          </button>
-        </form>
-      ) : (
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold">{milestone.title}</h2>
-            <div className="mt-3 max-w-2xl">
-              <ProgressBar percent={percent} label={totalSubTopics === 0 ? 'No sub-topics yet' : `${completedSubTopics}/${totalSubTopics} subtopics completed`} />
-            </div>
-          </div>
-          <div className="flex items-center gap-2 ml-6">
-            <button
-              onClick={() => setIsEditing(true)}
-              className="p-1 hover:text-blue-500 transition-colors"
-              title="Edit milestone"
-            >
-              <Edit size={16} />
-            </button>
-            <button
-              onClick={handleDeleteMilestone}
-              className="p-1 hover:text-destructive transition-colors"
-              title="Delete milestone"
-            >
-              <Trash2 size={16} />
-            </button>
+    <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+      {/* Milestone Header */}
+      <div className="flex items-center p-4 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+        <ChevronDown className={`w-5 h-5 text-muted-foreground mr-3 transition-transform ${isExpanded ? 'rotate-0' : '-rotate-90'}`} />
+        <div className="flex-grow">
+          {isEditing ? (
+            <form action={updateAction} className="flex items-center gap-2">
+              <input type="hidden" name="id" value={milestone.id} />
+              <input
+                ref={inputRef}
+                name="title"
+                defaultValue={milestone.title}
+                className="flex-grow p-1 text-xl font-bold bg-input rounded-md"
+                onClick={(e) => e.stopPropagation()}
+                required
+              />
+              <motion.button type="submit" whileTap={{ scale: 0.95 }} className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md font-semibold">Save</motion.button>
+              <motion.button type="button" whileTap={{ scale: 0.95 }} onClick={() => setIsEditing(false)} className="px-3 py-1 text-sm bg-muted rounded-md">Cancel</motion.button>
+            </form>
+          ) : (
+            <h2 className="text-xl font-bold">{milestone.title}</h2>
+          )}
+          <div className="mt-2 max-w-md">
+            <ProgressBar percent={percent} label={`${completedSubTopics}/${totalSubTopics} sub-topics`} />
           </div>
         </div>
-      )}
-
-      {/* List of Topics using the new component */}
-      <div className="space-y-3 mb-6">
-        {localTopics.map(topic => (
-          <TopicItem key={topic.id} topic={topic} allResources={allResources} />
-        ))}
+        {!isEditing && (
+            <div className="flex items-center gap-2 ml-4">
+                <button onClick={(e) => { e.stopPropagation(); setIsEditing(true);}} className="p-2 rounded-md hover:bg-muted" title="Edit milestone"><Edit size={16} /></button>
+                <form action={deleteAction}>
+                    <input type="hidden" name="id" value={milestone.id} />
+                    <button type="submit" className="p-2 rounded-md hover:bg-destructive/10 hover:text-destructive" title="Delete milestone" onClick={(e) => { e.stopPropagation(); if (!confirm('Delete this milestone and all its topics?')) e.preventDefault();}}>
+                        <Trash2 size={16} />
+                    </button>
+                </form>
+            </div>
+        )}
       </div>
 
-      {/* Add New Topic Form */}
-      <form onSubmit={handleCreateTopic} className="flex items-center gap-2 ml-4">
-        <input type="hidden" name="milestoneId" value={milestone.id} />
-        <input
-          value={titleValue}
-          onChange={(e) => setTitleValue(e.target.value)}
-          name="title"
-          placeholder="Add a new topic..."
-          required
-          className="flex-grow p-2 bg-input rounded-md text-sm"
-        />
-        <button
-          type="submit"
-          disabled={isCreating}
-          className="flex-shrink-0 p-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-          title="Add Topic"
-        >
-          <Plus size={16} />
-        </button>
-      </form>
+      {/* Collapsible Content */}
+      <AnimatePresence initial={false}>
+        {isExpanded && (
+          <motion.div
+            key="content"
+            initial="collapsed"
+            animate="open"
+            exit="collapsed"
+            variants={{
+              open: { opacity: 1, height: 'auto' },
+              collapsed: { opacity: 0, height: 0 },
+            }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="overflow-hidden"
+          >
+            <div className="px-6 pb-6 pt-2 space-y-4">
+              <AnimatePresence>
+                {milestone.topics.map(topic => (
+                  <motion.div key={topic.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    <TopicItem topic={topic} allResources={allResources} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+
+              <form ref={formRef} action={createTopicAction} className="flex items-center gap-2 pl-4 pt-4 border-t border-border">
+                <input type="hidden" name="milestoneId" value={milestone.id} />
+                <Plus size={16} className="text-muted-foreground"/>
+                <input name="title" placeholder="Add a new topic..." required className="flex-grow p-2 bg-input rounded-md text-sm" />
+                <motion.button type="submit" whileTap={{ scale: 0.95 }} className="px-3 py-2 text-sm bg-primary text-primary-foreground rounded-md font-semibold">Add Topic</motion.button>
+              </form>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+

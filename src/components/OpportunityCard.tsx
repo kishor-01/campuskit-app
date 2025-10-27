@@ -1,65 +1,72 @@
 // src/components/OpportunityCard.tsx
+'use client';
 
-"use client";
+import { motion } from 'framer-motion';
+import { Opportunity } from '@prisma/client';
+import { ArrowUpRight, Briefcase, MapPin } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
 
-import type { Opportunity } from "@prisma/client";
-import { motion } from "framer-motion";
-import { ArrowUpRight, Calendar, MapPin } from "lucide-react";
+interface OpportunityCardProps {
+  opportunity: Opportunity;
+}
 
-// Helper to format dates
-const formatDate = (date: Date | null | undefined) => {
-  if (!date) return null;
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(date));
+// Helper to format enum values for display (e.g., FULL_TIME -> Full Time)
+const formatTypeLabel = (type: string) => {
+  return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 };
 
-export default function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
-  const startDate = formatDate(opportunity.startDate);
-  const endDate = formatDate(opportunity.endDate);
-
+export default function OpportunityCard({ opportunity }: OpportunityCardProps) {
   return (
     <motion.div
-      layout="position"
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      transition={{ duration: 0.3, type: "spring" }}
-      className="relative p-6 bg-muted/50 rounded-xl overflow-hidden group border border-transparent hover:border-primary/50 transition-colors h-full flex flex-col"
+      whileHover={{ y: -5, boxShadow: "0 10px 20px -5px rgba(0,0,0,0.07)" }}
+      className="h-full bg-card border border-border rounded-xl overflow-hidden flex flex-col group"
     >
-      <div className="flex-grow">
-        <div className="flex items-start justify-between mb-3">
-          <span className="bg-primary/10 text-primary text-xs font-bold px-2.5 py-1 rounded-full uppercase">
-            {opportunity.type.replace("_", " ")}
-          </span>
-          {opportunity.imageUrl && (
-            <img src={opportunity.imageUrl} alt={`${opportunity.organization} logo`} className="w-10 h-10 rounded-md object-contain bg-white p-1" />
-          )}
-        </div>
-        <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">{opportunity.title}</h3>
-        <p className="text-sm font-semibold text-muted-foreground mt-1">{opportunity.organization}</p>
-        
-        <div className="flex items-center gap-4 text-xs text-muted-foreground mt-3">
-          <div className="flex items-center gap-1.5">
-            <MapPin className="w-3 h-3"/>
-            <span>{opportunity.location}</span>
+      {/* Image Section */}
+      <div className="relative aspect-video overflow-hidden">
+        {opportunity.imageUrl ? (
+          <Image
+            src={opportunity.imageUrl}
+            alt={opportunity.title}
+            fill
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+        ) : (
+          // Elegant placeholder for missing images
+          <div className="w-full h-full bg-muted flex items-center justify-center">
+            <Briefcase className="w-10 h-10 text-muted-foreground/50" />
           </div>
-          {(startDate || endDate) && (
-            <div className="flex items-center gap-1.5">
-              <Calendar className="w-3 h-3"/>
-              <span>{startDate}{endDate && startDate !== endDate ? ` - ${endDate}` : ''}</span>
-            </div>
-          )}
-        </div>
-        <p className="text-sm text-muted-foreground/80 mt-3 line-clamp-2">{opportunity.description}</p>
+        )}
       </div>
 
-      <a 
-        href={`/opportunities/${opportunity.id}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-primary text-primary-foreground font-semibold px-4 py-2 rounded-lg text-sm inline-flex items-center self-start"
-      >
-        View Details <ArrowUpRight className="w-4 h-4 ml-1" />
-      </a>
+      {/* Content Section */}
+      <div className="p-4 flex-grow flex flex-col">
+        <span className="text-xs bg-primary/10 text-primary font-bold px-2 py-1 rounded-full self-start">
+          {formatTypeLabel(opportunity.type)}
+        </span>
+
+        <h3 className="text-lg font-bold text-foreground mt-3 group-hover:text-primary transition-colors">
+          {opportunity.title}
+        </h3>
+        <p className="text-sm font-semibold text-muted-foreground">
+          {opportunity.organization}
+        </p>
+        
+        <div className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+          <MapPin size={14} />
+          <span>{opportunity.location}</span>
+        </div>
+
+        <div className="flex-grow" /> 
+
+        <Link
+          href={`/opportunities/${opportunity.id}`}
+          className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary self-start"
+        >
+          View Details <ArrowUpRight size={16} />
+        </Link>
+      </div>
     </motion.div>
   );
 }

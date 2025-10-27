@@ -1,128 +1,138 @@
 // src/components/MobileMenu.tsx
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import useFocusTrap from "@/hooks/useFocusTrap";
-import { X } from "lucide-react";
+import { X, LogIn, UserPlus, User, LayoutGrid, Target, LogOut } from "lucide-react";
+import { signOut } from "next-auth/react";
+import type { Session } from "next-auth";
+import type { SessionContextValue } from "next-auth/react";
 
 type MobileMenuProps = {
   open: boolean;
   onClose: () => void;
+  session: Session | null;
+  status: SessionContextValue['status'];
 };
 
-export default function MobileMenu({ open, onClose }: MobileMenuProps) {
-  const panelRef = useRef<HTMLDivElement | null>(null);
+const navItems = [
+  { href: "/resources", label: "Resources" },
+  { href: "/opportunities", label: "Opportunities" },
+  { href: "/tools", label: "Tools" },
+  { href: "/roadmaps", label: "Roadmaps" },
+  { href: "/blog", label: "Blog" },
+];
 
-  // focus trap when open
-  useFocusTrap(panelRef, open);
+const profileItems = [
+    { href: "/profile", label: "My Profile", icon: <User className="w-4 h-4 mr-3" /> },
+    { href: "/my-resources", label: "Saved Resources", icon: <LayoutGrid className="w-4 h-4 mr-3" /> },
+    { href: "/my-goals", label: "My Goals", icon: <Target className="w-4 h-4 mr-3" /> },
+];
 
-  // Close on Escape
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    if (!open) return;
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  // prevent body scroll when open
-  useEffect(() => {
-    if (open) {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = prev;
-      };
-    }
-  }, [open]);
-
-  const navItems = [
-    { href: "/resources", label: "Resources" },
-    { href: "/opportunities", label: "Opportunities" },
-    { href: "/tools", label: "Tools" },
-    { href: "/roadmaps", label: "Roadmaps" },
-    { href: "/goals", label: "Goals" },
-    { href: "/blog", label: "Blog" },
-    { href: "/about", label: "About" },
-    { href: "/contact", label: "Contact" },
-  ];
-
+export default function MobileMenu({ open, onClose, session, status }: MobileMenuProps) {
   return (
-    <AnimatePresence initial={false}>
+    <AnimatePresence>
       {open && (
         <>
-          {/* backdrop */}
           <motion.div
             key="backdrop"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.35 }}
+            animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            className="fixed inset-0 bg-black z-40"
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/50 z-40"
             onClick={onClose}
             aria-hidden="true"
           />
 
-          {/* Sliding panel: Narrow, clamped width */}
           <motion.div
-            ref={panelRef}
-            id="mobile-menu"
             key="panel"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
-            transition={{ type: "spring", stiffness: 280, damping: 30 }}
+            transition={{ type: "spring", stiffness: 400, damping: 40 }}
             role="dialog"
             aria-modal="true"
-            aria-label="Mobile menu"
-            className="fixed inset-y-0 right-0 z-50 border-l border-surface-border bg-surface shadow-2xl
-                       w-[min(68vw,320px)] sm:w-[min(56vw,360px)] mobile-safe overflow-y-auto"
+            className="fixed inset-y-0 right-0 z-50 bg-background border-l border-border w-[min(70vw,280px)] flex flex-col"
           >
-            {/* Header: CampusKit name and close button (2rem gap: ml-8) */}
-            <div className="flex items-center px-4 py-3">
-              <span className="font-semibold text-lg text-foreground">CampusKit</span>
-
-              <button
-                onClick={onClose}
-                aria-label="Close menu"
-                className="ml-8 p-2 rounded-md hover:bg-muted transition-colors"
-                title="Close menu"
-              >
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <span className="font-bold text-lg">EduLink</span>
+              <button onClick={onClose} className="p-2 rounded-md hover:bg-muted">
                 <X className="h-5 w-5 text-muted-foreground" />
               </button>
             </div>
 
-            {/* Short centered divider */}
-            <div className="flex justify-center" aria-hidden="true">
-              <span className="block w-12 h-px bg-surface-border rounded" />
+            <div className="flex-grow overflow-y-auto">
+                {/* FIX: Show user info when authenticated */}
+                {status === 'authenticated' && session?.user && (
+                    <div className="p-4 border-b border-border">
+                        <p className="font-semibold text-sm text-foreground truncate">{session.user.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{session.user.email}</p>
+                    </div>
+                )}
+                
+                <nav className="p-4">
+                    {/* FIX: Show profile links when authenticated */}
+                    {status === 'authenticated' && (
+                        <ul className="space-y-2">
+                           {profileItems.map((item) => (
+                                <li key={item.href}>
+                                    <Link href={item.href} onClick={onClose} className="flex items-center px-3 py-2 rounded-md text-base font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+                                        {item.icon}
+                                        {item.label}
+                                    </Link>
+                                </li>
+                           ))}
+                        </ul>
+                    )}
+                    
+                    {/* Public navigation links */}
+                    {status === 'authenticated' && <hr className="my-4 border-border" />}
+                    <ul className="space-y-2">
+                        {navItems.map((item) => (
+                        <li key={item.href}>
+                            <Link href={item.href} onClick={onClose} className="block px-3 py-2 rounded-md text-base font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+                            {item.label}
+                            </Link>
+                        </li>
+                        ))}
+                    </ul>
+                </nav>
             </div>
-
-            {/* Nav links (left aligned, do not stretch full width) */}
-            <nav className="px-4 py-6" aria-label="Mobile primary">
-              <div className="flex flex-col gap-2">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => {
-                      onClose();
-                    }}
-                    className="self-start inline-flex items-center px-3 py-2 rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+            
+            {status === 'unauthenticated' && (
+              <div className="p-4 border-t border-border space-y-3">
+                 <Link href="/login" onClick={onClose} className="flex items-center justify-center w-full px-4 py-2.5 rounded-md text-sm font-semibold bg-muted hover:bg-border text-foreground">
+                    <LogIn className="w-4 h-4 mr-2"/>
+                    Login
+                 </Link>
+                 <Link href="/signup" onClick={onClose} className="flex items-center justify-center w-full px-4 py-2.5 rounded-md text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90">
+                    <UserPlus className="w-4 h-4 mr-2"/>
+                    Sign Up
+                 </Link>
               </div>
+            )}
 
-              {/* bottom spacer to respect safe-area */}
-              <div className="h-6" />
-            </nav>
+            {/* FIX: Show logout button when authenticated */}
+            {status === 'authenticated' && (
+                <div className="p-4 border-t border-border">
+                    <button 
+                        onClick={() => {
+                            onClose();
+                            signOut({ callbackUrl: '/' });
+                        }}
+                        className="flex items-center justify-center w-full px-4 py-2.5 rounded-md text-sm font-semibold bg-muted hover:bg-border text-destructive"
+                    >
+                        <LogOut className="w-4 h-4 mr-2"/>
+                        Logout
+                    </button>
+                </div>
+            )}
           </motion.div>
         </>
       )}
     </AnimatePresence>
   );
 }
+

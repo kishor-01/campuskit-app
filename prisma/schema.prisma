@@ -8,6 +8,55 @@ datasource db {
 }
 
 // --- Enums ---
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN  
+  EDITOR
+  CONTRIBUTOR
+  VIEWER
+}
+
+enum Permission {
+  // Content permissions
+  CONTENT_READ
+  CONTENT_WRITE
+  CONTENT_MODERATE
+  CONTENT_DELETE
+  
+  // User management
+  USER_READ
+  USER_MANAGE
+  
+  // Affiliate management  
+  AFFILIATE_READ
+  AFFILIATE_MANAGE
+  
+  // Blog permissions
+  BLOG_READ
+  BLOG_WRITE
+  BLOG_PUBLISH
+  BLOG_DELETE
+  
+  // Resource permissions
+  RESOURCE_READ
+  RESOURCE_WRITE
+  RESOURCE_MODERATE
+  RESOURCE_DELETE
+  
+  // Opportunity permissions
+  OPPORTUNITY_READ
+  OPPORTUNITY_WRITE
+  OPPORTUNITY_MODERATE
+  OPPORTUNITY_DELETE
+  
+  // Roadmap permissions
+  ROADMAP_READ
+  ROADMAP_WRITE
+  ROADMAP_PUBLISH
+  ROADMAP_DELETE
+}
+
 enum ResourceStatus {
   PENDING
   APPROVED
@@ -48,15 +97,16 @@ model User {
   education          String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
-  isAdmin            Boolean   @default(false)
+  role               Role      @default(VIEWER)   // REPLACES isAdmin
 
   accounts           Account[]
   sessions           Session[]
   savedResources     SavedResource[]
   submittedResources Resource[]      @relation("UserSubmissions")
   articles           Article[]       @relation("ArticleAuthor")
-  goals              Goal[]          // ADDED: Goal Architect relation
+  goals              Goal[]
 }
+
 
 model Resource {
   id            String         @id @default(cuid())

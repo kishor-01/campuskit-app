@@ -1,49 +1,82 @@
 // src/app/page.tsx
-
-import prisma from "@/lib/prisma";
-import Link from 'next/link';
-import HomePageClient from "@/components/HomePageClient";
-import FeaturedArticleCard from "@/components/FeaturedArticleCard";
+import prisma from '@/lib/prisma';
+import HomePageClient from '@/components/HomePageClient';
 
 export default async function HomePage() {
-  const latestArticle = await prisma.article.findFirst({
-    where: { status: 'PUBLISHED' },
-    orderBy: { createdAt: 'desc' },
-  });
+  
+  // Fetch all necessary data for the homepage shelves in parallel for performance.
+  // We are now using explicit `select` statements to ensure all required fields,
+  // including `imageUrl`, are reliably fetched from the database.
+  const [resources, opportunities, articles, roadmaps] = await Promise.all([
+    
+    // Fetch the 3 latest approved resources
+    prisma.resource.findMany({
+      where: { status: 'APPROVED' },
+      orderBy: { createdAt: 'desc' },
+      take: 3,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        url: true,
+        imageUrl: true, // Explicitly selecting the image URL
+        category: {
+          select: { name: true },
+        },
+      },
+    }),
+    
+    // Fetch the 3 latest published opportunities
+    prisma.opportunity.findMany({
+      where: { status: 'PUBLISHED' },
+      orderBy: { createdAt: 'desc' },
+      take: 3,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        organization: true,
+        imageUrl: true, // Explicitly selecting the image URL
+      }
+    }),
+    
+    // Fetch the 3 latest published articles
+    prisma.article.findMany({
+      where: { status: 'PUBLISHED' },
+      orderBy: { createdAt: 'desc' },
+      take: 3,
+      select: {
+        id: true,
+        title: true,
+        excerpt: true,
+        slug: true,
+        imageUrl: true, // Explicitly selecting the image URL
+      }
+    }),
 
+    // Fetch the 3 latest published roadmaps
+    prisma.roadmap.findMany({
+        where: { isPublished: true },
+        orderBy: { createdAt: 'desc' },
+        take: 3,
+        select: {
+            id: true,
+            title: true,
+            description: true,
+            slug: true,
+            imageUrl: true, // Explicitly selecting the image URL
+        }
+    }),
+  ]);
+
+  // Pass the complete data down to the client component for rendering.
   return (
-    <>
-      <HomePageClient />
-      
-      {latestArticle && (
-        <section className="py-16 sm:py-20 bg-background border-y border-muted">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <FeaturedArticleCard article={latestArticle} />
-            {/* CORRECTED: Add a link to the main blog page */}
-            <div className="mt-8 text-center">
-              <Link href="/blog" className="text-sm font-semibold text-primary hover:underline">
-                View All Posts &rarr;
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
-
-      <section className="py-16 sm:py-20">
-        <div className="max-w-3xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-extrabold text-foreground">
-            Ready to Level Up Your Learning Experience?
-          </h2>
-          <div className="mt-8">
-            <Link
-              href="/resources"
-              className="inline-block bg-primary text-primary-foreground font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-primary/90 transition-colors duration-300"
-            >
-              Browse All Resources
-            </Link>
-          </div>
-        </div>
-      </section>
-    </>
+    <HomePageClient 
+      resources={resources} 
+      opportunities={opportunities} 
+      articles={articles}
+      roadmaps={roadmaps}
+    />
   );
 }
+

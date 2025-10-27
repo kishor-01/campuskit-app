@@ -1,14 +1,13 @@
 // src/app/providers.tsx
 "use client";
 
-import { SessionProvider } from "next-auth/react";
+import { SessionProvider } from "next-auth/react"; // Has SessionProvider
 import { Toaster } from "react-hot-toast";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
+    <SessionProvider> {/* Wraps children */}
       {children}
-      {/* Global toast container */}
       <Toaster
         position="top-right"
         toastOptions={{

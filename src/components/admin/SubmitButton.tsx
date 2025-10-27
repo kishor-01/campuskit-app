@@ -4,7 +4,6 @@
 
 import { useFormStatus } from "react-dom";
 
-// This is a named export.
 export function SubmitButton({ text }: { text: string }) {
   const { pending } = useFormStatus();
 

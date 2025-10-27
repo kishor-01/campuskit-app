@@ -1,7 +1,9 @@
 // src/app/api/import-roadmap/route.ts
+
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { createGoalFromRoadmapTyped } from '@/actions/roadmapActions';
+// FIX: Correctly import the function from goalActions
+import { createGoalFromRoadmapTyped } from '@/actions/goalActions';
 
 export async function POST(req: Request) {
   try {
@@ -9,38 +11,44 @@ export async function POST(req: Request) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
     const body = await req.json();
-    const {
-      roadmapId,
-      title,
-      targetDate = null,
-      includeResources = true,
-      includeNotes = true,
-      replace = false
+    const { 
+        roadmapId, 
+        title, 
+        targetDate, 
+        includeResources, // These were missing
+        includeNotes,     // These were missing
+        replace 
     } = body;
 
     if (!roadmapId || !title) {
-      return NextResponse.json({ error: 'roadmapId and title are required' }, { status: 400 });
+      return NextResponse.json({ error: 'Roadmap ID and title are required' }, { status: 400 });
     }
 
-    // Call typed helper to create the goal. It returns { duplicate: true, existingGoalId } OR { duplicate:false, created }
+    // FIX: Pass all required arguments to the action
     const result = await createGoalFromRoadmapTyped(
-      session.user.id,
-      roadmapId,
-      title,
-      targetDate,
-      includeResources,
-      includeNotes,
-      replace
+        roadmapId, 
+        title, 
+        targetDate,
+        includeResources,
+        includeNotes,
+        replace
     );
 
-    if (result && (result as any).duplicate) {
-      return NextResponse.json({ duplicate: true, existingGoalId: (result as any).existingGoalId }, { status: 200 });
+    if (result.duplicate) {
+      return NextResponse.json({ duplicate: true, existingGoalId: result.existingGoalId }, { status: 200 });
+    }
+    
+    if (result.success && result.newGoalId) {
+        return NextResponse.json({ success: true, newGoalId: result.newGoalId }, { status: 201 });
     }
 
-    return NextResponse.json({ success: true, newGoalId: (result as any).created.id }, { status: 200 });
-  } catch (err: any) {
-    console.error('Import roadmap failed', err);
-    return NextResponse.json({ error: err?.message ?? 'Server error' }, { status: 500 });
+    // Fallback for unexpected results
+    return NextResponse.json({ error: 'An unexpected error occurred during import.' }, { status: 500 });
+
+  } catch (error: any) {
+    console.error('API /import-roadmap Error:', error);
+    return NextResponse.json({ error: error.message || 'Failed to import roadmap' }, { status: 500 });
   }
 }

@@ -1,7 +1,9 @@
+// src/app/signup/page.tsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState } from "react"; // CHANGED: useActionState instead of useFormState
+import { useFormStatus } from "react-dom";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,7 +11,7 @@ import { useSession } from "next-auth/react";
 import { Lock, Mail, User, BookText, Eye, EyeOff } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { signIn } from "next-auth/react";
-import { registerUser } from "@/action";
+import { registerUser } from "@/actions";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -39,7 +41,7 @@ function SubmitButton() {
 
 export default function SignupPage() {
   const initialState = { message: "", success: false };
-  const [state, formAction] = useFormState(registerUser, initialState);
+  const [state, formAction] = useActionState(registerUser, initialState); // CHANGED: useActionState
   const [displayMessage, setDisplayMessage] = useState({ text: "", success: false });
   const [showPassword, setShowPassword] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -53,11 +55,37 @@ export default function SignupPage() {
 
   // ✅ Show message and redirect after signup
   useEffect(() => {
-    if (state.success) {
+    if (state?.success) { // CHANGED: Added optional chaining
       setDisplayMessage({ text: state.message, success: true });
       formRef.current?.reset();
-      setTimeout(() => router.push("/login"), 1200);
-    } else if (state.message) {
+      
+      // CHANGED: Auto-login after successful registration
+      const loginUser = async () => {
+        try {
+          const formData = new FormData();
+          formData.append('login', state.email || ''); // Use the email from registration
+          formData.append('password', state.password || '');
+          
+          const result = await signIn('credentials', {
+            redirect: false,
+            login: state.email,
+            password: state.password,
+          });
+          
+          if (result?.ok) {
+            router.push("/");
+          } else {
+            // If auto-login fails, redirect to login page
+            setTimeout(() => router.push("/login"), 1200);
+          }
+        } catch (error) {
+          console.error("Auto-login failed:", error);
+          setTimeout(() => router.push("/login"), 1200);
+        }
+      };
+      
+      loginUser();
+    } else if (state?.message) { // CHANGED: Added optional chaining
       setDisplayMessage({ text: state.message, success: false });
     }
   }, [state, router]);
@@ -77,7 +105,7 @@ export default function SignupPage() {
       >
         <motion.div variants={containerVariants} initial="hidden" animate="visible">
           <motion.h1 variants={itemVariants} className="text-4xl font-bold">
-            CampusKit
+            EduLink
           </motion.h1>
           <motion.p variants={itemVariants} className="mt-4 text-lg opacity-80">
             Your digital senior — curating the best resources for your success.

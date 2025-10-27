@@ -1,20 +1,19 @@
-// src/app/my-goals/[id]/LinkGoalResourcesForm.tsx
+// /src/app/my-goals/[id]/LinkGoalResourcesForm.tsx
 'use client'
 
 import { useState } from 'react';
 import { Resource } from '@prisma/client';
-import { linkResourcesToSubTopic, linkResourcesToTopic } from '@/actions/goalActions';
+import { linkResourcesToSubTopic, linkResourcesToTopic } from '@/actions';
 import toast from 'react-hot-toast';
 
 type LinkedResource = {
-  id?: string; // goal/topic resource id from DB
+  id?: string;
   resourceId: string;
   personalNote: string | null;
   resource: { id?: string; name: string; url?: string };
 };
 
 type Props = {
-  // Backwards-compatible: supply subTopicId for subtopic links OR topicId for topic links.
   subTopicId?: string;
   topicId?: string;
   allResources: Resource[];
@@ -27,19 +26,15 @@ export default function LinkGoalResourcesForm({ subTopicId, topicId, allResource
   const [searchTerm, setSearchTerm] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  // Helper: find resource metadata from allResources by id
   const findResourceMeta = (rid: string) => {
     return allResources.find(r => r.id === rid) ?? null;
   };
 
   const handleAddResource = (resource: Resource) => {
-    // Avoid adding duplicates
     if (linkedResources.some(lr => lr.resourceId === resource.id)) {
       toast('Resource already added', { icon: 'ℹ️' });
       return;
     }
-
-    // Add optimistically (no DB id yet)
     setLinkedResources(prev => [
       ...prev,
       {
@@ -67,37 +62,22 @@ export default function LinkGoalResourcesForm({ subTopicId, topicId, allResource
     setIsSaving(true);
 
     try {
-      // Client-side dedupe by resourceId, keep last note provided
       const dedupedMap: Record<string, { resourceId: string; personalNote: string | null }> = {};
       for (const lr of linkedResources) {
         dedupedMap[lr.resourceId] = { resourceId: lr.resourceId, personalNote: lr.personalNote ?? null };
       }
       const payload = Object.values(dedupedMap);
 
-      // Call server action based on target
-      const results = subTopicId
-        ? await linkResourcesToSubTopic(subTopicId, payload)
-        : await linkResourcesToTopic(topicId as string, payload);
+      const action = subTopicId ? linkResourcesToSubTopic : linkResourcesToTopic;
+      const id = subTopicId || topicId!;
+      
+      const results = await action(id, payload);
 
-      // Map server-returned rows to local linkedResources format (with resource meta from allResources)
-      const mapped: LinkedResource[] = (results ?? []).map((r: any) => {
-        const meta = findResourceMeta(r.resourceId);
-        return {
-          id: r.id,
-          resourceId: r.resourceId,
-          personalNote: r.personalNote ?? null,
-          resource: {
-            id: meta?.id ?? r.resourceId,
-            name: meta?.name ?? (r.resourceId ?? 'Unknown resource'),
-            url: meta?.url ?? undefined
-          }
-        };
-      });
+      toast.success(`Saved ${payload.length} link${payload.length !== 1 ? 's' : ''}`);
+      
+      // FIX: Call onClose() after a successful save to trigger the refresh
+      onClose();
 
-      // Update local state to exactly match server state
-      setLinkedResources(mapped);
-      toast.success(`Saved ${mapped.length} link${mapped.length !== 1 ? 's' : ''}`);
-      // Keep modal open per your requirement so the user can verify
     } catch (err) {
       console.error('Failed to link resources', err);
       toast.error('Failed to save links. Try again.');
@@ -112,7 +92,6 @@ export default function LinkGoalResourcesForm({ subTopicId, topicId, allResource
 
   return (
     <div>
-        {/* Linked Resources Section */}
         <div className="p-4 space-y-2 border-b">
             {linkedResources.length > 0 ? linkedResources.map(lr => (
                 <div key={lr.resourceId} className="space-y-1">
@@ -134,7 +113,6 @@ export default function LinkGoalResourcesForm({ subTopicId, topicId, allResource
             )) : <p className="text-sm text-center text-muted-foreground">No resources linked yet.</p>}
         </div>
 
-        {/* Search and Add Section */}
         <div className="p-4 border-b">
             <input 
             type="text" 

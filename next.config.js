@@ -1,57 +1,62 @@
-
 // next.config.js
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: true, // Restore StrictMode (recommended for dev)
 
-  // ✅ ADD THIS ENTIRE 'images' BLOCK
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'imgs.search.brave.com',
-        port: '',
-        pathname: '/**',
-      },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'media.geeksforgeeks.org' },
+      { protocol: 'https', hostname: 'cdn.dribbble.com' },
+      { protocol: 'https', hostname: 'images.pexels.com' },
+      { protocol: 'https', hostname: 'user-images.githubusercontent.com' },
+      { protocol: 'https', hostname: 'imgs.search.brave.com' },
+      { protocol: 'https', hostname: 'gridfiti.com' },
     ],
   },
 
+  // --- [Restore] Uncomment the headers function ---
   async headers() {
+    const imageSources = [
+      "'self'",
+      "data:",
+      "https.images.unsplash.com",
+      "https.media.geeksforgeeks.org",
+      "https.cdn.dribbble.com",
+      "https.images.pexels.com",
+      "https.user-images.githubusercontent.com",
+      "https.imgs.search.brave.com",
+      "https.gridfiti.com",
+    ];
+
+    const cspHeader = `
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval';
+      style-src 'self' 'unsafe-inline';
+      img-src ${imageSources.join(' ')};
+      font-src 'self' data:;
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self';
+      frame-ancestors 'none';
+      block-all-mixed-content;
+      upgrade-insecure-requests;
+    `.replace(/\s{2,}/g, ' ').trim();
+
     return [
       {
         source: "/(.*)",
         headers: [
-          // Security headers
-          {
-            key: "Strict-Transport-Security",
-            value: "max-age=31536000; includeSubDomains; preload",
-          },
-          {
-            key: "X-Frame-Options",
-            value: "DENY",
-          },
-          {
-            key: "X-Content-Type-Options",
-            value: "nosniff",
-          },
-          {
-            key: "Referrer-Policy",
-            value: "strict-origin-when-cross-origin",
-          },
-          {
-            key: "Permissions-Policy",
-            value: "geolocation=(), microphone=(), camera=()",
-          },
-          {
-            key: "Content-Security-Policy",
-            value:
-              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https:; img-src 'self' data:; font-src 'self' https:; connect-src 'self';",
-          },
+          { key: "Content-Security-Policy", value: cspHeader },
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "origin-when-cross-origin" },
         ],
       },
     ];
   },
+  // --- End Restore ---
 };
 
 module.exports = nextConfig;

@@ -1,185 +1,383 @@
+/* src/app/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ==========================================================================
-   Theme variables and semantic surface colors
-   - Adds --surface (for navbar/footer/cards)
-   - Strengthens light theme muted/surface colors for visible blocks
-   ========================================================================== */
+/* src/app/globals.css */
 
-/* ---------- LIGHT (default) ---------- */
-:root {
-  --background: 0 0% 100%;        /* #fff */
-  --foreground: 330 8% 12%;       /* near-black */
-
-  /* Surface is slightly darker than background to make nav/cards visible */
-  --surface: 342 60% 98%;         /* very light warm-pink tint */
-  --surface-border: 330 10% 90%;  /* subtle border color for surfaces */
-
-  /* Muted used for cards/components — now more visible than pure white */
-  --muted: 220 12% 96%;           /* light grayish */
-  --muted-foreground: 215 8% 28%;
-
-  --primary: 330 80% 48%;         /* vivid pink */
-  --primary-foreground: 330 6% 98%;
-  --glass: 0 0% 100% / 0.6;
+/* Add styles for Tiptap Table */
+.tiptap table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+.tiptap td,
+.tiptap th {
+  min-width: 1em;
+  border: 2px solid hsl(var(--muted)); /* Use theme variables */
+  padding: 3px 5px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+.tiptap th {
+  font-weight: bold;
+  text-align: left;
+  background-color: hsl(var(--muted)); /* Use theme variables */
+}
+.tiptap .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: hsla(var(--primary) / 0.15); /* Use theme variables */
+  pointer-events: none;
+}
+.tiptap .column-resize-handle {
+  position: absolute;
+  right: -2px; top: 0; bottom: -2px;
+  width: 4px;
+  background-color: hsl(var(--border)); /* Use theme variables */
+  pointer-events: none;
 }
 
-/* ---------- DARK ---------- */
-.dark {
-  --background: 220 18% 7%;
-  --foreground: 220 14% 96%;
-
-  --surface: 220 14% 12%;         /* dark surface slightly lighter than bg */
-  --surface-border: 220 12% 18%;
-
-  --muted: 220 14% 14%;
-  --muted-foreground: 220 10% 68%;
-
-  --primary: 340 85% 55%;
-  --primary-foreground: 330 6% 98%;
+/* Enhanced Tiptap Image Styles */
+.tiptap img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
-/* ---------- CELESTIAL (warm & energetic) ---------- */
-.celestial {
-  --background: 46 95% 96%;
-  --foreground: 213 25% 14%;
-
-  --surface: 46 90% 92%;          /* warm cream surface (darker than bg) */
-  --surface-border: 215 14% 86%;
-
-  --muted: 46 90% 88%;
-  --muted-foreground: 212 18% 38%;
-
-  --primary: 208 95% 45%;
-  --primary-foreground: 210 100% 100%;
+.tiptap img:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* ---------- TWILIGHT (moody teal/purple) ---------- */
-.twilight {
-  --background: 210 14% 8%;
-  --foreground: 195 20% 94%;
-
-  --surface: 210 18% 12%;         /* slightly lighter than bg */
-  --surface-border: 210 20% 16%;
-
-  --muted: 210 22% 18%;
-  --muted-foreground: 200 18% 70%;
-
-  --primary: 280 60% 58%;
-  --primary-foreground: 0 0% 100%;
+/* Image Alignment */
+.ProseMirror img[data-align="left"] {
+  float: left;
+  margin-right: 1rem;
+  margin-bottom: 1rem;
 }
 
-/* ==========================================================================
-   Base mappings — make sure the semantic classes work across the app
-   ========================================================================== */
-
-/* Apply background / foreground using HSL var triplets */
-body {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-  transition: background-color 180ms ease, color 180ms ease;
+.ProseMirror img[data-align="center"] {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-/* Semantic helpers used in components */
-.bg-background { background-color: hsl(var(--background)); }
-.text-foreground { color: hsl(var(--foreground)); }
+.ProseMirror img[data-align="right"] {
+  float: right;
+  margin-left: 1rem;
+  margin-bottom: 1rem;
+}
 
-.bg-surface { background-color: hsl(var(--surface)); }
-.border-surface { border-color: hsl(var(--surface-border)); }
+/* Clear floats after aligned images */
+.ProseMirror p:has(+ p:has(img[data-align="left"])),
+.ProseMirror p:has(+ p:has(img[data-align="right"])) {
+  clear: both;
+}
 
-.bg-muted { background-color: hsl(var(--muted)); }
-.text-muted-foreground { color: hsl(var(--muted-foreground)); }
+/* Affiliate Link Styles */
+.affiliate-link {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  font-weight: 600;
+  background: linear-gradient(45deg, hsl(var(--primary) / 0.1), transparent);
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
 
-/* Primary button helper */
-.btn-primary {
-  background-color: hsl(var(--primary));
+.affiliate-link:hover {
+  background: linear-gradient(45deg, hsl(var(--primary) / 0.2), hsl(var(--primary) / 0.1));
+  text-decoration: none;
+}
+
+.tiptap p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+/* Tiptap Editor Specific Styles */
+.tiptap {
+  /* Ensure proper spacing in the editor */
+  line-height: 1.6;
+}
+
+.tiptap h1, .tiptap h2, .tiptap h3, .tiptap h4, .tiptap h5, .tiptap h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+
+.tiptap ul, .tiptap ol {
+  padding-left: 1.5em;
+  margin: 1em 0;
+}
+
+.tiptap blockquote {
+  border-left: 4px solid hsl(var(--primary));
+  padding-left: 1em;
+  margin: 1.5em 0;
+  font-style: italic;
+  background: hsl(var(--muted) / 0.3);
+  padding: 1em;
+  border-radius: 0 8px 8px 0;
+}
+
+.tiptap code {
+  background: hsl(var(--muted));
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.tiptap pre {
+  background: hsl(var(--muted));
+  padding: 1em;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1.5em 0;
+}
+
+.tiptap pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* Bubble Menu Styles */
+.tiptap-bubble-menu {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.tiptap-bubble-menu button {
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.tiptap-bubble-menu button:hover {
+  background: hsl(var(--muted));
+}
+
+.tiptap-bubble-menu button.is-active {
+  background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
 }
 
-/* Card / surface styling — makes blocks visible on light theme */
-.card {
-  background-color: hsl(var(--surface));
-  border: 1px solid hsl(var(--surface-border));
-  border-radius: 0.5rem;
-  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.06);
-  padding: 1rem;
-  transition: background-color 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+/* Image Upload/Insert Dialog Styles */
+.image-insert-dialog {
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  padding: 1.5em;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
-/* Navbar and footer default helpers */
-.app-header,
-.app-footer {
-  background-color: hsl(var(--surface));
-  border-top: 1px solid hsl(var(--surface-border));
-  border-bottom: 1px solid hsl(var(--surface-border));
-  transition: background-color 160ms ease, border-color 160ms ease;
+.affiliate-link-dialog {
+  max-height: 60vh;
+  overflow-y: auto;
 }
 
-/* Make sure interactive elements read well on surfaces */
-button, input, textarea, select {
-  background-color: hsl(var(--muted));
+.affiliate-link-item {
+  transition: all 0.2s ease;
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.affiliate-link-item:hover {
+  background: hsl(var(--muted) / 0.5);
+  border-color: hsl(var(--primary) / 0.5);
+  transform: translateY(-1px);
+}
+
+/* Focus styles for accessibility */
+.tiptap:focus {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Selection styles */
+.tiptap ::selection {
+  background: hsl(var(--primary) / 0.2);
+}
+
+/* Placeholder styling */
+.tiptap .is-editor-empty:first-child::before {
   color: hsl(var(--muted-foreground));
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
 }
 
-/* ✨ Improved focus / glow styling — removes rectangular outlines */
-:focus {
-  outline: none !important;
-  box-shadow: 0 0 0 0.15rem hsl(var(--primary) / 0.3);
-  transition: box-shadow 0.2s ease;
+/* --- LIGHT THEME (DEFAULT) --- */
+:root {
+  --card: 210 40% 98%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 222.2 47.4% 11.2%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 222.2 84% 4.9%;
+  --radius: 0.75rem;
 }
 
-/* Small utility classes to help keep consistent spacing/contrast in components */
-.surface-strong {
-  background-color: hsl(var(--surface));
-  border: 1px solid hsl(var(--surface-border));
+/* --- DARK THEME --- */
+.dark {
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 217.2 32.6% 17.5%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 210 40% 98%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 217.2 32.6% 17.5%;
 }
 
-/* Keep the rest of Tailwind stack intact */
+/* --- [NEW] SYNTHWAVE THEME --- */
+.synthwave {
+  --background: 255 58% 15%; /* Deep purple */
+  --foreground: 255 57% 97%; /* Light lavender */
+  --card: 254 55% 23%; /* Darker purple */
+  --card-foreground: 255 57% 97%;
+  --popover: 255 58% 12%;
+  --popover-foreground: 255 57% 97%;
+  --primary: 315 100% 50%; /* Electric pink */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 180 100% 50%; /* Bright cyan */
+  --secondary-foreground: 255 58% 15%;
+  --muted: 254 55% 28%;
+  --muted-foreground: 255 40% 75%;
+  --accent: 180 100% 50%;
+  --accent-foreground: 255 58% 15%;
+  --destructive: 0 100% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 254 55% 35%;
+  --input: 254 55% 35%;
+  --ring: 315 100% 50%;
+}
 
-/* === accessibility & motion helpers === */
+/* --- [NEW] MOCHA THEME --- */
+.mocha {
+  --background: 38 43% 94%; /* Parchment white */
+  --foreground: 30 16% 25%; /* Dark coffee brown */
+  --card: 37 31% 91%; /* Lighter tan */
+  --card-foreground: 30 16% 25%;
+  --popover: 38 43% 96%;
+  --popover-foreground: 30 16% 25%;
+  --primary: 18 64% 56%; /* Muted orange/terracotta */
+  --primary-foreground: 30 50% 98%;
+  --secondary: 35 25% 85%;
+  --secondary-foreground: 30 16% 25%;
+  --muted: 35 25% 88%;
+  --muted-foreground: 30 12% 45%;
+  --accent: 18 64% 56%;
+  --accent-foreground: 30 50% 98%;
+  --destructive: 0 70% 50%;
+  --destructive-foreground: 30 50% 98%;
+  --border: 37 25% 82%;
+  --input: 37 25% 82%;
+  --ring: 18 64% 56%;
+}
 
-/* Respect users' motion preferences */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+
+@layer base {
+  * {
+    @apply border-border;
   }
-}
-
-/* Keyboard focus should still be visible but glowing, not bordered */
-:focus-visible {
-  outline: none !important;
-  box-shadow: 0 0 0 0.25rem hsl(var(--primary) / 0.4);
-}
-
-/* small utility for visually hidden content (screen readers) */
-.sr-only {
-  position: absolute !important;
-  width: 1px; height: 1px;
-  padding: 0; margin: -1px;
-  overflow: hidden; clip: rect(0,0,0,0);
-  white-space: nowrap; border: 0;
-}
-
-/* subtle backdrop blur when surfaces overlay (opt-in) */
-.surface-blur {
-  backdrop-filter: blur(6px) saturate(120%);
-}
-
-/* Ensure mobile nav respects safe area (notch) */
-.mobile-safe {
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-@keyframes glow-pulse {
-  0% { box-shadow: 0 0 0 0.25rem hsl(var(--primary) / 0.4); }
-  100% { box-shadow: 0 0 0 0rem hsl(var(--primary) / 0); }
-}
-
-:focus:not(:focus-visible) {
-  animation: glow-pulse 0.5s ease forwards;
+  body {
+    @apply bg-background text-foreground;
+  }
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+  }
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
 }

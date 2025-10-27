@@ -23,7 +23,7 @@ export default function ToolsPage() {
       {/* Header */}
       <div className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-extrabold text-foreground mb-4">
-          CampusKit Tools
+          EduLink Tools
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
           A collection of useful utilities designed to help you succeed in your academic journey.

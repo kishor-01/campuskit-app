@@ -1,137 +1,111 @@
-// src/components/Footer.tsx
+
+//src/components/Footer.tsx
+
 "use client";
 
 import Link from "next/link";
-import { Youtube, Twitter, Facebook, Instagram, Send, Linkedin } from "lucide-react";
+import { Youtube, Twitter, Linkedin } from "lucide-react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 
 export default function Footer() {
   const socialIcons = [
-    { icon: <Youtube />, href: "#", label: "YouTube" },
     { icon: <Twitter />, href: "#", label: "Twitter" },
-    { icon: <Facebook />, href: "#", label: "Facebook" },
-    { icon: <Instagram />, href: "#", label: "Instagram" },
-    { icon: <Send />, href: "#", label: "Telegram" },
     { icon: <Linkedin />, href: "#", label: "LinkedIn" },
+    { icon: <Youtube />, href: "#", label: "YouTube" },
   ];
 
-  function placeholder(e: React.MouseEvent) {
+  function onSocialClick(e: React.MouseEvent, href: string) {
+    if (href === "#") {
+      e.preventDefault();
+      toast.error("Social link not configured yet.");
+    }
+  }
+
+  function onNewsletterSubmit(e: React.FormEvent) {
     e.preventDefault();
-    toast("Link not configured yet.");
+    toast.success("Thanks for your interest! Our newsletter is coming soon.");
   }
 
   return (
-    <footer className="app-footer text-foreground" role="contentinfo">
+    <footer className="bg-background border-t border-border mt-16">
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Column 1: Brand */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center font-bold text-primary text-xl">
-                C
-              </div>
-              <h3 className="text-2xl font-bold">CampusKit</h3>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+          
+          {/* Brand & Newsletter */}
+          <div className="md:col-span-5 lg:col-span-4 space-y-4">
+             <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center font-bold text-primary-foreground">CK</div>
+                <h3 className="text-2xl font-bold">EduLink</h3>
             </div>
-            <p className="text-muted-foreground">Your digital senior, curating the best resources for your success.</p>
+            <p className="text-muted-foreground text-sm max-w-xs">
+              Your digital senior, curating the best resources for your success.
+            </p>
+            <form onSubmit={onNewsletterSubmit} className="mt-4">
+                <label htmlFor="email-newsletter" className="font-semibold text-sm">Stay Updated</label>
+                <div className="flex gap-2 mt-2">
+                    <input id="email-newsletter" type="email" placeholder="your.email@college.edu" required className="w-full p-2 text-sm bg-input rounded-md border-border focus:ring-primary focus:border-primary"/>
+                    <button type="submit" className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md font-semibold hover:bg-primary/90">
+                        Subscribe
+                    </button>
+                </div>
+            </form>
           </div>
 
-          {/* Column 2 & 3: Links */}
-          <div className="md:col-span-2 grid grid-cols-2 md:grid-cols-3 gap-8">
+          {/* Links Grid */}
+          <div className="md:col-span-7 lg:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-8">
             <div>
-              <h4 className="font-semibold">Platform</h4>
-              <ul className="mt-4 space-y-2">
-                <li>
-                  <Link href="/resources" className="text-muted-foreground hover:text-primary transition-colors">
-                    Resources
-                  </Link>
-                </li>
-                <li>
-                  <a href="#" onClick={placeholder} className="text-muted-foreground hover:text-primary transition-colors">
-                    About Us
-                  </a>
-                </li>
-                <li>
-                  <a href="#" onClick={placeholder} className="text-muted-foreground hover:text-primary transition-colors">
-                    Contact Us
-                  </a>
-                </li>
+              <h4 className="font-semibold text-foreground">Navigate</h4>
+              <ul className="mt-4 space-y-2 text-sm">
+                <li><Link href="/resources" className="text-muted-foreground hover:text-primary">Resources</Link></li>
+                <li><Link href="/opportunities" className="text-muted-foreground hover:text-primary">Opportunities</Link></li>
+                <li><Link href="/roadmaps" className="text-muted-foreground hover:text-primary">Roadmaps</Link></li>
               </ul>
             </div>
-
-            <div>
-              <h4 className="font-semibold">Community</h4>
-              <ul className="mt-4 space-y-2">
-                <li>
-                  <a href="#" onClick={placeholder} className="text-muted-foreground hover:text-primary transition-colors">
-                    Blog
-                  </a>
-                </li>
-                <li>
-                  <a href="#" onClick={placeholder} className="text-muted-foreground hover:text-primary transition-colors">
-                    Events
-                  </a>
-                </li>
-                <li>
-                  <a href="#" onClick={placeholder} className="text-muted-foreground hover:text-primary transition-colors">
-                    Contribute
-                  </a>
-                </li>
+             <div>
+              <h4 className="font-semibold text-foreground">Tools</h4>
+              <ul className="mt-4 space-y-2 text-sm">
+                <li><Link href="/tools" className="text-muted-foreground hover:text-primary">All Tools</Link></li>
+                <li><Link href="/tools/gpa-calculator" className="text-muted-foreground hover:text-primary">GPA Calculator</Link></li>
               </ul>
             </div>
-
-            <div className="col-span-2 md:col-span-1">
-              <h4 className="font-semibold">Contact</h4>
-              <a
-                href="#"
-                onClick={placeholder}
-                className="inline-block mt-4 bg-primary text-primary-foreground font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-primary/90 transition-colors"
-              >
-                Get In Touch
-              </a>
+            <div>
+              <h4 className="font-semibold text-foreground">Community</h4>
+              <ul className="mt-4 space-y-2 text-sm">
+                <li><Link href="/blog" className="text-muted-foreground hover:text-primary">Blog</Link></li>
+                <li><Link href="/submit-resource" className="text-muted-foreground hover:text-primary">Contribute</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-foreground">About</h4>
+              <ul className="mt-4 space-y-2 text-sm">
+                <li><Link href="/about" className="text-muted-foreground hover:text-primary">Our Mission</Link></li>
+                <li><Link href="/contact" className="text-muted-foreground hover:text-primary">Contact Us</Link></li>
+              </ul>
             </div>
           </div>
         </div>
 
-        {/* Bottom Section */}
-        <div className="mt-12 border-t border-surface-border pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-muted-foreground text-sm">&copy; {new Date().getFullYear()} CampusKit. All rights reserved.</p>
-
-          <motion.div className="flex space-x-4 mt-4 md:mt-0" initial="rest" whileHover="hover">
-            {socialIcons.map((social, index) => (
+        {/* Bottom Bar */}
+        <div className="mt-12 border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-muted-foreground text-sm">&copy; {new Date().getFullYear()} EduLink. All rights reserved.</p>
+          <div className="flex space-x-4">
+            {socialIcons.map((social) => (
               <motion.a
-                key={index}
+                key={social.label}
                 href={social.href}
-                onClick={(e) => {
-                  if (social.href === "#") {
-                    e.preventDefault();
-                    toast("Social link not configured");
-                  }
-                }}
-                className="text-muted-foreground hover:text-primary transition-colors"
-                whileHover={{ scale: 1.15, rotate: 3 }}
+                onClick={(e) => onSocialClick(e, social.href)}
+                className="text-muted-foreground hover:text-primary"
+                whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 aria-label={social.label}
-                target={social.href === "#" ? undefined : "_blank"}
-                rel={social.href === "#" ? undefined : "noopener noreferrer"}
               >
                 {social.icon}
               </motion.a>
             ))}
-          </motion.div>
+          </div>
         </div>
       </div>
-
-      {/*
-        Optional: add JSON-LD organization schema for SEO.
-        Uncomment and customize below if desired.
-      */}
-      {/* <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "Organization",
-        "name": "CampusKit",
-        "url": "https://your-site.example",
-      })}} /> */}
     </footer>
   );
 }

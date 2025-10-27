@@ -1,252 +1,358 @@
-// src/actions/resourceActions.ts
-"use server";
+// /src/actions/resourceActions.ts
+'use server';
 
-import prisma from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
-import { sendDiscordNotification } from "@/lib/discordNotifier";
-import { redirect } from "next/navigation";
-import { ResourceStatus } from "@prisma/client";
+import { ResourceStatus } from '@prisma/client';
+import { revalidatePath } from 'next/cache';
+import { auth } from '@/auth';
+import prisma from '@/lib/prisma';
+import { z } from 'zod';
 
-/* ---------------------------
-   Type Definitions
---------------------------- */
-type ResourcePayload = {
-  id?: string;
-  name?: string;
-  url?: string;
-  description?: string;
-  categoryId?: string;
-  imageUrl?: string | null;
-  status?: "PENDING" | "APPROVED" | "REJECTED" | string;
-};
-
-/* ---------------------------
-   Helpers
---------------------------- */
-function isFormData(obj: any): obj is FormData {
-  return !!obj && typeof obj.get === "function";
-}
-
-function formDataToPayload(fd: FormData): ResourcePayload {
-  return {
-    id: (fd.get("id") as string) || undefined,
-    name: (fd.get("name") as string) || undefined,
-    url: (fd.get("url") as string) || undefined,
-    description: (fd.get("description") as string) || undefined,
-    categoryId: (fd.get("categoryId") as string) || undefined,
-    imageUrl: (fd.get("imageUrl") as string) || undefined,
-    status: (fd.get("status") as string) || undefined,
-  };
-}
-
+// UPDATED: requireAdmin function for RBAC
 async function requireAdmin() {
   const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized: not signed in");
-  if (!session.user.isAdmin) throw new Error("Forbidden: admin only");
+  if (!session?.user) {
+    throw new Error("Unauthorized: not signed in");
+  }
+  
+  // Check if user has ADMIN or SUPER_ADMIN role
+  const userRole = session.user.role;
+  if (userRole !== 'ADMIN' && userRole !== 'SUPER_ADMIN') {
+    throw new Error("Forbidden: Admin access required");
+  }
+  
   return session;
 }
 
-/* ---------------------------
-   Public Actions
---------------------------- */
-
-export async function submitResource(formDataOrObj: FormData | ResourcePayload) {
-  const payload: ResourcePayload = isFormData(formDataOrObj)
-    ? formDataToPayload(formDataOrObj)
-    : (formDataOrObj ?? {});
-
-  if (!payload.name || !payload.url || !payload.categoryId) {
-    throw new Error("Missing required fields: name, url, categoryId");
+// UPDATED: requirePermission function for specific permissions
+async function requirePermission(minimumRole: string) {
+  const session = await auth();
+  if (!session?.user) {
+    throw new Error("Unauthorized: not signed in");
   }
+  
+  const roleHierarchy = {
+    'VIEWER': 0,
+    'CONTRIBUTOR': 1,
+    'EDITOR': 2,
+    'ADMIN': 3,
+    'SUPER_ADMIN': 4,
+  };
+  
+  const userLevel = roleHierarchy[session.user.role as keyof typeof roleHierarchy] || 0;
+  const requiredLevel = roleHierarchy[minimumRole as keyof typeof roleHierarchy] || 0;
+  
+  if (userLevel < requiredLevel) {
+    throw new Error(`Forbidden: ${minimumRole} role required`);
+  }
+  
+  return session;
+}
 
+// Validation schemas
+const CreateResourceSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().min(1, 'Description is required'),
+  url: z.string().url('Valid URL is required'),
+  imageUrl: z.string().url('Valid image URL is required').optional().or(z.literal('')),
+  categoryId: z.string().min(1, 'Category is required'),
+  status: z.nativeEnum(ResourceStatus),
+});
+
+const UpdateResourceSchema = z.object({
+  id: z.string().min(1, 'Resource ID is required'),
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().min(1, 'Description is required'),
+  url: z.string().url('Valid URL is required'),
+  imageUrl: z.string().url('Valid image URL is required').optional().or(z.literal('')),
+  categoryId: z.string().min(1, 'Category is required'),
+  status: z.nativeEnum(ResourceStatus),
+});
+
+export async function createResource(prevState: any, formData: FormData) {
   try {
-    const name = payload.name.trim();
-    const url = payload.url.trim();
-    const description = (payload.description || "").trim();
-    const categoryId = payload.categoryId.trim();
-    const imageUrl = payload.imageUrl ? String(payload.imageUrl).trim() : null;
+    await requirePermission('EDITOR'); // UPDATED: EDITOR can create resources
 
-    await prisma.resource.create({
+    const validatedFields = CreateResourceSchema.safeParse({
+      name: formData.get('name'),
+      description: formData.get('description'),
+      url: formData.get('url'),
+      imageUrl: formData.get('imageUrl'),
+      categoryId: formData.get('categoryId'),
+      status: formData.get('status') as ResourceStatus,
+    });
+
+    if (!validatedFields.success) {
+      return { error: validatedFields.error.flatten().fieldErrors };
+    }
+
+    const { name, description, url, imageUrl, categoryId, status } = validatedFields.data;
+
+    // Check if resource with same URL already exists
+    const existingResource = await prisma.resource.findFirst({
+      where: { url },
+    });
+
+    if (existingResource) {
+      return { error: { url: ['A resource with this URL already exists'] } };
+    }
+
+    const resource = await prisma.resource.create({
       data: {
         name,
-        url,
         description,
-        categoryId,
+        url,
         imageUrl: imageUrl || null,
-        status: "PENDING",
+        categoryId,
+        status,
       },
     });
 
-    revalidatePath("/resources");
-    revalidatePath("/admin/resources");
-  } catch (err: any) {
-    console.error("submitResource error:", err);
-    throw new Error(err?.message || "Failed to submit resource");
-  }
-
-  redirect("/submit-resource/thank-you");
-}
-
-export async function updateResourceStatus(id: string, status: ResourceStatus) {
-  try {
-    await requireAdmin();
-    if (!id || !status) {
-      return { error: "Resource ID and status are required." };
-    }
-
-    const updated = await prisma.resource.update({
-      where: { id },
-      data: { status },
-    });
-
-    // Send Discord notification ONLY when a resource is approved
-    if (status === "APPROVED") {
-      try {
-        await sendDiscordNotification?.(
-          process.env.DISCORD_RESOURCES_WEBHOOK_URL,
-          {
-            title: `🚀 Resource Approved: ${updated.name}`,
-            description: updated.description?.slice(0, 200) ?? "",
-            url: updated.url,
-            color: 3447003,
-            author: { name: "A new resource was approved!" },
-          }
-        );
-      } catch (nErr) {
-        console.warn("Discord notify failed:", nErr);
-      }
-      // Also revalidate the public resources page on approval
-      revalidatePath("/resources");
-    }
-
-    revalidatePath("/admin/resources");
-
-    return {
-      message: `Resource "${updated.name}" status set to ${status.toLowerCase()}.`,
+    revalidatePath('/admin/resources');
+    revalidatePath('/resources');
+    
+    return { 
+      message: `Resource "${resource.name}" created successfully`,
+      error: null 
     };
-  } catch (err: any) {
-    console.error("updateResourceStatus error:", err);
-    return { error: "Failed to update resource status." };
+  } catch (error: any) {
+    console.error('createResource error:', error);
+    
+    if (error.message?.includes('Forbidden') || error.message?.includes('Unauthorized')) {
+      return { error: { _form: [error.message] } };
+    }
+    
+    return { error: { _form: ['Failed to create resource'] } };
   }
 }
-
-/**
- * NOTE: The old `approveResource` and `rejectResource` functions
- * have been removed as their logic is now handled by `updateResourceStatus`.
- */
 
 export async function updateResource(prevState: any, formData: FormData) {
   try {
-    await requireAdmin();
-    const payload: ResourcePayload = formDataToPayload(formData);
+    await requirePermission('EDITOR'); // UPDATED: EDITOR can update resources
 
-    if (!payload.id) {
-      return { error: "Resource ID is required for an update." };
-    }
-
-    const updateData: any = {};
-    if (payload.name) updateData.name = payload.name.trim();
-    if (payload.url) updateData.url = payload.url.trim();
-    if (payload.description !== undefined)
-      updateData.description = payload.description;
-    if (payload.categoryId) updateData.categoryId = payload.categoryId;
-    if (payload.imageUrl !== undefined)
-      updateData.imageUrl = payload.imageUrl || null;
-    if (payload.status) updateData.status = payload.status;
-
-    const updated = await prisma.resource.update({
-      where: { id: payload.id },
-      data: updateData,
+    const validatedFields = UpdateResourceSchema.safeParse({
+      id: formData.get('id'),
+      name: formData.get('name'),
+      description: formData.get('description'),
+      url: formData.get('url'),
+      imageUrl: formData.get('imageUrl'),
+      categoryId: formData.get('categoryId'),
+      status: formData.get('status') as ResourceStatus,
     });
 
-    revalidatePath("/admin/resources");
-    revalidatePath("/resources");
+    if (!validatedFields.success) {
+      return { error: validatedFields.error.flatten().fieldErrors };
+    }
 
-    return { message: `Resource "${updated.name}" updated successfully.` };
-  } catch (err: any) {
-    console.error("updateResource error:", err);
-    return { error: err?.message || "Failed to update resource" };
+    const { id, name, description, url, imageUrl, categoryId, status } = validatedFields.data;
+
+    // Check if another resource with same URL exists
+    const existingResource = await prisma.resource.findFirst({
+      where: {
+        url,
+        NOT: { id },
+      },
+    });
+
+    if (existingResource) {
+      return { error: { url: ['A resource with this URL already exists'] } };
+    }
+
+    const resource = await prisma.resource.update({
+      where: { id },
+      data: {
+        name,
+        description,
+        url,
+        imageUrl: imageUrl || null,
+        categoryId,
+        status,
+      },
+    });
+
+    revalidatePath('/admin/resources');
+    revalidatePath('/resources');
+    
+    return { 
+      message: `Resource "${resource.name}" updated successfully`,
+      error: null 
+    };
+  } catch (error: any) {
+    console.error('updateResource error:', error);
+    
+    if (error.message?.includes('Forbidden') || error.message?.includes('Unauthorized')) {
+      return { error: { _form: [error.message] } };
+    }
+    
+    if (error.code === 'P2025') {
+      return { error: { _form: ['Resource not found'] } };
+    }
+    
+    return { error: { _form: ['Failed to update resource'] } };
   }
 }
 
 export async function deleteResource(prevState: any, formData: FormData) {
   try {
-    await requireAdmin();
-    const id = formData.get("id") as string;
-    if (!id) return { error: "Resource id required" };
+    await requirePermission('ADMIN'); // UPDATED: Only ADMIN can delete resources
 
-    const deleted = await prisma.resource.delete({ where: { id } });
+    const id = formData.get('id') as string;
+    if (!id) {
+      return { error: { _form: ['Resource ID is required'] } };
+    }
 
-    revalidatePath("/admin/resources");
-    revalidatePath("/resources");
+    const resource = await prisma.resource.delete({
+      where: { id },
+    });
 
-    return { message: `Resource "${deleted.name}" deleted.` };
-  } catch (err: any) {
-    console.error("deleteResource error:", err);
-    return { error: "Failed to delete resource." };
+    revalidatePath('/admin/resources');
+    revalidatePath('/resources');
+    
+    return { 
+      message: `Resource "${resource.name}" deleted successfully`,
+      error: null 
+    };
+  } catch (error: any) {
+    console.error('deleteResource error:', error);
+    
+    if (error.message?.includes('Forbidden') || error.message?.includes('Unauthorized')) {
+      return { error: { _form: [error.message] } };
+    }
+    
+    if (error.code === 'P2025') {
+      return { error: { _form: ['Resource not found'] } };
+    }
+    
+    return { error: { _form: ['Failed to delete resource'] } };
   }
 }
 
-export async function createResource(prevState: any, formData: FormData) {
+// Public submission - no admin required
+export async function submitResource(prevState: any, formData: FormData) {
   try {
-    await requireAdmin();
-    const payload = formDataToPayload(formData);
-
-    if (!payload.name || !payload.url || !payload.categoryId || !payload.status) {
-      return { error: "Missing required fields." };
+    const session = await auth();
+    if (!session?.user) {
+      throw new Error("Unauthorized: Please log in to submit resources");
     }
 
-    const created = await prisma.resource.create({
+    const validatedFields = CreateResourceSchema.safeParse({
+      name: formData.get('name'),
+      description: formData.get('description'),
+      url: formData.get('url'),
+      imageUrl: formData.get('imageUrl'),
+      categoryId: formData.get('categoryId'),
+      status: ResourceStatus.PENDING, // Always PENDING for public submissions
+    });
+
+    if (!validatedFields.success) {
+      return { error: validatedFields.error.flatten().fieldErrors };
+    }
+
+    const { name, description, url, imageUrl, categoryId, status } = validatedFields.data;
+
+    // Check if resource with same URL already exists
+    const existingResource = await prisma.resource.findFirst({
+      where: { url },
+    });
+
+    if (existingResource) {
+      return { error: { url: ['A resource with this URL already exists'] } };
+    }
+
+    const resource = await prisma.resource.create({
       data: {
-        name: payload.name.trim(),
-        url: payload.url.trim(),
-        description: (payload.description || "").trim(),
-        categoryId: payload.categoryId.trim(),
-        imageUrl: payload.imageUrl ? String(payload.imageUrl).trim() : null,
-        status: payload.status as "PENDING" | "APPROVED" | "REJECTED",
+        name,
+        description,
+        url,
+        imageUrl: imageUrl || null,
+        categoryId,
+        status,
+        submittedById: session.user.id,
       },
     });
 
-    revalidatePath("/admin/resources");
-    revalidatePath("/resources");
-
-    return { message: `Resource "${created.name}" created successfully.` };
-  } catch (err: any) {
-    console.error("createResource error:", err);
-    return { error: "Database error: Failed to create resource." };
+    revalidatePath('/admin/resources');
+    revalidatePath('/resources');
+    
+    return { 
+      message: `Resource "${resource.name}" submitted for review`,
+      error: null 
+    };
+  } catch (error: any) {
+    console.error('submitResource error:', error);
+    
+    if (error.message?.includes('Unauthorized')) {
+      return { error: { _form: [error.message] } };
+    }
+    
+    return { error: { _form: ['Failed to submit resource'] } };
   }
 }
 
+// Other functions remain similar but with permission checks...
 export async function toggleSaveResource(resourceId: string) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
-      return { error: "You must be logged in to save resources." };
+    if (!session?.user) {
+      throw new Error("Unauthorized");
     }
-    const userId = session.user.id;
 
-    const existingSave = await prisma.savedResource.findUnique({
+    const existingSaved = await prisma.savedResource.findUnique({
       where: {
-        userId_resourceId: { userId, resourceId },
+        userId_resourceId: {
+          userId: session.user.id!,
+          resourceId,
+        },
       },
     });
 
-    if (existingSave) {
+    if (existingSaved) {
       await prisma.savedResource.delete({
-        where: { userId_resourceId: { userId, resourceId } },
+        where: {
+          userId_resourceId: {
+            userId: session.user.id!,
+            resourceId,
+          },
+        },
       });
-      revalidatePath("/my-saved-resources");
-      return { message: "Removed from saved." };
+      return { saved: false };
     } else {
       await prisma.savedResource.create({
-        data: { userId, resourceId },
+        data: {
+          userId: session.user.id!,
+          resourceId,
+        },
       });
-      revalidatePath("/my-saved-resources");
-      return { message: "Resource saved." };
+      return { saved: true };
     }
-  } catch (err: any) {
-    console.error("toggleSaveResource error:", err);
-    return { error: "A database error occurred. Please try again." };
+  } catch (error) {
+    console.error('toggleSaveResource error:', error);
+    return { error: 'Failed to save resource' };
+  }
+}
+
+export async function updateResourceStatus(id: string, status: ResourceStatus) {
+  try {
+    await requirePermission('EDITOR'); // UPDATED: EDITOR can moderate resources
+
+    const resource = await prisma.resource.update({
+      where: { id },
+      data: { status },
+    });
+
+    revalidatePath('/admin/resources');
+    revalidatePath('/resources');
+    
+    return { 
+      message: `Resource status updated to ${status}`,
+      error: null 
+    };
+  } catch (error: any) {
+    console.error('updateResourceStatus error:', error);
+    
+    if (error.message?.includes('Forbidden') || error.message?.includes('Unauthorized')) {
+      return { error: error.message };
+    }
+    
+    return { error: 'Failed to update resource status' };
   }
 }

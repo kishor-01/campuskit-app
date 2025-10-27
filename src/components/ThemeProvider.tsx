@@ -1,3 +1,4 @@
+// src/components/ThemeProvider.tsx
 "use client";
 
 import { ThemeProvider as NextThemesProvider } from "next-themes";
@@ -7,16 +8,10 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme="dark"
+      defaultTheme="dark" // A safe, popular default
       enableSystem={false}
-      // map available theme keys to class names on <html>
-      value={{
-        light: "light",
-        dark: "dark",
-        celestial: "celestial",
-        twilight: "twilight",
-      }}
-      themes={["light", "dark", "celestial", "twilight"]}
+      // List all available themes for the toggle to cycle through
+      themes={["light", "dark", "matrix", "dusk"]}
       {...props}
     >
       {children}

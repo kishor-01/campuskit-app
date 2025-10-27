@@ -1,4 +1,5 @@
 // src/components/admin/Modal.tsx
+
 'use client'
 
 import { X } from 'lucide-react';
@@ -28,8 +29,8 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
   useEffect(() => {
     if (!isOpen) return;
 
-    // store previous focus and lock scroll
     previouslyFocused.current = document.activeElement as HTMLElement | null;
+
     const scrollY = document.documentElement.style.getPropertyValue('--scroll-y');
     const bodyStyle = document.body.style;
     bodyStyle.top = `-${window.scrollY}px`;
@@ -37,7 +38,6 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
     bodyStyle.left = '0';
     bodyStyle.right = '0';
 
-    // focus first focusable element (close button)
     const focusable = findFocusable(panelRef.current);
     if (focusable.length > 0) {
       focusable[0].focus();
@@ -58,6 +58,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
           e.preventDefault();
           return;
         }
+
         const first = focusableEls[0];
         const last = focusableEls[focusableEls.length - 1];
         const current = document.activeElement as HTMLElement | null;
@@ -73,14 +74,15 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
     }
 
     document.addEventListener('keydown', onKey);
+
     return () => {
       document.removeEventListener('keydown', onKey);
-      // restore scroll position
+
       const top = Math.abs(parseInt(bodyStyle.top || '0', 10));
       bodyStyle.position = '';
       bodyStyle.top = '';
       window.scrollTo(0, top);
-      // restore previous focus
+
       if (previouslyFocused.current) previouslyFocused.current.focus();
     };
   }, [isOpen, onClose]);
@@ -100,7 +102,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 20, opacity: 0 }}
             className="bg-background rounded-lg shadow-xl w-full max-w-2xl outline-none"
-            onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+            onClick={(e) => e.stopPropagation()}
             ref={panelRef}
             tabIndex={-1}
             aria-modal="true"

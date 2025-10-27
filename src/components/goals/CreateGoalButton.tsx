@@ -1,23 +1,35 @@
+
+//src/components/goals/CreateGoalButton.tsx
+
 'use client'
 
-import { useState } from 'react';
+import { useState, useTransition, useRef } from 'react';
 import Modal from '@/components/admin/Modal';
-import { createGoal } from '@/actions/goalActions';
+import { createGoal } from '@/actions'; // Import from the central hub
 import { PlusCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation'; // Import the router
 
 export default function CreateGoalButton() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter(); // Initialize the router
+  const formRef = useRef<HTMLFormElement>(null);
 
-  const formAction = async (formData: FormData) => {
-    try {
-      await createGoal(formData);
-      setIsOpen(false); // Close the modal on success
-      toast.success('Goal created');
-    } catch (err) {
-      console.error('createGoal failed', err);
-      toast.error('Could not create goal');
-    }
+  const formAction = (formData: FormData) => {
+    startTransition(async () => {
+      try {
+        await createGoal(formData);
+        toast.success('Goal created successfully.');
+        setIsOpen(false);
+        formRef.current?.reset();
+        // This is the crucial step to refresh the page data
+        router.refresh(); 
+      } catch (err: any) {
+        console.error('createGoal failed', err);
+        toast.error(err.message || 'Could not create goal.');
+      }
+    });
   };
 
   return (
@@ -31,7 +43,7 @@ export default function CreateGoalButton() {
       </button>
 
       <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Create a New Goal">
-        <form action={formAction}>
+        <form ref={formRef} action={formAction}>
           <div className="p-4 space-y-4">
             <input
               name="title"
@@ -51,7 +63,9 @@ export default function CreateGoalButton() {
           </div>
           <div className="flex items-center justify-end p-4 border-t gap-2">
             <button type="button" onClick={() => setIsOpen(false)} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted rounded-lg">Cancel</button>
-            <button type="submit" className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md font-semibold">Create Goal</button>
+            <button type="submit" disabled={isPending} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md font-semibold disabled:opacity-50">
+              {isPending ? 'Creating...' : 'Create Goal'}
+            </button>
           </div>
         </form>
       </Modal>

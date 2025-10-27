@@ -2,6 +2,7 @@
 
 import NextAuth, { type DefaultSession } from "next-auth";
 import { JWT } from "next-auth/jwt";
+import { Role } from "@prisma/client";
 
 // We are extending the built-in types from next-auth
 // This tells TypeScript what to expect on our custom session and token objects
@@ -14,11 +15,13 @@ declare module "next-auth" {
     user: {
       id: string;
       isAdmin: boolean;
+      role: Role;
     } & DefaultSession["user"];
   }
 
   interface User {
     isAdmin: boolean;
+    role: Role;
   }
 }
 
@@ -26,5 +29,6 @@ declare module "next-auth/jwt" {
   /** Returned by the `jwt` callback and `getToken`, when using JWT sessions */
   interface JWT {
     isAdmin: boolean;
+    role: Role;
   }
 }

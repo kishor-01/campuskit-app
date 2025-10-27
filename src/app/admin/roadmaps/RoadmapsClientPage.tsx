@@ -1,4 +1,4 @@
-//src/app/admin/roadmaps/RoadmapsClientPage.tsx
+// /src/app/admin/roadmaps/RoadmapsClientPage.tsx
 
 'use client'
 
@@ -20,7 +20,6 @@ const StatusBadge = ({ isPublished }: { isPublished: boolean }) => (
   </span>
 );
 
-// This component receives the roadmaps as a prop
 export default function RoadmapsClientPage({ roadmaps }: { roadmaps: RoadmapWithSteps[] }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [createState, createAction] = useFormState(createRoadmap, { message: null, error: null });
@@ -48,7 +47,6 @@ export default function RoadmapsClientPage({ roadmaps }: { roadmaps: RoadmapWith
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <h1 className="text-4xl font-extrabold text-foreground mb-8">Roadmap Management</h1>
-      
       <div className="bg-muted/50 p-6 rounded-lg mb-8">
         <h2 className="text-2xl font-bold mb-4">Create New Roadmap</h2>
         <form ref={formRef} action={createAction} className="space-y-4">
@@ -58,11 +56,9 @@ export default function RoadmapsClientPage({ roadmaps }: { roadmaps: RoadmapWith
           <SubmitButton text="Create Roadmap" />
         </form>
       </div>
-
       <div className="bg-muted/50 p-6 rounded-lg">
         <h2 className="text-2xl font-bold mb-4">Existing Roadmaps</h2>
         <div className="space-y-3">
-          {/* This check prevents the error if roadmaps is not an array */}
           {Array.isArray(roadmaps) && roadmaps.map(roadmap => (
             <div key={roadmap.id} className="bg-background p-4 rounded-lg flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -82,13 +78,10 @@ export default function RoadmapsClientPage({ roadmaps }: { roadmaps: RoadmapWith
                     {roadmap.isPublished ? 'Unpublish' : 'Publish'}
                   </button>
                 </form>
-                
                 <ViewRoadmapButton isPublished={roadmap.isPublished} slug={roadmap.slug} />
-                
                 <Link href={`/admin/roadmaps/${roadmap.id}`} className="flex items-center gap-1 text-sm font-semibold bg-primary text-primary-foreground px-3 py-2 rounded-md hover:bg-primary/90">
                   Manage Steps <ArrowRight size={14} />
                 </Link>
-                
                 <form action={deleteAction}>
                   <input type="hidden" name="id" value={roadmap.id} />
                   <button type="submit" className="p-2 text-destructive hover:bg-destructive/10 rounded-full" title="Delete" onClick={(e) => !window.confirm('Are you sure you want to delete this roadmap?') && e.preventDefault()}>

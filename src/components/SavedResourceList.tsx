@@ -1,108 +1,171 @@
-// src/components/SavedResourceList.tsx
+// /src/components/SavedResourceList.tsx
 
-"use client";
+'use client'
 
-import { useState, useMemo } from "react";
-import type { Prisma } from "@prisma/client";
-import { motion, AnimatePresence } from "framer-motion";
-import { LayoutGrid, List, ArrowRight, Bookmark } from "lucide-react";
-import ResourceCard from "@/components/ResourceCard";
-import Link from "next/link";
+import { useState, useMemo, Suspense } from 'react';
+import { useSafeSearchParams } from '@/hooks/use-safe-search-params';
+import ResourceCard from './ResourceCard';
+import { Category, Resource } from '@prisma/client';
+import { Search, Grid, List } from 'lucide-react';
 
-// Define the types for our props
-type ResourceWithDetails = Prisma.ResourceGetPayload<{
-  include: { category: true };
-}> & { isInitiallySaved: boolean; savedAt: Date };
+interface ResourceWithSaveStatus extends Resource {
+  category: Category;
+  isInitiallySaved: boolean;
+  savedAt?: Date;
+}
 
-export default function SavedResourceList({ resources }: { resources: ResourceWithDetails[] }) {
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [sortBy, setSortBy] = useState("savedAt_desc"); // 'savedAt_desc', 'name_asc'
-  const [viewMode, setViewMode] = useState("grid"); // 'grid' or 'list'
+interface SavedResourceListProps {
+  resources: ResourceWithSaveStatus[];
+}
 
-  const categories = ["All", ...Array.from(new Set(resources.map(r => r.category.name)))];
+function SavedResourceListContent({ resources }: SavedResourceListProps) {
+  const searchParams = useSafeSearchParams();
+  
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [savedResources, setSavedResources] = useState<Set<string>>(
+    new Set(resources.filter(r => r.isInitiallySaved).map(r => r.id))
+  );
 
-  const sortedAndFilteredResources = useMemo(() => {
-    let result = [...resources];
-
-    if (selectedCategory !== "All") {
-      result = result.filter(r => r.category.name === selectedCategory);
-    }
-
-    result.sort((a, b) => {
-      if (sortBy === 'name_asc') {
-        return a.name.localeCompare(b.name);
-      }
-      // Default to 'savedAt_desc'
-      return new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime();
-    });
-
-    return result;
-  }, [resources, selectedCategory, sortBy]);
-
-  // Handle the "empty state"
-  if (resources.length === 0) {
-    return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
-            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6 mx-auto">
-                <Bookmark className="w-10 h-10 text-muted-foreground" />
-            </div>
-            <h1 className="text-3xl font-bold text-foreground">Your Bookshelf is Empty</h1>
-            <p className="text-lg text-muted-foreground mt-2 mb-6">
-                You haven't saved any resources yet. Start exploring to build your personal library.
-            </p>
-            <Link href="/resources" className="inline-flex items-center bg-primary text-primary-foreground font-semibold px-6 py-3 rounded-lg text-base hover:bg-primary/90 transition-colors">
-                Explore Resources <ArrowRight className="w-5 h-5 ml-2" />
-            </Link>
-      </div>
+  const filteredResources = useMemo(() => {
+    if (!searchQuery) return resources;
+    
+    const query = searchQuery.toLowerCase();
+    return resources.filter(resource =>
+      resource.name.toLowerCase().includes(query) ||
+      resource.description.toLowerCase().includes(query) ||
+      resource.category.name.toLowerCase().includes(query)
     );
-  }
+  }, [resources, searchQuery]);
+
+  const toggleSave = async (resourceId: string) => {
+    try {
+      const response = await fetch('/api/resources/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resourceId }),
+      });
+
+      if (response.ok) {
+        setSavedResources(prev => {
+          const newSet = new Set(prev);
+          if (newSet.has(resourceId)) {
+            newSet.delete(resourceId);
+          } else {
+            newSet.add(resourceId);
+          }
+          return newSet;
+        });
+      }
+    } catch (error) {
+      console.error('Failed to toggle save:', error);
+    }
+  };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <h1 className="text-4xl font-extrabold text-foreground text-center mb-4">My Bookshelf</h1>
-      <p className="text-lg text-muted-foreground text-center mb-12">Your personal collection of saved resources.</p>
-      
-      {/* Control Bar */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 p-4 bg-muted/50 rounded-lg">
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold mr-2">Filter by:</span>
-            {categories.map((category) => (
-              <button key={category} onClick={() => setSelectedCategory(category)} className={`px-3 py-1 text-sm font-medium rounded-full transition-colors ${selectedCategory === category ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted"}`}>
-                {category}
-              </button>
-            ))}
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground mb-2">My Saved Resources</h1>
+          <p className="text-muted-foreground">
+            Your personal collection of learning materials
+          </p>
         </div>
-        
-        {/* Sort and View Controls */}
-        <div className="flex items-center gap-4">
-            <select onChange={(e) => setSortBy(e.target.value)} value={sortBy} className="bg-background border border-muted rounded-md px-3 py-1.5 text-sm">
-                <option value="savedAt_desc">Sort by Date (Newest)</option>
-                <option value="name_asc">Sort by Name (A-Z)</option>
-            </select>
-            <div className="flex items-center bg-background rounded-md border border-muted p-0.5">
-                <button onClick={() => setViewMode('grid')} className={`p-1 rounded ${viewMode === 'grid' ? 'bg-muted' : ''}`}><LayoutGrid className="w-5 h-5"/></button>
-                <button onClick={() => setViewMode('list')} className={`p-1 rounded ${viewMode === 'list' ? 'bg-muted' : ''}`}><List className="w-5 h-5"/></button>
+
+        {/* Search and View Controls */}
+        <div className="flex flex-col lg:flex-row gap-4 mb-8">
+          {/* Search */}
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Search saved resources..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+              />
             </div>
+          </div>
+
+          {/* View Toggle */}
+          <div className="flex bg-card border border-border rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-1 rounded ${viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+            >
+              <Grid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-1 rounded ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Resources Grid/List */}
+        <div className={
+          viewMode === 'grid' 
+            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            : "space-y-4"
+        }>
+          {filteredResources.map(resource => (
+            <ResourceCard
+              key={resource.id}
+              resource={resource}
+              isSaved={savedResources.has(resource.id)}
+              onToggleSave={() => toggleSave(resource.id)}
+              viewMode={viewMode}
+              showSavedDate={true}
+              savedAt={resource.savedAt}
+            />
+          ))}
+        </div>
+
+        {filteredResources.length === 0 && (
+          <div className="text-center py-12">
+            {resources.length === 0 ? (
+              <>
+                <p className="text-muted-foreground mb-4">You haven't saved any resources yet.</p>
+                <p className="text-sm text-muted-foreground">
+                  Browse the <a href="/resources" className="text-primary hover:underline">resources page</a> to find learning materials to save.
+                </p>
+              </>
+            ) : (
+              <p className="text-muted-foreground">No saved resources found matching your search.</p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function SavedResourceList(props: SavedResourceListProps) {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-muted rounded w-1/3 mb-2"></div>
+            <div className="h-4 bg-muted rounded w-1/2 mb-8"></div>
+            <div className="flex gap-4 mb-8">
+              <div className="h-10 bg-muted rounded flex-1"></div>
+              <div className="h-10 bg-muted rounded w-20"></div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-64 bg-muted rounded-lg"></div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* Animated Resource Display */}
-      <motion.div 
-        layout 
-        className={`grid gap-8 ${viewMode === 'grid' ? 'md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}
-      >
-        <AnimatePresence>
-          {sortedAndFilteredResources.map((resource) => (
-            <motion.div layout="position" key={resource.id}>
-              <ResourceCard
-                resource={resource}
-                isInitiallySaved={resource.isInitiallySaved}
-              />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </motion.div>
-    </div>
+    }>
+      <SavedResourceListContent {...props} />
+    </Suspense>
   );
 }

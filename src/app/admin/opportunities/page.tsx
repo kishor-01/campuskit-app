@@ -1,11 +1,12 @@
 // /src/app/admin/opportunities/page.tsx
 
 import prisma from "@/lib/prisma";
+import { Prisma, OpportunityStatus } from "@prisma/client";
 import OpportunityManager from "@/components/admin/OpportunityManager";
 import SortControl from "@/components/admin/SortControl";
 import SearchControl from "@/components/admin/SearchControl";
-import { OpportunityStatus } from "@prisma/client";
 import Link from "next/link";
+import PaginationControls from "@/components/blog/PaginationControls";
 
 const sortOptions = [
   { label: "Newest First", value: "createdAt-desc" },
@@ -20,6 +21,8 @@ const tabs = [
   { name: "Rejected", status: OpportunityStatus.REJECTED },
 ];
 
+const OPPORTUNITIES_PER_PAGE = 10;
+
 export default async function OpportunityManagementPage({
   searchParams,
 }: {
@@ -28,27 +31,34 @@ export default async function OpportunityManagementPage({
   const sort = searchParams.sort || "createdAt-desc";
   const query = searchParams.q;
   const tab = searchParams.tab || OpportunityStatus.PUBLISHED;
+  const page = Math.max(1, parseInt(searchParams.page || "1", 10));
 
   const [field, order] = sort.split("-");
-  const orderBy = { [field]: order };
+  const orderBy: Prisma.OpportunityOrderByWithRelationInput = { [field]: order as Prisma.SortOrder };
 
-  const searchFilter = query
+  const searchFilter: Prisma.OpportunityWhereInput = query
     ? {
         OR: [
-          { title: { contains: query, mode: "insensitive" } },
-          { organization: { contains: query, mode: "insensitive" } },
+          { title: { contains: query, mode: Prisma.QueryMode.insensitive } },
+          { organization: { contains: query, mode: Prisma.QueryMode.insensitive } },
         ],
       }
     : {};
 
-  const statusFilter = { status: tab as OpportunityStatus };
-  
-  const where = { ...searchFilter, ...statusFilter };
+  const statusFilter: Prisma.OpportunityWhereInput = { status: tab as OpportunityStatus };
+  const where: Prisma.OpportunityWhereInput = { ...searchFilter, ...statusFilter };
 
-  const opportunities = await prisma.opportunity.findMany({
-    where,
-    orderBy,
-  });
+  const [totalOpportunities, opportunities] = await Promise.all([
+    prisma.opportunity.count({ where }),
+    prisma.opportunity.findMany({
+      where,
+      orderBy,
+      skip: (page - 1) * OPPORTUNITIES_PER_PAGE,
+      take: OPPORTUNITIES_PER_PAGE,
+    }),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(totalOpportunities / OPPORTUNITIES_PER_PAGE));
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -62,14 +72,12 @@ export default async function OpportunityManagementPage({
           <SortControl options={sortOptions} />
         </div>
       </div>
-
-      {/* Tab Navigation */}
       <div className="border-b border-muted mb-8">
         <nav className="-mb-px flex space-x-8" aria-label="Tabs">
           {tabs.map((item) => (
             <Link
               key={item.name}
-              href={`?tab=${item.status}`}
+              href={`?tab=${item.status}${sort ? `&sort=${sort}` : ''}${query ? `&q=${query}` : ''}`}
               className={`${
                 tab === item.status
                   ? 'border-primary text-primary'
@@ -81,9 +89,15 @@ export default async function OpportunityManagementPage({
           ))}
         </nav>
       </div>
-
       <div className="grid grid-cols-1 gap-8">
         <OpportunityManager opportunities={opportunities} />
+      </div>
+      <div className="mt-12">
+        <PaginationControls
+          currentPage={page}
+          totalPages={totalPages}
+          baseUrl="/admin/opportunities"
+        />
       </div>
     </div>
   );

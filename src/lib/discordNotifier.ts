@@ -22,7 +22,7 @@ export async function sendDiscordNotification(
 
   const payload = {
     // You can add a username and avatar_url here to customize the bot's appearance
-    // username: "CampusKit Bot",
+    // username: "EduLink Bot",
     // avatar_url: "your_bot_avatar_url",
     embeds: [embed],
   };

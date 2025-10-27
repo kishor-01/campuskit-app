@@ -1,4 +1,5 @@
-// /src/actions/goalActions.ts
+// /src/actions/roadmapActions.ts
+
 'use server'
 
 import prisma from '@/lib/prisma'
@@ -22,13 +23,14 @@ const RoadmapStepSchema = z.object({
   order: z.coerce.number().int().positive("Order must be a positive number."),
 });
 
-
 // Action to create a new Roadmap
 export async function createRoadmap(prevState: any, formData: FormData) {
   const validatedFields = RoadmapSchema.safeParse(Object.fromEntries(formData.entries()));
+
   if (!validatedFields.success) {
     return { error: validatedFields.error.flatten().fieldErrors };
   }
+
   try {
     const { title, slug, description } = validatedFields.data;
     await prisma.roadmap.create({ data: { title, slug, description } });
@@ -36,7 +38,7 @@ export async function createRoadmap(prevState: any, formData: FormData) {
     return { message: `Roadmap "${title}" created successfully.` };
   } catch (e: any) {
     if (e.code === 'P2002') {
-        return { error: { slug: ['A roadmap with this slug already exists.'] } };
+      return { error: { slug: ['A roadmap with this slug already exists.'] } };
     }
     return { error: 'Failed to create roadmap.' };
   }
@@ -44,27 +46,31 @@ export async function createRoadmap(prevState: any, formData: FormData) {
 
 // Action to delete a Roadmap
 export async function deleteRoadmap(prevState: any, formData: FormData) {
-    const id = formData.get('id') as string;
-    if (!id) return { error: 'Roadmap ID is required.' };
-    try {
-        const deleted = await prisma.roadmap.delete({ where: { id } });
-        revalidatePath('/admin/roadmaps');
-        return { message: `Roadmap "${deleted.title}" deleted.` };
-    } catch (e: any) {
-        return { error: 'Failed to delete roadmap.' };
-    }
+  const id = formData.get('id') as string;
+  if (!id) return { error: 'Roadmap ID is required.' };
+
+  try {
+    const deleted = await prisma.roadmap.delete({ where: { id } });
+    revalidatePath('/admin/roadmaps');
+    return { message: `Roadmap "${deleted.title}" deleted.` };
+  } catch (e: any) {
+    return { error: 'Failed to delete roadmap.' };
+  }
 }
 
 // Action to toggle the publish status of a Roadmap
 export async function toggleRoadmapStatus(prevState: any, formData: FormData) {
   const id = formData.get('id') as string;
   const isPublished = formData.get('isPublished') === 'true';
+
   if (!id) return { error: 'Roadmap ID is required.' };
+
   try {
     const updated = await prisma.roadmap.update({
-        where: { id },
-        data: { isPublished: !isPublished },
+      where: { id },
+      data: { isPublished: !isPublished },
     });
+
     revalidatePath('/admin/roadmaps');
     revalidatePath('/roadmaps');
     return { message: `Roadmap is now ${updated.isPublished ? 'published' : 'a draft'}.` };
@@ -76,9 +82,11 @@ export async function toggleRoadmapStatus(prevState: any, formData: FormData) {
 // Action to create a new Roadmap Step
 export async function createRoadmapStep(prevState: any, formData: FormData) {
   const validatedFields = RoadmapStepSchema.safeParse(Object.fromEntries(formData.entries()));
+
   if (!validatedFields.success) {
     return { error: validatedFields.error.flatten().fieldErrors };
   }
+
   try {
     const { roadmapId, title, description, order } = validatedFields.data;
     await prisma.roadmapStep.create({ data: { roadmapId, title, description, order } });
@@ -92,16 +100,20 @@ export async function createRoadmapStep(prevState: any, formData: FormData) {
 // Action to update a Roadmap Step
 export async function updateRoadmapStep(prevState: any, formData: FormData) {
   const validatedFields = RoadmapStepSchema.safeParse(Object.fromEntries(formData.entries()));
+
   if (!validatedFields.success) {
     return { error: validatedFields.error.flatten().fieldErrors };
   }
+
   try {
     const { id, roadmapId, title, description, order } = validatedFields.data;
     if (!id) return { error: 'Step ID is required.' };
+
     await prisma.roadmapStep.update({
-        where: { id },
-        data: { title, description, order },
+      where: { id },
+      data: { title, description, order },
     });
+
     revalidatePath(`/admin/roadmaps/${roadmapId}`);
     return { message: 'Step updated successfully.' };
   } catch (e: any) {
@@ -113,7 +125,9 @@ export async function updateRoadmapStep(prevState: any, formData: FormData) {
 export async function deleteRoadmapStep(prevState: any, formData: FormData) {
   const id = formData.get('id') as string;
   const roadmapId = formData.get('roadmapId') as string;
+
   if (!id || !roadmapId) return { error: 'Step ID and Roadmap ID are required.' };
+
   try {
     await prisma.roadmapStep.delete({ where: { id } });
     revalidatePath(`/admin/roadmaps/${roadmapId}`);
@@ -127,31 +141,35 @@ export async function deleteRoadmapStep(prevState: any, formData: FormData) {
 export async function linkResourcesToStep(formData: FormData) {
   const stepId = formData.get('stepId') as string;
   const resourceIds = formData.getAll('resourceIds') as string[];
+
   if (!stepId) {
     throw new Error("Step ID is required.");
   }
+
   const roadmapId = (await prisma.roadmapStep.findUnique({
     where: { id: stepId },
     select: { roadmapId: true }
   }))?.roadmapId;
+
   if (!roadmapId) {
     throw new Error("Roadmap not found for this step.");
   }
+
   try {
     await prisma.$transaction([
-        prisma.roadmapStepResource.deleteMany({ where: { roadmapStepId: stepId } }),
-        ...(resourceIds.length > 0 ? [
+      prisma.roadmapStepResource.deleteMany({ where: { roadmapStepId: stepId } }),
+      ...(resourceIds.length > 0 ? [
         prisma.roadmapStepResource.createMany({
-            data: resourceIds.map((resourceId) => ({
+          data: resourceIds.map((resourceId) => ({
             roadmapStepId: stepId,
             resourceId: resourceId,
-            })),
-            skipDuplicates: true,
+          })),
+          skipDuplicates: true,
         })
-        ] : [])
+      ] : [])
     ]);
+
     revalidatePath(`/admin/roadmaps/${roadmapId}`);
-    // This action is called via useTransition, so we return feedback
     return { message: `Linked ${resourceIds.length} resources.` };
   } catch(e) {
     return { error: 'Failed to link resources.' };

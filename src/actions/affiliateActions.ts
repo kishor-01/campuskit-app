@@ -1,4 +1,5 @@
 // /src/actions/affiliateActions.ts
+
 'use server'
 
 import prisma from '@/lib/prisma'
@@ -32,18 +33,21 @@ const LinkSchema = z.object({
   partnerId: z.string().min(1, "A partner must be selected."),
 });
 
-
 // --- Affiliate Partner Actions ---
-
 export async function createAffiliatePartner(prevState: any, formData: FormData) {
   try {
     await requireAdmin();
+
     const validatedFields = PartnerSchema.safeParse(Object.fromEntries(formData.entries()));
+
     if (!validatedFields.success) {
       return { error: validatedFields.error.flatten().fieldErrors };
     }
+
     const { name, website, description } = validatedFields.data;
+
     await prisma.affiliatePartner.create({ data: { name, website, description } });
+
     revalidatePath('/admin/affiliates');
     return { message: 'Partner created successfully.' };
   } catch (e: any) {
@@ -54,11 +58,15 @@ export async function createAffiliatePartner(prevState: any, formData: FormData)
 export async function updateAffiliatePartner(prevState: any, formData: FormData) {
   try {
     await requireAdmin();
+
     const validatedFields = PartnerSchema.extend({ id: z.string().min(1) }).safeParse(Object.fromEntries(formData.entries()));
+
     if (!validatedFields.success) {
       return { error: validatedFields.error.flatten().fieldErrors };
     }
+
     const { id, ...data } = validatedFields.data;
+
     await prisma.affiliatePartner.update({ where: { id }, data });
     revalidatePath('/admin/affiliates');
     return { message: 'Partner updated successfully.' };
@@ -70,8 +78,10 @@ export async function updateAffiliatePartner(prevState: any, formData: FormData)
 export async function deleteAffiliatePartner(prevState: any, formData: FormData) {
   try {
     await requireAdmin();
+
     const id = formData.get('id') as string;
     if (!id) return { error: 'Partner ID is required.' };
+
     await prisma.affiliatePartner.delete({ where: { id } });
     revalidatePath('/admin/affiliates');
     return { message: 'Partner deleted successfully.' };
@@ -80,16 +90,17 @@ export async function deleteAffiliatePartner(prevState: any, formData: FormData)
   }
 }
 
-
 // --- Affiliate Link Actions ---
-
 export async function createAffiliateLink(prevState: any, formData: FormData) {
   try {
     await requireAdmin();
+
     const validatedFields = LinkSchema.safeParse(Object.fromEntries(formData.entries()));
+
     if (!validatedFields.success) {
       return { error: validatedFields.error.flatten().fieldErrors };
     }
+
     await prisma.affiliateLink.create({ data: validatedFields.data });
     revalidatePath('/admin/affiliates');
     return { message: 'Link created successfully.' };
@@ -101,11 +112,15 @@ export async function createAffiliateLink(prevState: any, formData: FormData) {
 export async function updateAffiliateLink(prevState: any, formData: FormData) {
   try {
     await requireAdmin();
+
     const validatedFields = LinkSchema.extend({ id: z.string().min(1) }).safeParse(Object.fromEntries(formData.entries()));
+
     if (!validatedFields.success) {
       return { error: validatedFields.error.flatten().fieldErrors };
     }
+
     const { id, ...data } = validatedFields.data;
+
     await prisma.affiliateLink.update({ where: { id }, data });
     revalidatePath('/admin/affiliates');
     return { message: 'Link updated successfully.' };
@@ -117,8 +132,10 @@ export async function updateAffiliateLink(prevState: any, formData: FormData) {
 export async function deleteAffiliateLink(prevState: any, formData: FormData) {
   try {
     await requireAdmin();
+
     const id = formData.get('id') as string;
     if (!id) return { error: 'Link ID is required.' };
+
     await prisma.affiliateLink.delete({ where: { id } });
     revalidatePath('/admin/affiliates');
     return { message: 'Link deleted successfully.' };

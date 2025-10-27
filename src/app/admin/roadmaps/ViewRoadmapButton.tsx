@@ -1,5 +1,4 @@
-
-// src/app/admin/roadmaps/ViewRoadmapButton.tsx
+// /src/app/admin/roadmaps/ViewRoadmapButton.tsx
 
 'use client'
 
@@ -21,8 +20,8 @@ export default function ViewRoadmapButton({ isPublished, slug }: ViewRoadmapButt
 
   if (isPublished) {
     return (
-      <Link 
-        href={`/roadmaps/${slug}`} 
+      <Link
+        href={`/roadmaps/${slug}`}
         target="_blank"
         className="p-2 text-blue-600 hover:bg-blue-50 rounded-md"
         title="View Public Page"

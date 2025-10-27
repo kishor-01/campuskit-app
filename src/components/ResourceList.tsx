@@ -1,145 +1,248 @@
-// src/components/ResourceList.tsx
+// /src/components/ResourceList.tsx
+
 'use client'
 
-import { useState, useMemo, useEffect } from 'react';
-import type { Prisma } from '@prisma/client';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search } from 'lucide-react';
-import ResourceCard from '@/components/ResourceCard';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useState, useMemo, Suspense } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import ResourceCard from './ResourceCard';
+import { Category, Resource } from '@prisma/client';
+import { Filter, Search, Grid, List } from 'lucide-react';
 
-type ResourceWithDetails = Prisma.ResourceGetPayload<{
-  include: { category: true };
-}>;
-type ResourceListProps = {
-  resources: (ResourceWithDetails & { isInitiallySaved: boolean })[]
-};
+// Define the interface that matches what we pass from the server
+export interface ResourceWithSaveStatus extends Resource {
+  category: Category;
+  isInitiallySaved: boolean;
+}
 
-export default function ResourceList({ resources }: ResourceListProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const { data: session } = useSession();
+interface ResourceListProps {
+  resources: ResourceWithSaveStatus[];
+  categories: Category[];
+  totalPages: number;
+  currentPage: number;
+  currentCategory?: string;
+}
+
+// Custom hook to safely use search params
+function useSafeSearchParams() {
+  const searchParams = useSearchParams();
+  return searchParams || new URLSearchParams();
+}
+
+function ResourceListContent({
+  resources,
+  categories,
+  totalPages,
+  currentPage,
+  currentCategory,
+}: ResourceListProps) {
   const router = useRouter();
-
-  const categories = ['All', ...Array.from(new Set(resources.map(r => r.category.name)))];
+  const pathname = usePathname();
+  const searchParams = useSafeSearchParams();
+  
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [savedResources, setSavedResources] = useState<Set<string>>(
+    new Set(resources.filter(r => r.isInitiallySaved).map(r => r.id))
+  );
 
   const filteredResources = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    return resources.filter(resource => {
-      const categoryMatch = selectedCategory === 'All' || resource.category.name === selectedCategory;
-      const searchMatch = !q || resource.name.toLowerCase().includes(q) || resource.description.toLowerCase().includes(q);
-      return categoryMatch && searchMatch;
-    });
-  }, [resources, searchQuery, selectedCategory]);
+    if (!searchQuery) return resources;
+    
+    const query = searchQuery.toLowerCase();
+    return resources.filter(resource =>
+      resource.name.toLowerCase().includes(query) ||
+      resource.description.toLowerCase().includes(query) ||
+      resource.category.name.toLowerCase().includes(query)
+    );
+  }, [resources, searchQuery]);
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.04 } },
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    const params = new URLSearchParams(searchParams.toString());
+    
+    if (query) {
+      params.set('search', query);
+    } else {
+      params.delete('search');
+    }
+    
+    router.push(`${pathname}?${params.toString()}`);
   };
 
-  const onSubmitClick = () => {
-    if (!session) {
-      router.push('/login');
+  const handleCategoryChange = (category: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    
+    if (category) {
+      params.set('category', category);
     } else {
-      router.push('/submit-resource');
+      params.delete('category');
+    }
+    
+    params.delete('page');
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handlePageChange = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', page.toString());
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const toggleSave = async (resourceId: string) => {
+    try {
+      const response = await fetch('/api/resources/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resourceId }),
+      });
+
+      if (response.ok) {
+        setSavedResources(prev => {
+          const newSet = new Set(prev);
+          if (newSet.has(resourceId)) {
+            newSet.delete(resourceId);
+          } else {
+            newSet.add(resourceId);
+          }
+          return newSet;
+        });
+      }
+    } catch (error) {
+      console.error('Failed to toggle save:', error);
     }
   };
 
-  // sticky mobile CTA: show if user scrolls down a bit
-  const [showStickyCTA, setShowStickyCTA] = useState(false);
-  useEffect(() => {
-    const handler = () => setShowStickyCTA(window.scrollY > 220);
-    handler();
-    window.addEventListener('scroll', handler);
-    return () => window.removeEventListener('scroll', handler);
-  }, []);
-
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      {/* Heading row */}
-      <div className="mb-4">
-        <h1 className="text-4xl md:text-5xl font-extrabold text-foreground">Find the Best Tools & Resources</h1>
-      </div>
-
-      {/* Subheading + submit button on next row (mobile-first stacking) */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <p className="text-lg text-muted-foreground max-w-2xl">
-          A curated collection to help you succeed in college and beyond.
-        </p>
-
-        <div className="flex-shrink-0">
-          <button
-            onClick={onSubmitClick}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md font-semibold hover:bg-primary/90 transition-colors"
-          >
-            Submit Resource
-          </button>
-        </div>
-      </div>
-
-      {/* Search and categories */}
-      <div className="mt-2 space-y-4">
-        <div className="relative max-w-xl mx-auto">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search by name or description..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full p-3 pl-12 bg-background border border-muted rounded-full focus:ring-2 focus:ring-primary focus:outline-none"
-          />
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground mb-2">Learning Resources</h1>
+          <p className="text-muted-foreground">
+            Discover curated learning materials to help you achieve your goals
+          </p>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-2">
-          {categories.map((category) => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${
-                selectedCategory === category
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted/50 hover:bg-muted text-muted-foreground'
-              }`}
+        {/* Filters and Search */}
+        <div className="flex flex-col lg:flex-row gap-4 mb-8">
+          {/* Search */}
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Search resources..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+          </div>
+
+          {/* Category Filter */}
+          <div className="flex gap-2">
+            <select
+              value={currentCategory || ''}
+              onChange={(e) => handleCategoryChange(e.target.value)}
+              className="px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              {category}
-            </button>
+              <option value="">All Categories</option>
+              {categories.map(category => (
+                <option key={category.id} value={category.name}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+
+            {/* View Toggle */}
+            <div className="flex bg-card border border-border rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-1 rounded ${viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+              >
+                <Grid className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-1 rounded ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Resources Grid/List */}
+        <div className={
+          viewMode === 'grid' 
+            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            : "space-y-6"
+        }>
+          {filteredResources.map(resource => (
+            <ResourceCard
+              key={resource.id}
+              resource={resource}
+              isSaved={savedResources.has(resource.id)}
+              onToggleSave={() => toggleSave(resource.id)}
+              viewMode={viewMode}
+            />
           ))}
         </div>
+
+        {filteredResources.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No resources found matching your criteria.</p>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center mt-12">
+            <div className="flex gap-2">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={`px-3 py-2 rounded-lg ${
+                    page === currentPage
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-card border border-border text-foreground hover:bg-muted'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* grid of uniform cards */}
-      <motion.div
-        key={selectedCategory + searchQuery}
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="mt-8 grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr"
-      >
-        <AnimatePresence>
-          {filteredResources.length > 0 ? (
-            filteredResources.map((resource) => (
-              <motion.div key={resource.id} layout>
-                <ResourceCard resource={resource} isInitiallySaved={resource.isInitiallySaved} />
-              </motion.div>
-            ))
-          ) : (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="col-span-full text-center py-12">
-              <p className="text-muted-foreground">No resources found. Try a different search or category!</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-
-      {/* Mobile sticky CTA */}
-      {showStickyCTA && (
-        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 sm:hidden">
-          <button onClick={onSubmitClick} className="px-6 py-3 bg-primary text-primary-foreground rounded-full font-semibold shadow-lg">
-            Submit Resource
-          </button>
-        </div>
-      )}
     </div>
+  );
+}
+
+export default function ResourceList(props: ResourceListProps) {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-muted rounded w-1/3 mb-2"></div>
+            <div className="h-4 bg-muted rounded w-1/2 mb-8"></div>
+            <div className="flex gap-4 mb-8">
+              <div className="h-10 bg-muted rounded flex-1"></div>
+              <div className="h-10 bg-muted rounded w-32"></div>
+              <div className="h-10 bg-muted rounded w-20"></div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-64 bg-muted rounded-lg"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <ResourceListContent {...props} />
+    </Suspense>
   );
 }

@@ -1,10 +1,9 @@
-
-//src/app/admin/roadmaps/[id]/StepItem.tsx
+// /src/app/admin/roadmaps/[id]/StepItem.tsx
 
 'use client'
 
 import { useEffect, useState } from 'react';
-import { useFormState } from 'react-dom';
+import { useActionState } from 'react';
 import { updateRoadmapStep } from '@/actions';
 import { Trash2, Edit, Link as LinkIcon } from 'lucide-react';
 import Modal from '@/components/admin/Modal';
@@ -13,7 +12,6 @@ import { toast } from 'react-hot-toast';
 import { SubmitButton } from '@/components/admin/SubmitButton';
 import type { RoadmapStep, Resource } from '@prisma/client';
 
-// Define a more specific type for the step prop
 type StepWithLinkedResources = RoadmapStep & {
   linkedResources: { resourceId: string }[];
 };
@@ -24,30 +22,42 @@ type StepItemProps = {
   deleteAction: (payload: FormData) => void;
 };
 
+// Define proper state type for update
+type UpdateState = {
+  message?: string | null;
+  error?: { [key: string]: string[] } | string | null;
+};
+
 export default function StepItem({ step, allResources, deleteAction }: StepItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [updateState, updateAction] = useFormState(updateRoadmapStep, { message: null, error: null });
+  
+  // Use useActionState with explicit generics (same pattern that worked above)
+  const [updateState, updateAction] = useActionState<UpdateState, FormData>(
+    updateRoadmapStep as (state: UpdateState, formData: FormData) => Promise<UpdateState>,
+    { message: null, error: null }
+  );
 
-  // FIX: Replaced 'useState' with 'useEffect' and added the dependency array.
-  // This hook now correctly listens for changes from the server action.
   useEffect(() => {
     if (updateState?.message) {
       toast.success(updateState.message);
-      setIsEditing(false); // This will now correctly close the edit form on success.
+      setIsEditing(false);
     }
     if (updateState?.error) {
-      toast.error(updateState.error);
+      // Handle both string and object error types
+      const errorMessage = typeof updateState.error === 'string' 
+        ? updateState.error 
+        : Object.values(updateState.error).flat().join('\n');
+      toast.error(errorMessage);
     }
-  }, [updateState]); // The dependency array ensures this runs when the updateState changes.
+  }, [updateState]);
 
   const linkedResourceIds = step.linkedResources.map(lr => lr.resourceId);
 
-  // This is the editing form that appears when you click the "Edit" icon
   if (isEditing) {
     return (
-      <form 
-        action={updateAction} 
+      <form
+        action={updateAction}
         className="bg-background p-4 rounded-lg space-y-2 border border-primary"
       >
         <input type="hidden" name="id" value={step.id} />
@@ -65,7 +75,6 @@ export default function StepItem({ step, allResources, deleteAction }: StepItemP
     );
   }
 
-  // This is the default display for the step
   return (
     <>
       <div className="bg-background p-3 rounded-lg flex items-start justify-between">
@@ -97,7 +106,6 @@ export default function StepItem({ step, allResources, deleteAction }: StepItemP
           </form>
         </div>
       </div>
-
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={`Link Resources to: ${step.title}`}>
         <LinkResourcesForm stepId={step.id} allResources={allResources} linkedResourceIds={linkedResourceIds} onClose={() => setIsModalOpen(false)} />
       </Modal>

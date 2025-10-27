@@ -41,22 +41,29 @@ export const authConfig = {
   },
 
   callbacks: {
-    // Keep your existing authorized logic
+    // Simple authorized logic for now
     authorized({ auth, request: { nextUrl } }: any) {
       const isLoggedIn = !!auth?.user;
       const isAdminRoute = nextUrl.pathname.startsWith("/admin");
+
+      if (isAdminRoute) {
+        if (!isLoggedIn) return false;
+        
+        // Simple role check - allow ADMIN and SUPER_ADMIN
+        const userRole = auth.user.role;
+        const isAdmin = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
+        
+        if (isAdmin) return true;
+        return false;
+      }
+
+      // Existing protected routes
       const isProtectedRoute =
         nextUrl.pathname.startsWith("/profile") ||
         nextUrl.pathname.startsWith("/my-resources");
 
-      if (isAdminRoute) {
-        if (isLoggedIn && auth.user.isAdmin) return true;
-        return false;
-      }
-
       if (isProtectedRoute) {
-        if (isLoggedIn) return true;
-        return false;
+        return isLoggedIn;
       }
 
       return true;
@@ -65,7 +72,7 @@ export const authConfig = {
     jwt({ token, user }: any) {
       if (user) {
         token.id = user.id;
-        token.isAdmin = user.isAdmin;
+        token.role = user.role;
       }
       return token;
     },
@@ -73,21 +80,16 @@ export const authConfig = {
     session({ session, token }: any) {
       if (session.user && token) {
         session.user.id = token.id as string;
-        session.user.isAdmin = token.isAdmin as boolean;
+        session.user.role = token.role;
       }
       return session;
     },
 
-    // Sanitize where NextAuth will redirect after sign-in/sign-out.
     redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
       try {
-        // Create absolute URL
         const resolved = new URL(url, baseUrl);
-        // Prevent redirecting to the sign-in page or other internal traps
         if (resolved.pathname === "/login") return baseUrl + "/";
-        // Prevent open redirect to external origin
         if (resolved.origin !== baseUrl) return baseUrl + "/";
-        // Otherwise allow relative or same-origin redirect
         return resolved.toString();
       } catch (e) {
         return baseUrl + "/";

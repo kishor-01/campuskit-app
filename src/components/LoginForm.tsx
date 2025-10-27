@@ -27,7 +27,7 @@ export default function LoginForm() {
     >
       <motion.div variants={itemVariants} className="text-center">
         <h1 className="text-3xl font-bold text-foreground">Welcome Back!</h1>
-        <p className="text-muted-foreground">Log in to continue to CampusKit.</p>
+        <p className="text-muted-foreground">Log in to continue to EduLink.</p>
       </motion.div>
 
       <motion.form variants={itemVariants} className="space-y-4">

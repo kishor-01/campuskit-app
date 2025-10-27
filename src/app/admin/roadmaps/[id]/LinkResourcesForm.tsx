@@ -1,3 +1,5 @@
+// /src/app/admin/roadmaps/[id]/LinkResourcesForm.tsx
+
 'use client'
 
 import { useState, useTransition } from 'react';
@@ -31,25 +33,20 @@ export default function LinkResourcesForm({ stepId, allResources, linkedResource
   const handleSave = () => {
     startTransition(async () => {
       try {
-        // Create FormData to match the server action signature
         const formData = new FormData();
         formData.append('stepId', stepId);
-        
-        // Add each selected resource ID
         Array.from(selectedIds).forEach(id => {
           formData.append('resourceIds', id);
         });
-        
         await linkResourcesToStep(formData);
         onClose();
       } catch (error) {
         console.error('Failed to link resources:', error);
-        // You might want to show an error toast here
       }
     });
   };
 
-  const filteredResources = allResources.filter(r => 
+  const filteredResources = allResources.filter(r =>
     r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -57,8 +54,8 @@ export default function LinkResourcesForm({ stepId, allResources, linkedResource
   return (
     <div>
       <div className="p-4 border-b">
-        <input 
-          type="text" 
+        <input
+          type="text"
           placeholder="Search resources by name or description..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -69,7 +66,7 @@ export default function LinkResourcesForm({ stepId, allResources, linkedResource
         <div className="space-y-2">
           {filteredResources.map(resource => (
             <div key={resource.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-muted">
-              <input 
+              <input
                 type="checkbox"
                 id={`res-${resource.id}`}
                 checked={selectedIds.has(resource.id)}
@@ -97,15 +94,15 @@ export default function LinkResourcesForm({ stepId, allResources, linkedResource
           {selectedIds.size} resource{selectedIds.size !== 1 ? 's' : ''} selected
         </div>
         <div className="flex gap-2">
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             disabled={isPending}
             className="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted rounded-lg disabled:opacity-50"
           >
             Cancel
           </button>
-          <button 
-            onClick={handleSave} 
+          <button
+            onClick={handleSave}
             disabled={isPending}
             className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md font-semibold disabled:opacity-50"
           >
