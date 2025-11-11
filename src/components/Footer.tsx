@@ -4,13 +4,14 @@
 "use client";
 
 import Link from "next/link";
-import { Youtube, Twitter, Linkedin } from "lucide-react";
+import { Youtube, Twitter, Linkedin, Instagram } from "lucide-react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 
 export default function Footer() {
   const socialIcons = [
-    { icon: <Twitter />, href: "#", label: "Twitter" },
+    { icon: <Twitter />, href: "https://x.com/GetEduLink", label: "X (Twitter)" },
+    { icon: <Instagram />, href: "https://www.instagram.com/getedulink/", label: "Instagram" },
     { icon: <Linkedin />, href: "#", label: "LinkedIn" },
     { icon: <Youtube />, href: "#", label: "YouTube" },
   ];
@@ -22,9 +23,34 @@ export default function Footer() {
     }
   }
 
-  function onNewsletterSubmit(e: React.FormEvent) {
+  async function onNewsletterSubmit(e: React.FormEvent) {
     e.preventDefault();
-    toast.success("Thanks for your interest! Our newsletter is coming soon.");
+    const form = e.currentTarget as HTMLFormElement;
+    const formData = new FormData(form);
+    const email = (formData.get('email') as string || '').trim();
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.message || 'Failed to subscribe');
+
+      toast.success(json?.message || 'Subscribed! Check your inbox for confirmation.');
+      form.reset();
+    } catch (err: any) {
+      console.error('Newsletter error:', err);
+      toast.error(err?.message || 'Failed to subscribe. Try again later.');
+    }
   }
 
   return (
@@ -44,7 +70,7 @@ export default function Footer() {
             <form onSubmit={onNewsletterSubmit} className="mt-4">
                 <label htmlFor="email-newsletter" className="font-semibold text-sm">Stay Updated</label>
                 <div className="flex gap-2 mt-2">
-                    <input id="email-newsletter" type="email" placeholder="your.email@college.edu" required className="w-full p-2 text-sm bg-input rounded-md border-border focus:ring-primary focus:border-primary"/>
+                    <input name="email" id="email-newsletter" type="email" placeholder="your.email@college.edu" required className="w-full p-2 text-sm bg-input rounded-md border-border focus:ring-primary focus:border-primary"/>
                     <button type="submit" className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md font-semibold hover:bg-primary/90">
                         Subscribe
                     </button>

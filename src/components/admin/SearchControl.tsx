@@ -1,4 +1,5 @@
 // /src/components/admin/SearchControl.tsx
+
 'use client'
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -17,7 +18,7 @@ export default function SearchControl({ placeholder = "Search..." }: { placehold
       params.delete('q')
     }
     router.replace(`${pathname}?${params.toString()}`)
-  }, 300); // 300ms debounce delay
+  }, 300);
 
   return (
     <div className="relative">
@@ -28,7 +29,6 @@ export default function SearchControl({ placeholder = "Search..." }: { placehold
         defaultValue={searchParams.get('q')?.toString()}
         className="p-2 pl-8 bg-input rounded-md text-sm w-64"
       />
-      {/* You can add a search icon here if you like */}
     </div>
   )
 }

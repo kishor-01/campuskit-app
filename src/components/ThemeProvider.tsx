@@ -8,10 +8,9 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme="dark" // A safe, popular default
+      defaultTheme="dark"
       enableSystem={false}
-      // List all available themes for the toggle to cycle through
-      themes={["light", "dark", "matrix", "dusk"]}
+      disableTransitionOnChange
       {...props}
     >
       {children}

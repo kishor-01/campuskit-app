@@ -1,3 +1,5 @@
+//src/data/mockResources.ts
+
 // This defines the structure for a single resource. We can move this to a types file later.
 export interface Resource {
   id: number;

@@ -1,6 +1,6 @@
 // src/app/opportunities/page.tsx
 import prisma from '@/lib/prisma';
-import { OpportunityType } from '@prisma/client';
+import { OpportunityType, OpportunityStatus } from '@prisma/client';
 import OpportunityList from '@/components/OpportunityList'; // The new client component
 import React from 'react';
 
@@ -12,13 +12,16 @@ export default async function OpportunitiesPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
+  // Ensure searchParams is awaited (Next.js can require awaiting dynamic APIs)
+  const sp = await searchParams as { [key: string]: string | string[] | undefined };
+
   // Get current page and type from URL search parameters
-  const page = parseInt(searchParams?.page as string) || 1;
-  const type = searchParams?.type as OpportunityType | undefined;
+  const page = parseInt((Array.isArray(sp?.page) ? sp?.page[0] : sp?.page) as string) || 1;
+  const type = (Array.isArray(sp?.type) ? sp?.type[0] : sp?.type) as OpportunityType | undefined;
 
   // Build the filter for our Prisma query
   const whereClause = {
-    status: 'PUBLISHED',
+    status: OpportunityStatus.PUBLISHED,
     ...(type && { type: type }),
   };
 

@@ -7,50 +7,331 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// --- Enums ---
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
+model Otp {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  type      OtpType
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email, type])
+  @@index([expiresAt])
+}
+
+model User {
+  id                 String          @id @default(cuid())
+  name               String?
+  username           String?         @unique
+  email              String?         @unique
+  emailVerified      DateTime?
+  image              String?
+  password           String?
+  education          String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  role               Role            @default(VIEWER)
+  accounts           Account[]
+  articles           Article[]       @relation("ArticleAuthor")
+  goals              Goal[]
+  submittedResources Resource[]      @relation("UserSubmissions")
+  savedResources     SavedResource[]
+  sessions           Session[]
+
+  @@index([email])
+  @@index([username])
+  @@index([createdAt])
+}
+
+model Resource {
+  id                 String                @id @default(cuid())
+  name               String
+  description        String
+  url                String
+  imageUrl           String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  status             ResourceStatus        @default(PENDING)
+  categoryId         String
+  submittedById      String?
+  linkedToGoals      GoalResource[]
+  category           Category              @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  submittedBy        User?                 @relation("UserSubmissions", fields: [submittedById], references: [id])
+  partOfRoadmapSteps RoadmapStepResource[]
+  savedByUsers       SavedResource[]
+  linkedToTopics     TopicResource[]
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  resources Resource[]
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  message   String
+  createdAt DateTime @default(now())
+}
+
+model Opportunity {
+  id           String            @id @default(cuid())
+  title        String
+  organization String
+  location     String
+  type         OpportunityType
+  description  String
+  applyUrl     String
+  imageUrl     String?
+  startDate    DateTime?
+  endDate      DateTime?
+  status       OpportunityStatus @default(PUBLISHED)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
+
+model Article {
+  id        String        @id @default(cuid())
+  title     String
+  slug      String        @unique
+  content   String
+  excerpt   String
+  imageUrl  String?
+  status    ArticleStatus @default(DRAFT)
+  authorId  String
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  author    User          @relation("ArticleAuthor", fields: [authorId], references: [id])
+}
+
+model Roadmap {
+  id          String        @id @default(cuid())
+  title       String        @unique
+  slug        String        @unique
+  description String
+  imageUrl    String?
+  isPublished Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @default(now()) @updatedAt
+  steps       RoadmapStep[]
+}
+
+model RoadmapStep {
+  id              String                @id @default(cuid())
+  title           String
+  description     String
+  order           Int
+  roadmapId       String
+  roadmap         Roadmap               @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  linkedResources RoadmapStepResource[]
+
+  @@unique([roadmapId, order])
+}
+
+model RoadmapStepResource {
+  roadmapStepId String
+  resourceId    String
+  resource      Resource    @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  roadmapStep   RoadmapStep @relation(fields: [roadmapStepId], references: [id], onDelete: Cascade)
+
+  @@id([roadmapStepId, resourceId])
+}
+
+model Goal {
+  id         String      @id @default(cuid())
+  title      String
+  targetDate DateTime?
+  userId     String
+  isTemplate Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  milestones Milestone[]
+}
+
+model Milestone {
+  id     String  @id @default(cuid())
+  title  String
+  order  Int
+  goalId String
+  goal   Goal    @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  topics Topic[]
+
+  @@unique([goalId, order])
+}
+
+model Topic {
+  id              String          @id @default(cuid())
+  title           String
+  order           Int
+  milestoneId     String
+  note            String?
+  subTopics       SubTopic[]
+  milestone       Milestone       @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  linkedResources TopicResource[]
+
+  @@unique([milestoneId, order])
+}
+
+model SubTopic {
+  id              String         @id @default(cuid())
+  title           String
+  order           Int
+  isCompleted     Boolean        @default(false)
+  topicId         String
+  note            String?
+  linkedResources GoalResource[]
+  topic           Topic          @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([topicId, order])
+}
+
+model GoalResource {
+  id           String   @id @default(cuid())
+  personalNote String?
+  subTopicId   String
+  resourceId   String
+  resource     Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  subTopic     SubTopic @relation(fields: [subTopicId], references: [id], onDelete: Cascade)
+
+  @@unique([subTopicId, resourceId])
+}
+
+model TopicResource {
+  id           String   @id @default(cuid())
+  personalNote String?
+  topicId      String
+  resourceId   String
+  resource     Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  topic        Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([topicId, resourceId])
+}
+
+model SavedResource {
+  userId     String
+  resourceId String
+  createdAt  DateTime @default(now())
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, resourceId])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model AffiliatePartner {
+  id          String          @id @default(cuid())
+  name        String          @unique
+  website     String
+  description String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @default(now()) @updatedAt
+  links       AffiliateLink[]
+}
+
+model AffiliateLink {
+  id        String           @id @default(cuid())
+  name      String
+  url       String           @unique
+  slug      String           @unique
+  partnerId String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @default(now()) @updatedAt
+  partner   AffiliatePartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+}
+
+model NewsletterSubscriber {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  createdAt    DateTime @default(now())
+  confirmed    Boolean  @default(false)
+  confirmToken String?  @unique
+
+  @@index([email])
+}
+
+enum OtpType {
+  SIGNUP
+  PASSWORD_RESET
+  EMAIL_VERIFICATION
+}
 
 enum Role {
   SUPER_ADMIN
-  ADMIN  
+  ADMIN
   EDITOR
   CONTRIBUTOR
   VIEWER
 }
 
 enum Permission {
-  // Content permissions
   CONTENT_READ
   CONTENT_WRITE
   CONTENT_MODERATE
   CONTENT_DELETE
-  
-  // User management
   USER_READ
   USER_MANAGE
-  
-  // Affiliate management  
   AFFILIATE_READ
   AFFILIATE_MANAGE
-  
-  // Blog permissions
   BLOG_READ
   BLOG_WRITE
   BLOG_PUBLISH
   BLOG_DELETE
-  
-  // Resource permissions
   RESOURCE_READ
   RESOURCE_WRITE
   RESOURCE_MODERATE
   RESOURCE_DELETE
-  
-  // Opportunity permissions
   OPPORTUNITY_READ
   OPPORTUNITY_WRITE
   OPPORTUNITY_MODERATE
   OPPORTUNITY_DELETE
-  
-  // Roadmap permissions
   ROADMAP_READ
   ROADMAP_WRITE
   ROADMAP_PUBLISH
@@ -83,298 +364,4 @@ enum OpportunityStatus {
   PENDING
   PUBLISHED
   REJECTED
-}
-
-// --- Main Application Models ---
-model User {
-  id                 String    @id @default(cuid())
-  name               String?
-  username           String?   @unique
-  email              String?   @unique
-  emailVerified      DateTime?
-  image              String?
-  password           String?
-  education          String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  role               Role      @default(VIEWER)   // REPLACES isAdmin
-
-  accounts           Account[]
-  sessions           Session[]
-  savedResources     SavedResource[]
-  submittedResources Resource[]      @relation("UserSubmissions")
-  articles           Article[]       @relation("ArticleAuthor")
-  goals              Goal[]
-}
-
-
-model Resource {
-  id            String         @id @default(cuid())
-  name          String
-  description   String         @db.Text
-  url           String
-  imageUrl      String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  status        ResourceStatus @default(PENDING)
-  categoryId    String
-  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  savedByUsers  SavedResource[]
-  submittedBy   User?          @relation("UserSubmissions", fields: [submittedById], references: [id], onDelete: SetNull)
-  submittedById String?
-  
-  // This is the other side of the many-to-many relationship
-  partOfRoadmapSteps RoadmapStepResource[]
-  linkedToGoals      GoalResource[] // ADDED: Goal Architect relation
-  linkedToTopics     TopicResource[] // ADDED: Topic -> Resource relation
-}
-
-model Category {
-  id        String     @id @default(cuid())
-  name      String     @unique
-  resources Resource[]
-}
-
-model ContactMessage {
-  id        String   @id @default(cuid())
-  name      String
-  email     String
-  message   String   @db.Text
-  createdAt DateTime @default(now())
-}
-
-model Opportunity {
-  id           String           @id @default(cuid())
-  title        String
-  organization String
-  location     String
-  type         OpportunityType
-  description  String           @db.Text
-  applyUrl     String
-  imageUrl     String?
-  startDate    DateTime?
-  endDate      DateTime?
-  status       OpportunityStatus @default(PUBLISHED)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-}
-
-model Article {
-  id        String        @id @default(cuid())
-  title     String
-  slug      String        @unique
-  content   String        @db.Text
-  excerpt   String        @db.Text
-  imageUrl  String?
-  status    ArticleStatus @default(DRAFT)
-
-  author    User          @relation("ArticleAuthor", fields: [authorId], references: [id])
-  authorId  String
-
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-}
-
-// --- Roadmap Hub Models ---
-model Roadmap {
-  id          String   @id @default(cuid())
-  title       String   @unique
-  slug        String   @unique
-  description String   @db.Text
-  imageUrl    String?
-  isPublished Boolean  @default(false)
-  
-  steps       RoadmapStep[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
-}
-
-model RoadmapStep {
-  id          String   @id @default(cuid())
-  title       String
-  description String   @db.Text
-  order       Int      // To define the sequence (1, 2, 3...)
-
-  roadmapId   String
-  roadmap     Roadmap  @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
-
-  // This creates the many-to-many link to our existing Resource model
-  linkedResources RoadmapStepResource[]
-
-  @@unique([roadmapId, order])
-}
-
-// This is the "join table" connecting a step to multiple resources
-model RoadmapStepResource {
-  roadmapStepId String
-  resourceId    String
-
-  roadmapStep   RoadmapStep @relation(fields: [roadmapStepId], references: [id], onDelete: Cascade)
-  resource      Resource    @relation(fields: [resourceId], references: [id], onDelete: Cascade)
-
-  @@id([roadmapStepId, resourceId])
-}
-
-// --- Goal Architect Models ---
-model Goal {
-  id          String   @id @default(cuid())
-  title       String
-  targetDate  DateTime?
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // For the Goal Templates feature
-  isTemplate  Boolean  @default(false)
-  
-  milestones  Milestone[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Milestone {
-  id        String   @id @default(cuid())
-  title     String   // e.g., "Data Structures & Algorithms"
-  order     Int      // For reordering
-  
-  goalId    String
-  goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
-  
-  topics    Topic[]
-  
-  @@unique([goalId, order])
-}
-
-model Topic {
-  id          String    @id @default(cuid())
-  title       String    // e.g., "Sorting Algorithms"
-  order       Int
-  
-  milestoneId String
-  milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
-  
-  subTopics   SubTopic[]
-
-  // NEW: general editor note for the topic
-  note        String?   @db.Text
-
-  // NEW: linked resources for topic
-  linkedResources TopicResource[]
-
-  @@unique([milestoneId, order])
-}
-
-model SubTopic {
-  id          String  @id @default(cuid())
-  title       String  // e.g., "Quicksort"
-  order       Int
-  isCompleted Boolean @default(false) // For progress tracking
-  
-  topicId     String
-  topic       Topic   @relation(fields: [topicId], references: [id], onDelete: Cascade)
-
-  linkedResources GoalResource[]
-
-  // NEW: general editor note for the subtopic
-  note        String? @db.Text
-
-  @@unique([topicId, order])
-}
-
-// Join table for linking resources to sub-topics with a personal note
-model GoalResource {
-  id           String  @id @default(cuid())
-  personalNote String? @db.Text
-
-  subTopicId   String
-  subTopic     SubTopic @relation(fields: [subTopicId], references: [id], onDelete: Cascade)
-  
-  resourceId   String
-  resource     Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
-
-  @@unique([subTopicId, resourceId])
-}
-
-// NEW: join table for linking resources to topics (with personal note)
-model TopicResource {
-  id           String  @id @default(cuid())
-  personalNote String? @db.Text
-
-  topicId      String
-  topic        Topic   @relation(fields: [topicId], references: [id], onDelete: Cascade)
-
-  resourceId   String
-  resource     Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
-
-  @@unique([topicId, resourceId])
-}
-
-// --- Join Table ---
-model SavedResource {
-  userId     String
-  resourceId String
-  createdAt  DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
-
-  @@id([userId, resourceId])
-}
-
-// --- Auth Models ---
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
-// Affiliate engine models
-model AffiliatePartner {
-  id          String         @id @default(cuid())
-  name        String         @unique
-  website     String
-  description String?
-  
-  links       AffiliateLink[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @default(now()) @updatedAt
-}
-
-model AffiliateLink {
-  id          String   @id @default(cuid())
-  name        String
-  url         String   @unique
-  slug        String   @unique
-  
-  partnerId   String
-  partner     AffiliatePartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
 }

@@ -22,9 +22,12 @@ export default async function ResourcesPage({
   const session = await auth();
   const userId = session?.user?.id;
 
+  // Ensure searchParams is awaited (Next.js can require awaiting dynamic APIs)
+  const sp = await searchParams as { [key: string]: string | string[] | undefined };
+
   // Get current page and category from URL search parameters
-  const page = parseInt(searchParams?.page as string) || 1;
-  const category = searchParams?.category as string | undefined;
+  const page = parseInt((Array.isArray(sp?.page) ? sp?.page[0] : sp?.page) as string) || 1;
+  const category = (Array.isArray(sp?.category) ? sp?.category[0] : sp?.category) as string | undefined;
 
   // Build the filter for our Prisma query - use ResourceStatus enum
   const whereClause = {

@@ -175,7 +175,7 @@ function ResourceListContent({
         {/* Resources Grid/List */}
         <div className={
           viewMode === 'grid' 
-            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
             : "space-y-6"
         }>
           {filteredResources.map(resource => (
@@ -233,7 +233,7 @@ export default function ResourceList(props: ResourceListProps) {
               <div className="h-10 bg-muted rounded w-32"></div>
               <div className="h-10 bg-muted rounded w-20"></div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="h-64 bg-muted rounded-lg"></div>
               ))}
