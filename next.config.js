@@ -3,6 +3,8 @@
 const nextConfig = {
   reactStrictMode: true, // Restore StrictMode (recommended for dev)
 
+  serverExternalPackages: ['pdf-parse', 'pdfjs-dist', 'mammoth'],
+
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
@@ -12,6 +14,26 @@ const nextConfig = {
       { protocol: 'https', hostname: 'user-images.githubusercontent.com' },
       { protocol: 'https', hostname: 'imgs.search.brave.com' },
       { protocol: 'https', hostname: 'gridfiti.com' },
+      { protocol: 'https', hostname: 'th.bing.com' },
+      { protocol: 'https', hostname: 'www.istockphoto.com' },
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+      { protocol: 'https', hostname: 'repository-images.githubusercontent.com' },
+      { protocol: 'https', hostname: 'fullstackopen.com' },
+      { protocol: 'https', hostname: 'upload.wikimedia.org' },
+      { protocol: 'https', hostname: 'teachyourselfcs.com' },
+      { protocol: 'https', hostname: 'owasp.org' },
+      { protocol: 'https', hostname: 'github.githubassets.com' },
+      { protocol: 'https', hostname: 'craftinginterpreters.com' },
+      { protocol: 'https', hostname: 'git-scm.com' },
+      { protocol: 'https', hostname: 'developer.nvidia.com' },
+      { protocol: 'https', hostname: 'rosalind.info' },
+      { protocol: 'https', hostname: 'ghidra-sre.org' },
+      { protocol: 'https', hostname: 'opentelemetry.io' },
+      { protocol: 'https', hostname: 'quantecon.org' },
+      { protocol: 'https', hostname: 'istio.io' },
+      { protocol: 'https', hostname: 'llvm.org' },
+      { protocol: 'https', hostname: 'webrtc.org' },
+      { protocol: 'https', hostname: 'argo-cd.readthedocs.io' },
     ],
   },
 
@@ -26,8 +48,29 @@ const nextConfig = {
       "https://user-images.githubusercontent.com",
       "https://imgs.search.brave.com",
       "https://gridfiti.com",
+      "https://th.bing.com",
+      "https://www.istockphoto.com",
+      "https://lh3.googleusercontent.com",
+      "https://repository-images.githubusercontent.com",
+      "https://fullstackopen.com",
+      "https://upload.wikimedia.org",
+      "https://teachyourselfcs.com",
+      "https://owasp.org",
+      "https://github.githubassets.com",
+      "https://craftinginterpreters.com",
+      "https://git-scm.com",
+      "https://developer.nvidia.com",
+      "https://rosalind.info",
+      "https://ghidra-sre.org",
+      "https://opentelemetry.io",
+      "https://quantecon.org",
+      "https://istio.io",
+      "https://llvm.org",
+      "https://webrtc.org",
+      "https://argo-cd.readthedocs.io",
     ];
 
+    const isDev = process.env.NODE_ENV !== 'production';
     const cspHeader = `
       default-src 'self';
       script-src 'self' 'unsafe-inline' 'unsafe-eval';
@@ -39,7 +82,7 @@ const nextConfig = {
       form-action 'self';
       frame-ancestors 'none';
       block-all-mixed-content;
-      upgrade-insecure-requests;
+      ${!isDev ? 'upgrade-insecure-requests;' : ''}
     `.replace(/\s{2,}/g, ' ').trim();
 
     return [

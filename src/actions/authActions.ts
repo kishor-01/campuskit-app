@@ -4,12 +4,21 @@
 import { AuthError } from "next-auth";
 import { signIn } from "@/auth";
 import prisma from "@/lib/prisma";
-import bcrypt from "bcrypt";
-import { emailService } from "@/lib/email-service";
+import bcrypt from "bcryptjs";
+import { sendOTPEmail } from "@/lib/mail";
 import { otpService } from "@/lib/otp-service";
+import { headers } from "next/headers";
+import { rateLimit } from "@/lib/rateLimiter";
 
 export async function authenticate(prevState: string | undefined, formData: FormData) {
   try {
+    const reqHeaders = await headers();
+    const ip = reqHeaders.get("x-forwarded-for") || reqHeaders.get("x-real-ip") || "unknown";
+    const rl = await rateLimit(`login:${ip}`, 5, 15 * 60);
+    if (rl.limited) {
+      return "Too many login attempts. Please try again later.";
+    }
+
     const callbackUrl = (formData.get("callbackUrl") as string) || "/";
     await signIn("credentials", formData, { callbackUrl });
   } catch (error) {
@@ -27,6 +36,13 @@ export async function authenticate(prevState: string | undefined, formData: Form
 
 export async function registerUser(prevState: any, formData: FormData) {
   try {
+    const reqHeaders = await headers();
+    const ip = reqHeaders.get("x-forwarded-for") || reqHeaders.get("x-real-ip") || "unknown";
+    const rl = await rateLimit(`signup:${ip}`, 5, 60 * 60);
+    if (rl.limited) {
+      return { success: false, message: "Too many signup attempts. Please try again later." };
+    }
+
     const name = formData.get("name") as string;
     const username = formData.get("username") as string;
     const education = formData.get("education") as string;
@@ -50,11 +66,11 @@ export async function registerUser(prevState: any, formData: FormData) {
 
     // Create user with email not verified
     const user = await prisma.user.create({
-      data: { 
-        name, 
-        username, 
-        education, 
-        email, 
+      data: {
+        name,
+        username,
+        education,
+        email,
         password: hashedPassword,
         role: 'VIEWER',
         emailVerified: null, // Use emailVerified instead of isEmailVerified
@@ -76,10 +92,10 @@ export async function registerUser(prevState: any, formData: FormData) {
     });
 
     // Send OTP email
-    await emailService.sendOtpEmail(email, otp);
+    await sendOTPEmail(email, otp);
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       message: "Account created! Please check your email for verification code.",
       email: user.email,
       redirectToOtp: true
@@ -93,6 +109,13 @@ export async function registerUser(prevState: any, formData: FormData) {
 // Additional action to verify OTP
 export async function verifyOtp(prevState: any, formData: FormData) {
   try {
+    const reqHeaders = await headers();
+    const ip = reqHeaders.get("x-forwarded-for") || reqHeaders.get("x-real-ip") || "unknown";
+    const rl = await rateLimit(`verify-otp:${ip}`, 10, 15 * 60);
+    if (rl.limited) {
+      return { success: false, message: "Too many attempts. Please try again later." };
+    }
+
     const email = formData.get("email") as string;
     const code = formData.get("code") as string;
 
@@ -138,9 +161,10 @@ export async function verifyOtp(prevState: any, formData: FormData) {
       where: { id: otpRecord.id },
     });
 
-    return { 
-      success: true, 
-      message: "Email verified successfully! You can now log in." 
+    return {
+      success: true,
+      message: "Email verified successfully! You can now log in.",
+      redirectUrl: "/"
     };
   } catch (error) {
     console.error('OTP verification error:', error);
@@ -155,10 +179,98 @@ export async function isEmailVerified(email: string) {
       where: { email },
       select: { emailVerified: true }
     });
-    
+
     return !!user?.emailVerified; // email is verified if emailVerified is not null
   } catch (error) {
     console.error('Error checking email verification:', error);
     return false;
+  }
+}
+
+export async function resendOtp(prevState: any, formData: FormData) {
+  try {
+    const reqHeaders = await headers();
+    const ip = reqHeaders.get("x-forwarded-for") || reqHeaders.get("x-real-ip") || "unknown";
+    const rl = await rateLimit(`resend-otp:${ip}`, 3, 15 * 60);
+    if (rl.limited) {
+      return { success: false, message: "Too many attempts. Please try again later." };
+    }
+
+    const email = formData.get("email") as string;
+    if (!email) {
+      return { success: false, message: "Email is required." };
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return { success: false, message: "User not found." };
+    }
+
+    const otp = otpService.generateOtp();
+    const hashedOtp = await bcrypt.hash(otp, 10);
+
+    await prisma.otp.create({
+      data: {
+        email,
+        code: hashedOtp,
+        type: 'SIGNUP',
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+      },
+    });
+
+    await sendOTPEmail(email, otp);
+
+    return { success: true, message: "OTP sent successfully." };
+  } catch (error) {
+    console.error('Resend OTP error:', error);
+    return { success: false, message: "Failed to resend OTP." };
+  }
+}
+
+export async function sendInitialOtp(prevState: any, formData: FormData) {
+  try {
+    const email = formData.get("email") as string;
+    if (!email) {
+      return { success: false, message: "Email is required." };
+    }
+    const reqHeaders = await headers();
+    const ip = reqHeaders.get("x-forwarded-for") || reqHeaders.get("x-real-ip") || "unknown";
+    const rl = await rateLimit(`init-otp:${ip}`, 3, 15 * 60);
+    if (rl.limited) {
+      return { success: false, message: "Too many attempts. Please try again later." };
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return { success: false, message: "User not found." };
+    }
+
+    // Check if an unexpired OTP already exists
+    const existingOtp = await prisma.otp.findFirst({
+      where: { email, type: 'SIGNUP', expiresAt: { gt: new Date() } }
+    });
+    
+    if (existingOtp) {
+        return { success: true, message: "OTP already sent." };
+    }
+
+    const otp = otpService.generateOtp();
+    const hashedOtp = await bcrypt.hash(otp, 10);
+
+    await prisma.otp.create({
+      data: {
+        email,
+        code: hashedOtp,
+        type: 'SIGNUP',
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+      },
+    });
+
+    await sendOTPEmail(email, otp);
+
+    return { success: true, message: "OTP sent successfully." };
+  } catch (error) {
+    console.error('Init OTP error:', error);
+    return { success: false, message: "Failed to send OTP." };
   }
 }

@@ -26,7 +26,7 @@ const containerVariants = {
   }
 };
 
-const cardVariants = {
+const cardVariants: any = {
   stacked: (index: number) => ({
     opacity: 1,
     y: 0,

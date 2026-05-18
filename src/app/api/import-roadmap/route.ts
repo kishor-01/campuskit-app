@@ -2,7 +2,6 @@
 
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-// FIX: Correctly import the function from goalActions
 import { createGoalFromRoadmapTyped } from '@/actions/goalActions';
 
 export async function POST(req: Request) {
@@ -17,8 +16,9 @@ export async function POST(req: Request) {
         roadmapId, 
         title, 
         targetDate, 
-        includeResources, // These were missing
-        includeNotes,     // These were missing
+        includeResources,
+        includeNotes,
+        priority,
         replace 
     } = body;
 
@@ -26,14 +26,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Roadmap ID and title are required' }, { status: 400 });
     }
 
-    // FIX: Pass all required arguments to the action
     const result = await createGoalFromRoadmapTyped(
         roadmapId, 
         title, 
         targetDate,
-        includeResources,
-        includeNotes,
-        replace
+        replace,
+        priority || 'MEDIUM'
     );
 
     if (result.duplicate) {

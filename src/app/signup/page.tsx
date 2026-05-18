@@ -40,8 +40,8 @@ function SubmitButton() {
 }
 
 export default function SignupPage() {
-  const initialState = { message: "", success: false };
-  const [state, formAction] = useActionState(registerUser, initialState);
+  const initialState: { message: string; success: boolean; redirectToOtp?: boolean; email?: string | null } = { message: "", success: false };
+  const [state, formAction] = useActionState<any, any>(registerUser as any, initialState);
   const [displayMessage, setDisplayMessage] = useState({ text: "", success: false });
   const [showPassword, setShowPassword] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -112,7 +112,7 @@ export default function SignupPage() {
       >
         <motion.div variants={containerVariants} initial="hidden" animate="visible">
           <motion.h1 variants={itemVariants} className="text-4xl font-bold">
-            EduLink
+            Seniofy
           </motion.h1>
           <motion.p variants={itemVariants} className="mt-4 text-lg opacity-80">
             Your digital senior — curating the best resources for your success.

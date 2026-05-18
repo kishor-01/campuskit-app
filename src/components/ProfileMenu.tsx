@@ -4,6 +4,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
+import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { 
   UserCircle2, 
@@ -15,7 +16,8 @@ import {
   Crown,
   Edit3,
   Eye,
-  UserCheck
+  UserCheck,
+  Settings
 } from "lucide-react";
 import { Role } from "@prisma/client";
 import ThemeToggle from "./ThemeToggle";
@@ -97,7 +99,17 @@ export default function ProfileMenu() {
         className="relative p-2 rounded-full hover:bg-muted transition-colors group"
         aria-label="Open user menu"
       >
-        <UserCircle2 className="h-6 w-6 text-muted-foreground group-hover:text-foreground" />
+        {user.image ? (
+          <Image 
+            src={user.image} 
+            alt="Profile" 
+            width={32}
+            height={32}
+            className="h-8 w-8 rounded-full object-cover border border-border"
+          />
+        ) : (
+          <UserCircle2 className="h-7 w-7 text-muted-foreground group-hover:text-foreground" />
+        )}
         {/* Role indicator dot */}
         <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-background ${
           userRole === Role.SUPER_ADMIN ? 'bg-purple-500' :
@@ -143,6 +155,22 @@ export default function ProfileMenu() {
               >
                 <User className="w-4 h-4 mr-3" /> 
                 My Profile
+              </Link>
+              <Link 
+                href="/profile/edit" 
+                onClick={() => setIsOpen(false)}
+                className="flex items-center w-full px-4 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <Edit3 className="w-4 h-4 mr-3" /> 
+                Edit Profile
+              </Link>
+              <Link 
+                href="/profile/privacy" 
+                onClick={() => setIsOpen(false)}
+                className="flex items-center w-full px-4 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <Settings className="w-4 h-4 mr-3" /> 
+                Privacy Settings
               </Link>
               <Link 
                 href="/my-resources" 

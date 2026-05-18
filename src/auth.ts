@@ -1,13 +1,14 @@
 //src/auth.ts
-
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { Role } from "@prisma/client";
 import { authConfig } from "./auth.config";
+import { isAccountLocked, recordFailedLoginAttempt, clearFailedLoginAttempts } from '@/lib/failed-login-tracker';
+import { logLoginFailed, logLoginSuccess } from '@/lib/audit-logger';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -22,6 +23,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!login || !password) return null;
 
+        // PREVENT BRUTE FORCE: Check if account is already locked before attempting login
+        if (await isAccountLocked(login)) {
+          throw new Error("Account is locked due to too many failed attempts. Try again later.");
+        }
+
         // Find user by email or username
         const user = await prisma.user.findFirst({
           where: {
@@ -29,11 +35,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           },
         });
 
-        if (!user || !user.password) return null;
+        if (!user || !user.password) {
+          await recordFailedLoginAttempt(login);
+          await logLoginFailed(login, undefined, 'Invalid credentials');
+          return null;
+        }
 
         // Verify password
         const passwordsMatch = await bcrypt.compare(password, user.password);
-        if (!passwordsMatch) return null;
+        if (!passwordsMatch) {
+          await recordFailedLoginAttempt(login);
+          await logLoginFailed(login, undefined, 'Invalid credentials');
+          return null;
+        }
+
+        // Login successful
+        await clearFailedLoginAttempts(login);
+        await logLoginSuccess(user.id);
 
         return {
           id: user.id,
@@ -41,6 +59,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name,
           username: user.username,
           role: user.role,
+          sessionVersion: user.sessionVersion,
           isAdmin: user.role === Role.ADMIN || user.role === Role.SUPER_ADMIN,
         };
       },
@@ -63,21 +82,52 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // Callbacks
   // ───────────────────────────────
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger }) {
       if (user) {
         token.role = (user as any).role || Role.VIEWER;
         token.isAdmin =
           (user as any).role === Role.ADMIN ||
           (user as any).role === Role.SUPER_ADMIN;
+        token.sessionVersion = (user as any).sessionVersion || 0;
       }
+
+      // True JWT Invalidation: Verify sessionVersion with the database
+      if (token.sub) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.sub },
+            select: { sessionVersion: true, role: true, image: true }
+          });
+
+          // If user is deleted or session version changed, invalidate token
+          // EXCEPT if this is a new OAuth sign-in, where we trust the provider and sync the version
+          if (!dbUser) {
+            return null as any;
+          }
+          if (account && account.provider !== "credentials") {
+            token.sessionVersion = dbUser.sessionVersion;
+          } else if (dbUser.sessionVersion !== token.sessionVersion) {
+            return null as any; // Invalidates the JWT token
+          }
+          // Sync role and image to token
+          token.role = dbUser.role;
+          token.isAdmin = dbUser.role === Role.ADMIN || dbUser.role === Role.SUPER_ADMIN;
+          token.image = dbUser.image;
+        } catch (err) {
+          console.error("[AUTH] Error checking session version", err);
+        }
+      }
+
       return token;
     },
 
     async session({ session, token }) {
-      if (session.user) {
+      if (session.user && token) {
         session.user.id = token.sub!;
         session.user.role = (token.role as Role) || Role.VIEWER;
         session.user.isAdmin = token.isAdmin as boolean;
+        if (token.image) session.user.image = token.image as string;
+        (session.user as any).sessionVersion = token.sessionVersion;
       }
       return session;
     },
@@ -111,7 +161,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return `${baseUrl}/`;
     },
   },
-
   // ───────────────────────────────
   // Pages
   // ───────────────────────────────

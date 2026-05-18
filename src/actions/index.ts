@@ -89,6 +89,17 @@ export async function publishArticle(formData: FormData) {
   return await mod.publishArticle(formData);
 }
 
+/* --- Blog Actions (Bookmarks & Blueprints) --- */
+export async function toggleSaveArticle(articleId: string) {
+  const mod = await import('./blogActions');
+  return await mod.toggleSaveArticle(articleId);
+}
+
+export async function cloneBlueprintToGoal(articleId: string) {
+  const mod = await import('./blogActions');
+  return await mod.cloneBlueprintToGoal(articleId);
+}
+
 /* --- Opportunity Actions --- */
 export async function createOpportunity(prevState: any, formData: FormData) {
   const mod = await import('./opportunityActions');
@@ -112,7 +123,7 @@ export async function submitOpportunity(formData: FormData) {
 
 export async function updateOpportunityStatus(id: string, status: ResourceStatus) {
   const mod = await import('./opportunityActions');
-  return await mod.updateOpportunityStatus(id, status);
+  return await mod.updateOpportunityStatus(id, status as any);
 }
 
 /* --- Affiliate Actions --- */
@@ -180,6 +191,21 @@ export async function deleteRoadmapStep(prevState: any, formData: FormData) {
 export async function linkResourcesToStep(formData: FormData) {
   const mod = await import('./roadmapActions');
   return await mod.linkResourcesToStep(formData);
+}
+
+export async function createBranch(prevState: any, formData: FormData) {
+  const mod = await import('./roadmapActions');
+  return await mod.createBranch(prevState, formData);
+}
+
+export async function deleteBranch(prevState: any, formData: FormData) {
+  const mod = await import('./roadmapActions');
+  return await mod.deleteBranch(prevState, formData);
+}
+
+export async function assignStepToBranch(prevState: any, formData: FormData) {
+  const mod = await import('./roadmapActions');
+  return await mod.assignStepToBranch(prevState, formData);
 }
 
 /* --- Goal Actions --- */
@@ -263,12 +289,18 @@ export async function linkResourcesToTopic(topicId: string, resources: { resourc
   return await mod.linkResourcesToTopic(topicId, resources);
 }
 
-export async function updateTopicNote(topicId: string, note: string | null) {
+export async function updateTopicNote(prevState: any, formData: FormData) {
   const mod = await import('./goalActions');
-  return await mod.updateTopicNote(topicId, note);
+  return await mod.updateTopicNote(prevState, formData);
 }
 
-export async function updateSubTopicNote(subTopicId: string, note: string | null) {
+export async function updateSubTopicNote(prevState: any, formData: FormData) {
   const mod = await import('./goalActions');
-  return await mod.updateSubTopicNote(subTopicId, note);
+  return await mod.updateSubTopicNote(prevState, formData);
+}
+
+/* --- Moderation Actions --- */
+export async function submitContentReport(data: { contentType: string, contentId: string, reason: string }) {
+  const mod = await import('./moderationActions');
+  return await mod.submitContentReport(data);
 }

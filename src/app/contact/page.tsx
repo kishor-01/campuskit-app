@@ -11,7 +11,7 @@ import { SubmitButton } from "@/components/admin/SubmitButton";
 import { toast } from "react-hot-toast"; // Added toast import
 
 // Framer Motion Variants for staggered animations
-const containerVariants = {
+const containerVariants: any = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -19,7 +19,7 @@ const containerVariants = {
   },
 };
 
-const itemVariants = {
+const itemVariants: any = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } },
 };
@@ -29,7 +29,7 @@ export default function ContactPage() {
   const [init, setInit] = useState(false);
 
   // --- Form State ---
-  const [state, formAction] = useActionState(sendContactMessage, { message: null, success: false, errors: null });
+  const [state, formAction] = useActionState<any, any>(sendContactMessage as any, { message: null, success: false, errors: null });
   const formRef = useRef<HTMLFormElement>(null);
   
   // Effect to show toast messages based on form state
@@ -109,7 +109,7 @@ export default function ContactPage() {
               {state.errors?.message && <p className="text-xs text-destructive mt-1">{state.errors.message[0]}</p>}
             </motion.div>
             <motion.div variants={itemVariants}>
-              <SubmitButton text="Send Message" icon={<Send size={16}/>} />
+              <SubmitButton text="Send Message" />
             </motion.div>
           </form>
         </motion.div>

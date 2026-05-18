@@ -15,6 +15,8 @@ import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import TableRow from '@tiptap/extension-table-row';
 import React, { useCallback, useEffect, useState, useRef } from "react";
+import Typography from '@tiptap/extension-typography';
+import { createAffiliateSlashCommand } from './tiptap/AffiliateSuggestion';
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Link as LinkIcon,
   List, ListOrdered, Pilcrow, Heading1, Heading2, Heading3,
@@ -105,6 +107,10 @@ const TiptapEditor = ({
           class: 'blog-table',
         },
       }),
+      Typography,
+      ...(affiliateLinks.length > 0
+        ? [createAffiliateSlashCommand(affiliateLinks)]
+        : []),
     ],
     content: initialContent,
     editable: !isSubmitting,

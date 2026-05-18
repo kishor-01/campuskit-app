@@ -200,6 +200,16 @@ export default function ResourceManager({
             <Textarea name="description" placeholder="Short description..." required rows={3} className="w-full bg-background border-muted" />
             <Input type="url" name="url" placeholder="Resource URL (https://...)" required className="w-full bg-background border-muted" />
             <Input type="url" name="imageUrl" placeholder="Image URL (optional, https://example.com/image.jpg)" className="w-full bg-background border-muted" />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input type="text" name="difficulty" placeholder="Difficulty (e.g. Beginner, Intermediate)" className="w-full bg-background border-muted" />
+              <Input type="text" name="timeRequired" placeholder="Time Required (e.g. 2-4 Hours)" className="w-full bg-background border-muted" />
+            </div>
+            
+            <Textarea name="prerequisites" placeholder="Prerequisites (one per line, e.g. Basic HTML&#10;Understanding of JS)" rows={3} className="w-full bg-background border-muted" />
+
+            <Textarea name="visualizations" placeholder="Mermaid.js code for flowcharts/mindmaps (Optional)" rows={4} className="w-full bg-background border-muted font-mono text-xs" />
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* FIXED: Category Select */}
               <Select name="categoryId" required>
@@ -228,6 +238,19 @@ export default function ResourceManager({
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Publish Date</label>
+                <Input type="datetime-local" name="publishedAt" className="mt-1 w-full bg-background border-muted" />
+                <p className="text-xs text-muted-foreground mt-1">Leave blank to publish immediately.</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Author Override</label>
+                <Input type="text" name="authorOverride" placeholder="Custom author name (optional)" className="mt-1 w-full bg-background border-muted" />
+              </div>
+            </div>
+
             <CreateSubmitButton />
             
             {/* UPDATED: Enhanced error display */}
@@ -256,7 +279,7 @@ export default function ResourceManager({
       </div>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto px-6">
           <DialogHeader>
             <DialogTitle>Edit Resource</DialogTitle>
             <DialogDescription>
@@ -294,6 +317,38 @@ export default function ResourceManager({
                 {updateState?.error && typeof updateState.error === 'object' && updateState.error.imageUrl && (
                   <p className="text-xs text-destructive mt-1">{Array.isArray(updateState.error.imageUrl) ? updateState.error.imageUrl[0] : updateState.error.imageUrl}</p>
                 )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="edit-difficulty" className="text-sm font-medium">Difficulty</label>
+                  <Input id="edit-difficulty" name="difficulty" defaultValue={editingResource.difficultyTier ?? ""} placeholder="e.g. Beginner" />
+                </div>
+                <div>
+                  <label htmlFor="edit-timeRequired" className="text-sm font-medium">Time Required</label>
+                  <Input id="edit-timeRequired" name="timeRequired" defaultValue={editingResource.timeRequired ?? ""} placeholder="e.g. 2-4 Hours" />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="edit-prerequisites" className="text-sm font-medium">Prerequisites (One per line)</label>
+                <Textarea 
+                  id="edit-prerequisites" 
+                  name="prerequisites" 
+                  defaultValue={editingResource.prerequisites ? (Array.isArray(editingResource.prerequisites) ? editingResource.prerequisites.join('\n') : '') : ""} 
+                  rows={3} 
+                />
+              </div>
+
+              <div>
+                <label htmlFor="edit-visualizations" className="text-sm font-medium">Visualizations (Mermaid.js code)</label>
+                <Textarea 
+                  id="edit-visualizations" 
+                  name="visualizations" 
+                  defaultValue={editingResource.visualizations ? (Array.isArray(editingResource.visualizations) ? (editingResource.visualizations.find(v => (v as any).type === 'mermaid') as any)?.content || '' : '') : ""} 
+                  rows={4} 
+                  className="font-mono text-xs"
+                />
               </div>
 
               <div>
@@ -341,6 +396,18 @@ export default function ResourceManager({
                 {updateState?.error && typeof updateState.error === 'object' && updateState.error.status && (
                   <p className="text-xs text-destructive mt-1">{Array.isArray(updateState.error.status) ? updateState.error.status[0] : updateState.error.status}</p>
                 )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Publish Date</label>
+                  <Input type="datetime-local" name="publishedAt" defaultValue={editingResource.publishedAt ? new Date(editingResource.publishedAt).toISOString().slice(0, 16) : ''} className="mt-1" />
+                  <p className="text-xs text-muted-foreground mt-1">Leave blank to publish immediately.</p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Author Override</label>
+                  <Input type="text" name="authorOverride" defaultValue={(editingResource as any).authorOverride ?? ''} placeholder="Custom author name (optional)" className="mt-1" />
+                </div>
               </div>
 
               {/* UPDATED: Enhanced error display */}

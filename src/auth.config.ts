@@ -48,11 +48,11 @@ export const authConfig = {
 
       if (isAdminRoute) {
         if (!isLoggedIn) return false;
-        
+
         // Simple role check - allow ADMIN and SUPER_ADMIN
         const userRole = auth.user.role;
         const isAdmin = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
-        
+
         if (isAdmin) return true;
         return false;
       }

@@ -26,12 +26,13 @@ const OPPORTUNITIES_PER_PAGE = 10;
 export default async function OpportunityManagementPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
-  const sort = searchParams.sort || "createdAt-desc";
-  const query = searchParams.q;
-  const tab = searchParams.tab || OpportunityStatus.PUBLISHED;
-  const page = Math.max(1, parseInt(searchParams.page || "1", 10));
+  const sp = await searchParams;
+  const sort = sp.sort || "createdAt-desc";
+  const query = sp.q;
+  const tab = sp.tab || OpportunityStatus.PUBLISHED;
+  const page = Math.max(1, parseInt(sp.page || "1", 10));
 
   const [field, order] = sort.split("-");
   const orderBy: Prisma.OpportunityOrderByWithRelationInput = { [field]: order as Prisma.SortOrder };

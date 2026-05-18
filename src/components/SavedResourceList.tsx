@@ -4,18 +4,12 @@
 
 import { useState, useMemo, Suspense } from 'react';
 import { useSafeSearchParams } from '@/hooks/use-safe-search-params';
-import ResourceCard from './ResourceCard';
+import ResourceCard, { ResourceWithCategory } from './ResourceCard';
 import { Category, Resource } from '@prisma/client';
 import { Search, Grid, List } from 'lucide-react';
 
-interface ResourceWithSaveStatus extends Resource {
-  category: Category;
-  isInitiallySaved: boolean;
-  savedAt?: Date;
-}
-
 interface SavedResourceListProps {
-  resources: ResourceWithSaveStatus[];
+  resources: ResourceWithCategory[];
 }
 
 function SavedResourceListContent({ resources }: SavedResourceListProps) {
@@ -38,28 +32,13 @@ function SavedResourceListContent({ resources }: SavedResourceListProps) {
     );
   }, [resources, searchQuery]);
 
-  const toggleSave = async (resourceId: string) => {
-    try {
-      const response = await fetch('/api/resources/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resourceId }),
-      });
-
-      if (response.ok) {
-        setSavedResources(prev => {
-          const newSet = new Set(prev);
-          if (newSet.has(resourceId)) {
-            newSet.delete(resourceId);
-          } else {
-            newSet.add(resourceId);
-          }
-          return newSet;
-        });
-      }
-    } catch (error) {
-      console.error('Failed to toggle save:', error);
-    }
+  const handleSaveChange = (resourceId: string, isSaved: boolean) => {
+    setSavedResources(prev => {
+      const newSet = new Set(prev);
+      if (isSaved) newSet.add(resourceId);
+      else newSet.delete(resourceId);
+      return newSet;
+    });
   };
 
   return (
@@ -117,10 +96,8 @@ function SavedResourceListContent({ resources }: SavedResourceListProps) {
               key={resource.id}
               resource={resource}
               isSaved={savedResources.has(resource.id)}
-              onToggleSave={() => toggleSave(resource.id)}
+              onToggleSave={(isSaved) => handleSaveChange(resource.id, isSaved)}
               viewMode={viewMode}
-              showSavedDate={true}
-              savedAt={resource.savedAt}
             />
           ))}
         </div>

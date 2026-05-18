@@ -19,7 +19,7 @@ async function requireUser() {
 }
 
 /* --- GOAL ACTIONS --- */
-export async function createGoal(formData: FormData) {
+export async function createGoal(prevState: any, formData: FormData) {
   const session = await requireUser();
 
   const title = formData.get('title') as string;
@@ -306,14 +306,19 @@ export async function toggleSubTopicStatus(id: string, isCompleted: boolean) {
 
   const subTopicForAuth = await prisma.subTopic.findUnique({ 
     where: { id }, 
-    select: { topic: { select: { milestone: { select: { goal: { select: { userId: true }}}}}}}
+    select: { topic: { select: { milestone: { select: { goal: { select: { userId: true, id: true }}}}}}}
   });
 
   if (subTopicForAuth?.topic.milestone.goal.userId !== session.user.id) throw new Error('Forbidden.');
 
+  const nowCompleting = !isCompleted; // toggling: if was incomplete, now completing
+
   const subTopic = await prisma.subTopic.update({
     where: { id },
-    data: { isCompleted: !isCompleted },
+    data: { 
+      isCompleted: nowCompleting,
+      completedAt: nowCompleting ? new Date() : null,
+    },
   });
 
   const topic = await prisma.topic.findUnique({
@@ -321,8 +326,51 @@ export async function toggleSubTopicStatus(id: string, isCompleted: boolean) {
     include: { milestone: { select: { goalId: true } } }
   });
 
-  if (topic?.milestone?.goalId) {
-    revalidatePath(`/my-goals/${topic.milestone.goalId}`);
+  const goalId = topic?.milestone?.goalId;
+
+  // --- Streak Logic ---
+  if (goalId && nowCompleting) {
+    const goal = await prisma.goal.findUnique({ where: { id: goalId }, select: { currentStreak: true, longestStreak: true, lastActivityDate: true } });
+
+    if (goal) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      let newStreak = 1;
+
+      if (goal.lastActivityDate) {
+        const lastDate = new Date(goal.lastActivityDate);
+        lastDate.setHours(0, 0, 0, 0);
+
+        const diffDays = Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) {
+          // Same day — keep current streak
+          newStreak = goal.currentStreak || 1;
+        } else if (diffDays === 1) {
+          // Consecutive day — increment streak
+          newStreak = (goal.currentStreak || 0) + 1;
+        } else {
+          // Gap > 1 day — reset streak
+          newStreak = 1;
+        }
+      }
+
+      const newLongest = Math.max(newStreak, goal.longestStreak || 0);
+
+      await prisma.goal.update({
+        where: { id: goalId },
+        data: {
+          currentStreak: newStreak,
+          longestStreak: newLongest,
+          lastActivityDate: new Date(),
+        },
+      });
+    }
+  }
+
+  if (goalId) {
+    revalidatePath(`/my-goals/${goalId}`);
   }
 
   return subTopic;
@@ -369,8 +417,8 @@ export async function linkResourcesToSubTopic(subTopicId: string, resources: { r
 
   const results = await prisma.$transaction(ops);
 
-  if (subTopic.topic?.milestone?.goalId) {
-    revalidatePath(`/my-goals/${subTopic.topic.milestone.goalId}`);
+  if (subTopic.topic?.milestone?.goal?.id) {
+    revalidatePath(`/my-goals/${subTopic.topic.milestone.goal.id}`);
   }
 
   return results.filter(r => r && typeof r === 'object' && 'id' in r);
@@ -478,7 +526,7 @@ export async function updateSubTopicNote(prevState: any, formData: FormData) {
   }
 }
 
-export async function createGoalFromRoadmapTyped(roadmapId: string, title: string, targetDate: string | null, replaceExisting = false) {
+export async function createGoalFromRoadmapTyped(roadmapId: string, title: string, targetDate: string | null, replaceExisting = false, priority: string = 'MEDIUM') {
   const session = await requireUser();
   const userId = session.user.id;
 
@@ -502,11 +550,17 @@ export async function createGoalFromRoadmapTyped(roadmapId: string, title: strin
     return { duplicate: true, existingGoalId: existing.id };
   }
 
+  // Build senior insight note
+  const insightNote = roadmap.seniorInsight && roadmap.seniorInsight !== 'Pending senior insight'
+    ? `Senior Insight: "${roadmap.seniorInsight}"`
+    : null;
+
   const milestonesCreate = roadmap.steps.map(step => {
     const approvedResources = (step.linkedResources ?? []).filter(lr => lr.resource?.status === 'APPROVED');
 
     const topicsCreate: any[] = [{
-      title: 'Overview', order: 1, note: step.description,
+      title: 'Overview', order: 1, 
+      note: [step.description, insightNote].filter(Boolean).join('\n\n'),
       subTopics: { create: [] }
     }];
 
@@ -519,10 +573,29 @@ export async function createGoalFromRoadmapTyped(roadmapId: string, title: strin
       });
     }
 
+    // Add deep-dive and quick-ref as linked notes if available
+    if (step.deepDiveUrl || step.quickRefUrl) {
+      const resourceNotes: string[] = [];
+      if (step.deepDiveUrl) resourceNotes.push(`📚 Deep Dive: ${step.deepDiveUrl}`);
+      if (step.quickRefUrl) resourceNotes.push(`⚡ Quick Ref: ${step.quickRefUrl}`);
+      topicsCreate[0].note = [topicsCreate[0].note, ...resourceNotes].filter(Boolean).join('\n');
+    }
+
     return { title: step.title, order: step.order, topics: { create: topicsCreate } };
   });
 
-  const goalData: any = { title, userId, isTemplate: false, milestones: { create: milestonesCreate } };
+  // Validate priority enum
+  const validPriorities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+  const safePriority = validPriorities.includes(priority) ? priority : 'MEDIUM';
+
+  const goalData: any = { 
+    title, 
+    userId, 
+    isTemplate: false, 
+    sourceRoadmapId: roadmapId,
+    priority: safePriority,
+    milestones: { create: milestonesCreate } 
+  };
 
   if (targetDate) goalData.targetDate = new Date(targetDate);
 
@@ -532,4 +605,40 @@ export async function createGoalFromRoadmapTyped(roadmapId: string, title: strin
   revalidatePath(`/my-goals/${createdGoal.id}`);
 
   return { success: true, newGoalId: createdGoal.id };
+}
+
+/* --- PRIORITY & FOCUS TIME --- */
+export async function updateGoalPriority(goalId: string, priority: string) {
+  const session = await requireUser();
+
+  const goal = await prisma.goal.findUnique({ where: { id: goalId }, select: { userId: true } });
+  if (goal?.userId !== session.user.id) throw new Error('Forbidden.');
+
+  const validPriorities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+  if (!validPriorities.includes(priority)) throw new Error('Invalid priority.');
+
+  await prisma.goal.update({
+    where: { id: goalId },
+    data: { priority: priority as any },
+  });
+
+  revalidatePath(`/my-goals/${goalId}`);
+  return { message: 'Priority updated.' };
+}
+
+export async function addFocusTime(goalId: string, minutes: number) {
+  const session = await requireUser();
+
+  const goal = await prisma.goal.findUnique({ where: { id: goalId }, select: { userId: true, totalFocusTime: true } });
+  if (goal?.userId !== session.user.id) throw new Error('Forbidden.');
+
+  if (!Number.isFinite(minutes) || minutes <= 0) throw new Error('Invalid focus time.');
+
+  await prisma.goal.update({
+    where: { id: goalId },
+    data: { totalFocusTime: (goal.totalFocusTime || 0) + Math.round(minutes) },
+  });
+
+  revalidatePath(`/my-goals/${goalId}`);
+  return { message: 'Focus time logged.' };
 }

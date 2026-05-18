@@ -13,9 +13,9 @@ const PER_PAGE = 12;
 export default async function AdminResourcesPage({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | undefined };
+  searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
-  const params = searchParams ?? {};
+  const params = (await searchParams) ?? {};
   const tab = (params.tab as ResourceStatus) || ResourceStatus.PENDING;
   const q = params.q || "";
   const sort = params.sort || "createdAt-desc";

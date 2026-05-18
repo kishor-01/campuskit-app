@@ -20,7 +20,7 @@ export function useUsernameAvailability() {
     error: null
   });
 
-  const debounceRef = useRef<NodeJS.Timeout>();
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const checkUsername = useCallback(async (username: string) => {
     if (!username || username.length < 3) {

@@ -57,7 +57,7 @@ export default function MobileMenu({ open, onClose, session, status }: MobileMen
             className="fixed inset-y-0 right-0 z-50 bg-background border-l border-border w-[min(70vw,280px)] flex flex-col"
           >
             <div className="flex items-center justify-between p-4 border-b border-border">
-              <span className="font-bold text-lg">EduLink</span>
+              <span className="font-bold text-lg">Seniofy</span>
               <button onClick={onClose} className="p-2 rounded-md hover:bg-muted">
                 <X className="h-5 w-5 text-muted-foreground" />
               </button>

@@ -3,7 +3,7 @@
 
 import React, { useOptimistic, useEffect, useRef, useState, useActionState } from "react";
 import { createArticle, deleteArticle, updateArticle } from "@/actions";
-import { Article, ArticleStatus } from "@prisma/client";
+import { Article, ArticleStatus, ArticleSeries } from "@prisma/client";
 import { toast } from "react-hot-toast";
 import { Loader2, AlertTriangle, Info } from "lucide-react";
 import { useFormStatus } from "react-dom";
@@ -88,10 +88,12 @@ function ContentStats({ content }: { content: string }) {
 // Main BlogManager component
 export default function BlogManager({ 
   articles, 
-  affiliateLinks = []
+  affiliateLinks = [],
+  allSeries = [],
 }: { 
   articles: ArticleWithAuthor[];
   affiliateLinks?: AffiliateLink[];
+  allSeries?: { id: string; title: string; slug: string }[];
 }) {
   // Action states
   const [createState, createAction] = useActionState<FormState, FormData>(createArticle, { message: null, error: null });
@@ -246,6 +248,56 @@ export default function BlogManager({
               </Select>
             </div>
 
+            {/* Phase 2: Metadata Fields */}
+            <details className="border border-border rounded-lg p-4 bg-muted/30">
+              <summary className="cursor-pointer font-semibold text-sm text-foreground mb-2">Publication Metadata (Optional)</summary>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Tags (comma-separated)</label>
+                  <Input type="text" name="tags" placeholder="react, tutorial, api" className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Read Time (minutes)</label>
+                  <Input type="number" name="readTimeMins" min={1} max={120} defaultValue={5} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Series</label>
+                  <Select name="seriesId">
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue placeholder="No series" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value=" ">No series</SelectItem>
+                      {allSeries.map(s => (
+                        <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Series Order</label>
+                  <Input type="number" name="seriesOrder" min={1} placeholder="e.g., 1" className="mt-1" />
+                </div>
+                <div className="flex items-center gap-2 col-span-full">
+                  <input type="checkbox" name="hasInteractiveEnv" id="create-interactive" className="rounded" />
+                  <label htmlFor="create-interactive" className="text-sm text-foreground">Has Interactive Code Playground</label>
+                </div>
+                <div className="col-span-full">
+                  <label className="text-xs font-medium text-muted-foreground">Clonable Blueprint (JSON)</label>
+                  <Textarea name="clonableBlueprint" rows={3} placeholder='{"title": "...", "milestones": [...]}' className="mt-1 font-mono text-xs" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Publish Date</label>
+                  <Input type="datetime-local" name="publishedAt" className="mt-1" />
+                  <p className="text-xs text-muted-foreground mt-1">Leave blank to publish immediately.</p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Author Override</label>
+                  <Input type="text" name="authorOverride" placeholder="Guest author name (optional)" className="mt-1" />
+                </div>
+              </div>
+            </details>
+
             <CreateSubmitButton />
 
             {createState?.error && typeof createState.error === 'string' && (
@@ -356,6 +408,56 @@ export default function BlogManager({
                   <p className="text-xs text-destructive mt-1">{updateState.error.status[0]}</p>
                 )}
               </div>
+
+              {/* Phase 2: Edit Metadata Fields */}
+              <details className="border border-border rounded-lg p-4 bg-muted/30">
+                <summary className="cursor-pointer font-semibold text-sm text-foreground mb-2">Publication Metadata</summary>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Tags (comma-separated)</label>
+                    <Input type="text" name="tags" defaultValue={(editingArticle as any).tags?.join(', ') ?? ''} placeholder="react, tutorial, api" className="mt-1" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Read Time (minutes)</label>
+                    <Input type="number" name="readTimeMins" min={1} max={120} defaultValue={(editingArticle as any).readTimeMins ?? 5} className="mt-1" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Series</label>
+                    <Select name="seriesId" defaultValue={(editingArticle as any).seriesId ?? ' '}>
+                      <SelectTrigger className="w-full mt-1">
+                        <SelectValue placeholder="No series" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value=" ">No series</SelectItem>
+                        {allSeries.map(s => (
+                          <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Series Order</label>
+                    <Input type="number" name="seriesOrder" min={1} defaultValue={(editingArticle as any).seriesOrder ?? ''} placeholder="e.g., 1" className="mt-1" />
+                  </div>
+                  <div className="flex items-center gap-2 col-span-full">
+                    <input type="checkbox" name="hasInteractiveEnv" id="edit-interactive" defaultChecked={(editingArticle as any).hasInteractiveEnv ?? false} className="rounded" />
+                    <label htmlFor="edit-interactive" className="text-sm text-foreground">Has Interactive Code Playground</label>
+                  </div>
+                  <div className="col-span-full">
+                    <label className="text-xs font-medium text-muted-foreground">Clonable Blueprint (JSON)</label>
+                    <Textarea name="clonableBlueprint" rows={3} defaultValue={(editingArticle as any).clonableBlueprint ? JSON.stringify((editingArticle as any).clonableBlueprint, null, 2) : ''} placeholder='{"title": "...", "milestones": [...]}' className="mt-1 font-mono text-xs" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Publish Date</label>
+                    <Input type="datetime-local" name="publishedAt" defaultValue={(editingArticle as any).publishedAt ? new Date((editingArticle as any).publishedAt).toISOString().slice(0, 16) : ''} className="mt-1" />
+                    <p className="text-xs text-muted-foreground mt-1">Leave blank to publish immediately.</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Author Override</label>
+                    <Input type="text" name="authorOverride" defaultValue={(editingArticle as any).authorOverride ?? ''} placeholder="Guest author name (optional)" className="mt-1" />
+                  </div>
+                </div>
+              </details>
 
               {updateState?.error && typeof updateState.error === 'string' && (
                 <Alert className="bg-red-50 border-red-200">

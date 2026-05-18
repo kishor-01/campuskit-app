@@ -15,7 +15,7 @@ const getInitials = (name: string) => {
 };
 
 interface ProfileIdCardProps {
-  user: Partial<User>; // Use Partial<User> to handle potentially missing fields
+  user: Partial<User> & { username?: string | null; education?: string | null; };
 }
 
 export default function ProfileIdCard({ user }: ProfileIdCardProps) {
@@ -54,7 +54,7 @@ export default function ProfileIdCard({ user }: ProfileIdCardProps) {
         </span>
       </div>
       <h2 style={{ transform: "translateZ(40px)" }} className="text-2xl font-bold text-foreground truncate max-w-full">
-        {user.name || "EduLink User"}
+        {user.name || "Seniofy User"}
       </h2>
       <p style={{ transform: "translateZ(30px)" }} className="text-sm text-muted-foreground">
         @{user.username || "username"}

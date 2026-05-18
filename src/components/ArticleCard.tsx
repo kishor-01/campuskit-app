@@ -6,6 +6,7 @@ import type { Article } from "@prisma/client";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
+import ReportContentModal from "./ReportContentModal";
 
 interface ArticleCardProps {
   article: Article; // Fixed the typo from 'artiacle' to 'article'
@@ -35,9 +36,10 @@ export default function ArticleCard({ article }: ArticleCardProps) {
       animate="visible"
       className="h-full"
     >
-      <Link href={`/blog/${article.slug}`} className="block h-full">
-        <div className="flex flex-col h-full bg-muted/50 rounded-lg overflow-hidden group shadow-sm hover:shadow-xl transition-shadow duration-300">
-          {article.imageUrl && (
+      <div className="relative h-full">
+        <Link href={`/blog/${article.slug}`} className="block h-full">
+          <div className="flex flex-col h-full bg-muted/50 rounded-lg overflow-hidden group shadow-sm hover:shadow-xl transition-shadow duration-300">
+            {article.imageUrl && (
             <div className="relative w-full h-48 overflow-hidden">
               <Image
                 src={article.imageUrl}
@@ -67,6 +69,10 @@ export default function ArticleCard({ article }: ArticleCardProps) {
           </div>
         </div>
       </Link>
+      <div className="absolute top-4 right-4 z-20" onClick={(e) => e.preventDefault()}>
+        <ReportContentModal contentType="ARTICLE" contentId={article.id} />
+      </div>
+      </div>
     </motion.div>
   );
 }

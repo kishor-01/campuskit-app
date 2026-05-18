@@ -43,12 +43,35 @@ model User {
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
   role               Role            @default(VIEWER)
+  deletedAt          DateTime?
+  permissions        Permission[]
+  backupCodes        String[]        @default([])
+  lastLoginAt        DateTime?
+  lastLoginIp        String?
+  lastLoginUserAgent String?
+  totpEnabled        Boolean         @default(false)
+  totpSecret         String?
+  sessionVersion     Int             @default(0)
+  lockedUntil        DateTime?
   accounts           Account[]
   articles           Article[]       @relation("ArticleAuthor")
   goals              Goal[]
   submittedResources Resource[]      @relation("UserSubmissions")
   savedResources     SavedResource[]
+  savedArticles      SavedArticle[]
   sessions           Session[]
+  portfolioAudits    PortfolioAudit[]
+  resourceSubmissions ResourceSubmission[]
+
+  // Developer Passport
+  developerTitle     String          @default("Initiate")
+  badges             String[]        @default([])
+  githubUrl          String?
+  portfolioUrl       String?
+  bio                String?
+  isPublicProfile    Boolean         @default(true)
+  showHeatmap        Boolean         @default(true)
+  allowEmails        Boolean         @default(true)
 
   @@index([email])
   @@index([username])
@@ -59,13 +82,23 @@ model Resource {
   id                 String                @id @default(cuid())
   name               String
   description        String
-  url                String
+  url                String                @unique
   imageUrl           String?
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
   status             ResourceStatus        @default(PENDING)
   categoryId         String
   submittedById      String?
+  highlights         Json?
+  prerequisites      Json?
+  steps              Json?
+  visualizations     Json?
+  difficultyTier     DifficultyTier        @default(INTERMEDIATE)
+  seniorInsight      String                @default("Pending senior insight")
+  healthStatus       ResourceHealth        @default(HEALTHY)
+  timeRequired       String?               @default("2-4 Hours")
+  publishedAt        DateTime              @default(now())
+  authorOverride     String?
   linkedToGoals      GoalResource[]
   category           Category              @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   submittedBy        User?                 @relation("UserSubmissions", fields: [submittedById], references: [id])
@@ -75,59 +108,149 @@ model Resource {
 }
 
 model Category {
-  id        String     @id @default(cuid())
-  name      String     @unique
-  resources Resource[]
+  id                 String               @id @default(cuid())
+  name               String               @unique
+  icon               String?
+  slug               String               @unique
+  Opportunity        Opportunity[]
+  resources          Resource[]
+  resourceSubmissions ResourceSubmission[]
 }
 
 model ContactMessage {
-  id        String   @id @default(cuid())
+  id        String               @id @default(cuid())
   name      String
   email     String
+  subject   String?
   message   String
-  createdAt DateTime @default(now())
+  status    ContactMessageStatus @default(UNREAD)
+  createdAt DateTime             @default(now())
+}
+
+enum ContactMessageStatus {
+  UNREAD
+  READ
+}
+
+model ContentReport {
+  id          String              @id @default(cuid())
+  reporterId  String?
+  contentType String              // 'ROADMAP', 'RESOURCE', 'ARTICLE', 'OPPORTUNITY'
+  contentId   String
+  reason      String
+  status      ContentReportStatus @default(PENDING)
+  createdAt   DateTime            @default(now())
+}
+
+enum ContentReportStatus {
+  PENDING
+  REVIEWED
 }
 
 model Opportunity {
-  id           String            @id @default(cuid())
-  title        String
-  organization String
-  location     String
-  type         OpportunityType
-  description  String
-  applyUrl     String
-  imageUrl     String?
-  startDate    DateTime?
-  endDate      DateTime?
-  status       OpportunityStatus @default(PUBLISHED)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id             String            @id @default(cuid())
+  title          String
+  organization   String
+  location       String
+  type           OpportunityType
+  description    String
+  applyUrl       String            @unique
+  imageUrl       String?
+  visualizations Json?
+  startDate      DateTime?
+  endDate        DateTime?
+  status         OpportunityStatus @default(PUBLISHED)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  publishedAt    DateTime          @default(now())
+  authorOverride String?
+  categoryId     String
+  Category       Category          @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  // Phase 2: Strategic metadata
+  tier           OpportunityTier   @default(TIER_3)
+  difficulty     DifficultyTier    @default(INTERMEDIATE)
+  stipendRange   String?           // e.g., "₹20k - ₹50k" or "Unpaid"
+  duration       String?           // e.g., "2 Months", "6 Months"
+  skillsRequired String[]          // Array of skill tags for filtering
+  seniorInsight  String            @default("Focus on building a strong portfolio to stand out.")
+  prepResources  String[]          // Links to internal/external prep guides
+  isRemote       Boolean           @default(false)
 }
 
 model Article {
-  id        String        @id @default(cuid())
-  title     String
-  slug      String        @unique
-  content   String
-  excerpt   String
-  imageUrl  String?
-  status    ArticleStatus @default(DRAFT)
-  authorId  String
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  author    User          @relation("ArticleAuthor", fields: [authorId], references: [id])
+  id                String         @id @default(cuid())
+  title             String
+  slug              String         @unique
+  content           String
+  excerpt           String
+  imageUrl          String?
+  status            ArticleStatus  @default(DRAFT)
+  authorId          String
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  publishedAt       DateTime       @default(now())
+  authorOverride    String?
+  readTimeMins      Int            @default(5)
+  seriesId          String?
+  seriesOrder       Int?
+  tags              String[]
+  hasInteractiveEnv Boolean        @default(false)
+  clonableBlueprint Json?
+
+  author            User           @relation("ArticleAuthor", fields: [authorId], references: [id])
+  series            ArticleSeries? @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  savedByUsers      SavedArticle[]
+}
+
+model ArticleSeries {
+  id          String    @id @default(cuid())
+  title       String    @unique
+  slug        String    @unique
+  description String
+  createdAt   DateTime  @default(now())
+  articles    Article[]
+}
+
+model SavedArticle {
+  userId    String
+  articleId String
+  createdAt DateTime @default(now())
+
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, articleId])
 }
 
 model Roadmap {
+  id             String          @id @default(cuid())
+  title          String          @unique
+  slug           String          @unique
+  description    String
+  imageUrl       String?
+  isPublished    Boolean         @default(false)
+  difficultyTier DifficultyTier  @default(INTERMEDIATE)
+  seniorInsight  String          @default("Pending senior insight")
+  estimatedHours Int?
+  prerequisites  String[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now()) @updatedAt
+  steps          RoadmapStep[]
+  branches       RoadmapBranch[]
+}
+
+model RoadmapBranch {
   id          String        @id @default(cuid())
-  title       String        @unique
-  slug        String        @unique
-  description String
-  imageUrl    String?
-  isPublished Boolean       @default(false)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @default(now()) @updatedAt
+  title       String
+  description String?
+  order       Int
+  color       String?
+  roadmapId   String
+  roadmap     Roadmap       @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
   steps       RoadmapStep[]
+
+  @@unique([roadmapId, order])
 }
 
 model RoadmapStep {
@@ -136,7 +259,11 @@ model RoadmapStep {
   description     String
   order           Int
   roadmapId       String
+  branchId        String?
+  deepDiveUrl     String?
+  quickRefUrl     String?
   roadmap         Roadmap               @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  branch          RoadmapBranch?        @relation(fields: [branchId], references: [id], onDelete: SetNull)
   linkedResources RoadmapStepResource[]
 
   @@unique([roadmapId, order])
@@ -152,15 +279,22 @@ model RoadmapStepResource {
 }
 
 model Goal {
-  id         String      @id @default(cuid())
-  title      String
-  targetDate DateTime?
-  userId     String
-  isTemplate Boolean     @default(false)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  milestones Milestone[]
+  id               String      @id @default(cuid())
+  title            String
+  targetDate       DateTime?
+  userId           String
+  isTemplate       Boolean     @default(false)
+  currentStreak    Int         @default(0)
+  longestStreak    Int         @default(0)
+  lastActivityDate DateTime?
+  totalFocusTime   Int         @default(0)
+  priority         Priority    @default(MEDIUM)
+  aiStudyPlan      Json?
+  sourceRoadmapId  String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  milestones       Milestone[]
 }
 
 model Milestone {
@@ -192,6 +326,7 @@ model SubTopic {
   title           String
   order           Int
   isCompleted     Boolean        @default(false)
+  completedAt     DateTime?
   topicId         String
   note            String?
   linkedResources GoalResource[]
@@ -297,6 +432,62 @@ model NewsletterSubscriber {
   @@index([email])
 }
 
+model csrf_tokens {
+  id        String   @id
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model email_change_requests {
+  id        String   @id
+  userId    String
+  oldEmail  String
+  newEmail  String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+  @@index([userId])
+}
+
+model failed_login_attempts {
+  id          String   @id
+  identifier  String
+  ip          String?
+  userAgent   String?
+  attemptedAt DateTime @default(now())
+
+  @@index([attemptedAt])
+  @@index([identifier])
+}
+
+model password_history {
+  id           String   @id
+  userId       String
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+}
+
+model security_audit_log {
+  id        String   @id
+  userId    String?
+  eventType String
+  details   Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([eventType])
+  @@index([userId])
+}
+
 enum OtpType {
   SIGNUP
   PASSWORD_RESET
@@ -344,6 +535,21 @@ enum ResourceStatus {
   REJECTED
 }
 
+model ResourceSubmission {
+  id          String         @id @default(cuid())
+  title       String
+  url         String
+  description String
+  status      ResourceStatus @default(PENDING)
+  userId      String
+  categoryId  String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+}
+
 enum OpportunityType {
   INTERNSHIP
   FULL_TIME
@@ -353,6 +559,7 @@ enum OpportunityType {
   SCHOLARSHIP
   COMPETITION
   DEAL
+  GRANT
 }
 
 enum ArticleStatus {
@@ -364,4 +571,53 @@ enum OpportunityStatus {
   PENDING
   PUBLISHED
   REJECTED
+}
+
+enum OpportunityTier {
+  TIER_1 // FAANG, Top Research, Global Scholarships (e.g., GSoC, Google STEP)
+  TIER_2 // High-growth Startups, Mid-size Tech, National Competitions
+  TIER_3 // General Internships, Local Workshops, Early-stage startups
+}
+
+enum DifficultyTier {
+  BEGINNER
+  INTERMEDIATE
+  SENIOR
+}
+
+enum ResourceHealth {
+  HEALTHY
+  WARNING
+  DEAD
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model PortfolioAudit {
+  id                 String   @id @default(cuid())
+  userId             String
+  githubUrl          String
+  readabilityScore   Int?
+  architectureScore  Int?
+  securityScore      Int?
+  actionableRefactor String?
+  feedback           String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AnalyticsEvent {
+  id          String   @id @default(cuid())
+  eventType   String   // e.g., "ROADMAP_CLONED", "PROJECT_GENERATED", "ATS_USED", "HERO_SEARCH"
+  userId      String?  // Optional: Null if anonymous user
+  metadata    Json?    // e.g., {"skill": "Rust", "tier": "TIER_1"}
+  createdAt   DateTime @default(now())
+
+  @@index([eventType, createdAt]) // Crucial for fast dashboard querying
 }

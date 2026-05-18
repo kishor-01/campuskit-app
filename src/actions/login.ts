@@ -5,7 +5,7 @@ import { AuthError } from "next-auth";
 import { signIn, auth } from "@/auth";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
-import { Resend } from "resend";
+
 
 /**
  * Handles user login via credentials.
@@ -66,5 +66,5 @@ export async function registerUser(prevState: any, formData: FormData) {
  * Handles the public contact form submission.
  */
 export async function sendContactMessage(prevState: any, formData: FormData) {
-    // ... your full sendContactMessage function logic ...
+  // ... your full sendContactMessage function logic ...
 }

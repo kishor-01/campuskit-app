@@ -1,16 +1,15 @@
 // src/app/api/auth/reset-password/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import bcrypt from 'bcrypt';
-import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
-    const { token, password } = await request.json();
+    const { email, code, password } = await request.json();
 
-    if (!token || !password) {
+    if (!email || !code || !password) {
       return NextResponse.json(
-        { error: 'Token and password are required' },
+        { error: 'Email, OTP code, and password are required' },
         { status: 400 }
       );
     }
@@ -22,34 +21,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Hash the token to compare with stored hash
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-
-    // Find the reset token
-    const resetToken = await prisma.passwordResetToken.findFirst({
+    // Find the reset OTP for this email
+    const resetOtp = await prisma.otp.findFirst({
       where: {
-        token: hashedToken,
+        email,
+        type: 'PASSWORD_RESET',
         expiresAt: {
           gt: new Date(),
         },
       },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
 
-    if (!resetToken) {
+    if (!resetOtp) {
       return NextResponse.json(
-        { error: 'Invalid or expired reset token' },
+        { error: 'Invalid or expired OTP code' },
+        { status: 400 }
+      );
+    }
+
+    // Verify OTP code
+    const isValidOtp = await bcrypt.compare(code, resetOtp.code);
+
+    if (!isValidOtp) {
+      return NextResponse.json(
+        { error: 'Invalid OTP code' },
         { status: 400 }
       );
     }
 
     // Verify the user still exists and can reset password
     const user = await prisma.user.findUnique({
-      where: { email: resetToken.email },
+      where: { email },
     });
 
     if (!user) {
-      await prisma.passwordResetToken.delete({
-        where: { id: resetToken.id },
+      await prisma.otp.delete({
+        where: { id: resetOtp.id },
       });
       return NextResponse.json(
         { error: 'User account no longer exists' },
@@ -59,8 +69,8 @@ export async function POST(request: NextRequest) {
 
     // Check if user has a password (not OAuth-only)
     if (!user.password) {
-      await prisma.passwordResetToken.delete({
-        where: { id: resetToken.id },
+      await prisma.otp.delete({
+        where: { id: resetOtp.id },
       });
       return NextResponse.json(
         { error: 'This account uses social login. Please sign in with your social provider.' },
@@ -71,17 +81,18 @@ export async function POST(request: NextRequest) {
     // Hash new password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Update user password
+    // Update user password and increment sessionVersion to invalidate all existing JWTs
     await prisma.user.update({
-      where: { email: resetToken.email },
+      where: { email },
       data: {
         password: hashedPassword,
+        sessionVersion: { increment: 1 },
       },
     });
 
-    // Delete the used reset token
-    await prisma.passwordResetToken.delete({
-      where: { id: resetToken.id },
+    // Delete the used reset OTP
+    await prisma.otp.delete({
+      where: { id: resetOtp.id },
     });
 
     // Invalidate all existing sessions for security

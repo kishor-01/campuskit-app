@@ -1,8 +1,9 @@
 // src/app/api/auth/forgot-password/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { emailService } from '@/lib/email-service';
-import crypto from 'crypto';
+import { sendOTPEmail } from '@/lib/mail';
+import { otpService } from '@/lib/otp-service';
+import bcrypt from 'bcryptjs';
 import rateLimit from '@/lib/rateLimiter';
 
 export async function POST(request: NextRequest) {
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit by IP and email
-  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     const rl = await rateLimit(`forgot:${email}:${ip}`, 3, 60 * 5); // 3 requests per 5 minutes
     if (rl.limited) {
       return NextResponse.json({ success: true, message: 'If this email is registered, you will receive reset instructions.' }, { status: 429 });
@@ -44,25 +45,18 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Generate reset token
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-
-    // Set expiry to 1 hour from now
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-
-    // Delete any existing reset tokens for this email
-    // Prevent rapid repeated requests: if a token was created within the last minute, do not create/send again
-    const recentToken = await prisma.passwordResetToken.findFirst({
+    // Prevent rapid repeated requests: if an OTP was created within the last minute, do not create/send again
+    const recentOtp = await prisma.otp.findFirst({
       where: {
         email,
+        type: 'PASSWORD_RESET',
         createdAt: {
           gt: new Date(Date.now() - 60 * 1000), // 1 minute
         },
       },
     });
 
-    if (recentToken) {
+    if (recentOtp) {
       // Do not send another email; respond with generic success to avoid account enumeration
       return NextResponse.json({
         success: true,
@@ -70,27 +64,36 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Delete any existing reset tokens for this email (older ones)
-    await prisma.passwordResetToken.deleteMany({
-      where: { email },
+    // Delete any existing reset OTPs for this email (older ones)
+    await prisma.otp.deleteMany({
+      where: { 
+        email,
+        type: 'PASSWORD_RESET' 
+      },
     });
 
-    // Create new reset token
-    await prisma.passwordResetToken.create({
+    // Generate reset OTP
+    const otpCode = otpService.generateOtp();
+    const hashedOtp = await bcrypt.hash(otpCode, 10);
+
+    // Set expiry to 10 minutes from now
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    // Create new reset OTP
+    await prisma.otp.create({
       data: {
         email,
-        token: hashedToken,
+        code: hashedOtp,
+        type: 'PASSWORD_RESET',
         expiresAt,
       },
     });
 
-    // Create reset URL
-    const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${resetToken}`;
-
-    // Send reset email
-    const emailResult = await emailService.sendPasswordResetEmail(email, resetUrl);
-
-    if (!emailResult.success) {
+    // Send reset OTP email
+    try {
+      await sendOTPEmail(email, otpCode);
+    } catch (error) {
+      console.error('Failed to send OTP email:', error);
       return NextResponse.json(
         { error: 'Failed to send reset email' },
         { status: 500 }

@@ -27,6 +27,15 @@ const ArticleSchema = z.object({
   content: z.string().min(50, "Content must be at least 50 characters."),
   imageUrl: z.union([z.string().url("Must be a valid URL").optional(), z.literal("")]).optional(),
   status: z.enum(["DRAFT", "PUBLISHED"]).default("DRAFT"),
+  // Phase 2 fields
+  readTimeMins: z.coerce.number().int().min(1).max(120).default(5),
+  tags: z.string().optional(), // comma-separated string from form
+  seriesId: z.string().optional(),
+  seriesOrder: z.coerce.number().int().min(1).optional().or(z.literal('')),
+  hasInteractiveEnv: z.string().optional(), // "on" or undefined from checkbox
+  clonableBlueprint: z.string().optional(), // JSON string from form
+  publishedAt: z.string().optional(),
+  authorOverride: z.string().optional(),
 });
 
 // Slug generation utility
@@ -96,7 +105,9 @@ export async function createArticle(prevState: any, formData: FormData) {
       return { error: parsed.error.flatten().fieldErrors };
     }
 
-    const { title, excerpt, content, imageUrl, status } = parsed.data;
+    const { title, excerpt, content, imageUrl, status, readTimeMins, tags, seriesId, seriesOrder, hasInteractiveEnv, clonableBlueprint, publishedAt, authorOverride } = parsed.data;
+
+    const parsedPublishedAt = publishedAt ? new Date(publishedAt) : new Date();
 
     // Process and sanitize content
     let processedContent = content;
@@ -109,6 +120,19 @@ export async function createArticle(prevState: any, formData: FormData) {
 
     const slug = generateSlug(title);
 
+    // Parse tags from comma-separated string
+    const parsedTags = tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+    // Parse clonable blueprint JSON
+    let parsedBlueprint = null;
+    if (clonableBlueprint && clonableBlueprint.trim()) {
+      try {
+        parsedBlueprint = JSON.parse(clonableBlueprint);
+      } catch {
+        return { error: 'Clonable Blueprint must be valid JSON.' };
+      }
+    }
+
     const article = await prisma.article.create({
       data: {
         title,
@@ -118,6 +142,14 @@ export async function createArticle(prevState: any, formData: FormData) {
         imageUrl: imageUrl || null,
         status,
         authorId: session.user.id!,
+        readTimeMins,
+        tags: parsedTags,
+        seriesId: seriesId?.trim() || null,
+        seriesOrder: typeof seriesOrder === 'number' ? seriesOrder : null,
+        hasInteractiveEnv: hasInteractiveEnv === 'on',
+        clonableBlueprint: parsedBlueprint,
+        publishedAt: parsedPublishedAt,
+        authorOverride: authorOverride || null,
       },
     });
 
@@ -149,7 +181,8 @@ export async function updateArticle(prevState: any, formData: FormData) {
       return { error: parsed.error.flatten().fieldErrors };
     }
 
-    const { id, ...data } = parsed.data;
+    const { id, publishedAt, authorOverride, ...data } = parsed.data;
+    const parsedPublishedAt = publishedAt ? new Date(publishedAt) : new Date();
 
     // Process and sanitize content
     let processedContent = data.content;
@@ -160,12 +193,39 @@ export async function updateArticle(prevState: any, formData: FormData) {
     // Sanitize HTML to prevent XSS
     processedContent = sanitizeHtmlContent(processedContent);
 
+    // Parse tags from comma-separated string
+    const parsedTags = data.tags ? data.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+    // Parse clonable blueprint JSON
+    let parsedBlueprint = undefined; // undefined = don't change
+    if (data.clonableBlueprint !== undefined) {
+      if (data.clonableBlueprint && data.clonableBlueprint.trim()) {
+        try {
+          parsedBlueprint = JSON.parse(data.clonableBlueprint);
+        } catch {
+          return { error: 'Clonable Blueprint must be valid JSON.' };
+        }
+      } else {
+        parsedBlueprint = null; // clear it
+      }
+    }
+
     await prisma.article.update({ 
       where: { id }, 
       data: { 
-        ...data, 
+        title: data.title,
+        excerpt: data.excerpt,
         content: processedContent,
-        imageUrl: data.imageUrl || null 
+        imageUrl: data.imageUrl || null,
+        status: data.status,
+        readTimeMins: data.readTimeMins,
+        tags: parsedTags,
+        seriesId: data.seriesId?.trim() || null,
+        seriesOrder: typeof data.seriesOrder === 'number' ? data.seriesOrder : null,
+        hasInteractiveEnv: data.hasInteractiveEnv === 'on',
+        publishedAt: parsedPublishedAt,
+        authorOverride: authorOverride || null,
+        ...(parsedBlueprint !== undefined ? { clonableBlueprint: parsedBlueprint } : {}),
       } 
     });
 

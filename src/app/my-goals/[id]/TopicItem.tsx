@@ -37,7 +37,7 @@ type TopicItemProps = {
 function NoteEditorModal({ isOpen, onClose, initialNote, targetId, targetType }: { isOpen: boolean; onClose: () => void; initialNote: string | null; targetId: string; targetType: 'topic' | 'subTopic' }) {
     const [note, setNote] = useState(initialNote ?? '');
     const action = targetType === 'topic' ? updateTopicNote : updateSubTopicNote;
-    const [state, formAction, isPending] = useActionState(action, { message: null, error: null });
+    const [state, formAction, isPending] = useActionState<any, any>(action as any, { message: null, error: null });
     const formRef = useRef<HTMLFormElement>(null);
     const hasMounted = useRef(false);
 
@@ -162,8 +162,8 @@ function SubTopicItem({ subTopic, allResources }: { subTopic: SubTopicWithLinks,
     const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
     const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
     const [isToggling, startToggleTransition] = useTransition();
-    const [updateState, updateAction] = useActionState(updateSubTopic, { message: null, error: null });
-    const [deleteState, deleteAction] = useActionState(deleteSubTopic, { message: null, error: null });
+    const [updateState, updateAction] = useActionState<any, any>(updateSubTopic as any, { message: null, error: null });
+    const [deleteState, deleteAction] = useActionState<any, any>(deleteSubTopic as any, { message: null, error: null });
     const router = useRouter();
 
     useEffect(() => { if (updateState?.message) { toast.success(updateState.message); setIsEditing(false); } if (updateState?.error) toast.error(updateState.error); }, [updateState]);
@@ -185,7 +185,7 @@ function SubTopicItem({ subTopic, allResources }: { subTopic: SubTopicWithLinks,
         if (!confirm('Delete this sub-topic?')) return;
         const formData = new FormData();
         formData.set('id', subTopic.id);
-        deleteAction(formData);
+        (deleteAction as any)(formData);
     };
   
     return (
@@ -237,9 +237,9 @@ export default function TopicItem({ topic, allResources }: TopicItemProps) {
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   
-  const [updateState, updateAction] = useActionState(updateTopic, { message: null, error: null });
-  const [deleteState, deleteAction] = useActionState(deleteTopic, { message: null, error: null });
-  const [createSubTopicState, createSubTopicAction] = useActionState(createSubTopic, { message: null, error: null });
+  const [updateState, updateAction] = useActionState<any, any>(updateTopic as any, { message: null, error: null });
+  const [deleteState, deleteAction] = useActionState<any, any>(deleteTopic as any, { message: null, error: null });
+  const [createSubTopicState, createSubTopicAction] = useActionState<any, any>(createSubTopic as any, { message: null, error: null });
 
   useEffect(() => { if (updateState?.message) { toast.success(updateState.message); setIsEditing(false); } if (updateState?.error) toast.error(updateState.error); }, [updateState]);
   useEffect(() => { if (deleteState?.message) toast.success(deleteState.message); if (deleteState?.error) toast.error(deleteState.error); }, [deleteState]);
@@ -249,7 +249,7 @@ export default function TopicItem({ topic, allResources }: TopicItemProps) {
     if (!confirm('Delete this topic and all its sub-topics?')) return;
     const formData = new FormData();
     formData.set('id', topic.id);
-    deleteAction(formData);
+    (deleteAction as any)(formData);
   };
 
   return (

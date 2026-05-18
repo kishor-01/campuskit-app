@@ -39,23 +39,26 @@ const FeaturedArticleCard = ({
   );
 };
 
+export const revalidate = 60;
+
 export default async function BlogPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const page = parseInt(searchParams["page"] as string) || 1;
-  const sort = (searchParams["sort"] as string) || "latest";
+  const sp = await searchParams;
+  const page = parseInt(sp["page"] as string) || 1;
+  const sort = (sp["sort"] as string) || "latest";
   // Updated the limit to 12 blogs per page.
   const limit = 12;
   const offset = (page - 1) * limit;
 
   const totalArticles = await prisma.article.count({
-    where: { status: "PUBLISHED" },
+    where: { status: "PUBLISHED", publishedAt: { lte: new Date() } },
   });
   
   const latestArticle = await prisma.article.findFirst({
-    where: { status: "PUBLISHED" },
+    where: { status: "PUBLISHED", publishedAt: { lte: new Date() } },
     orderBy: { createdAt: "desc" },
     select: {
         slug: true,
@@ -82,7 +85,7 @@ export default async function BlogPage({
     : { createdAt: 'desc' as const };
 
   const otherArticles = await prisma.article.findMany({
-    where: { status: "PUBLISHED", NOT: { slug: latestArticle.slug } },
+    where: { status: "PUBLISHED", publishedAt: { lte: new Date() }, NOT: { slug: latestArticle.slug } },
     orderBy,
     skip: offset,
     take: limit,
@@ -102,7 +105,7 @@ export default async function BlogPage({
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="text-center mb-12">
         <h1 className="text-5xl md:text-6xl font-extrabold text-foreground">
-          EduLink Blog
+          Seniofy Blog
         </h1>
         <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
           Guides, tips, and insights to help you thrive in your student journey.

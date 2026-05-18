@@ -21,6 +21,7 @@ const itemVariants = {
 };
 
 export default function ResetPasswordPage() {
+  const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -28,22 +29,15 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
   const [success, setSuccess] = useState(false);
-  const [token, setToken] = useState("");
-  const [tokenValid, setTokenValid] = useState(true);
+  const [email, setEmail] = useState("");
 
   const searchParams = useSearchParams();
   const router = useRouter();
 
   useEffect(() => {
-    const tokenParam = searchParams.get("token");
-    if (!tokenParam) {
-      setTokenValid(false);
-      setMessage({ 
-        text: "Invalid or missing reset token", 
-        type: "error" 
-      });
-    } else {
-      setToken(tokenParam);
+    const emailParam = searchParams.get("email");
+    if (emailParam) {
+      setEmail(emailParam);
     }
   }, [searchParams]);
 
@@ -77,7 +71,8 @@ export default function ResetPasswordPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ 
-          token, 
+          email,
+          code, 
           password 
         }),
       });
@@ -100,7 +95,7 @@ export default function ResetPasswordPage() {
           type: "error" 
         });
         if (data.error?.includes("invalid") || data.error?.includes("expired")) {
-          setTokenValid(false);
+          // Keep fields editable but show error
         }
       }
     } catch (error) {
@@ -113,7 +108,7 @@ export default function ResetPasswordPage() {
     }
   };
 
-  if (!tokenValid) {
+  if (!email) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-8">
         <motion.div
@@ -122,14 +117,14 @@ export default function ResetPasswordPage() {
           className="w-full max-w-md text-center"
         >
           <div className="bg-red-500/10 text-red-600 p-4 rounded-lg mb-6">
-            <p className="font-medium">Invalid Reset Link</p>
-            <p className="text-sm mt-1">This password reset link is invalid or has expired.</p>
+            <p className="font-medium">Missing Request</p>
+            <p className="text-sm mt-1">Please start the password reset process from the beginning.</p>
           </div>
           <Link
             href="/forgot-password"
             className="inline-block bg-primary text-primary-foreground font-medium py-3 px-6 rounded-lg hover:bg-primary/90 transition-colors"
           >
-            Get New Reset Link
+            Go to Forgot Password
           </Link>
         </motion.div>
       </div>
@@ -174,7 +169,7 @@ export default function ResetPasswordPage() {
             Back to Login
           </Link>
           <motion.h1 variants={itemVariants} className="text-4xl font-bold">
-            EduLink
+            Seniofy
           </motion.h1>
           <motion.p variants={itemVariants} className="mt-4 text-lg opacity-80">
             Create a new password for your account.
@@ -198,6 +193,20 @@ export default function ResetPasswordPage() {
           </motion.p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <motion.div variants={itemVariants}>
+              <div className="relative">
+                <CheckCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="6-digit OTP Code"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  required
+                  maxLength={6}
+                  className="w-full p-3 pl-10 bg-background border border-muted rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
+                />
+              </div>
+            </motion.div>
             <motion.div variants={itemVariants}>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -259,7 +268,7 @@ export default function ResetPasswordPage() {
             <motion.div variants={itemVariants} className="pt-2">
               <button
                 type="submit"
-                disabled={loading || !tokenValid}
+                disabled={loading}
                 className="w-full bg-primary text-primary-foreground font-bold py-3 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
                 {loading ? "Resetting..." : "Reset Password"}

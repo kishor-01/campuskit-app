@@ -19,7 +19,7 @@ export default function CreateGoalButton() {
   const formAction = (formData: FormData) => {
     startTransition(async () => {
       try {
-        await createGoal(formData);
+        await createGoal({}, formData);
         toast.success('Goal created successfully.');
         setIsOpen(false);
         formRef.current?.reset();

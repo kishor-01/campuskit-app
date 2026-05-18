@@ -103,7 +103,7 @@ export const columns = (
   {
     accessorKey: "author",
     header: "Author",
-    cell: ({ row }) => <div>{row.original.author?.name ?? 'N/A'}</div>,
+    cell: ({ row }) => <div>{row.original.authorOverride || row.original.author?.name || 'N/A'}</div>,
   },
   {
     accessorKey: "createdAt",

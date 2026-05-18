@@ -25,8 +25,9 @@ async function requireAdmin() {
   return session;
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, context: { params: Promise<{ id: string }> }) {
   try {
+    const params = await context.params;
     const admin = await requireAdmin();
     if (admin instanceof Response) return admin;
 
@@ -54,8 +55,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, context: { params: Promise<{ id: string }> }) {
   try {
+    const params = await context.params;
     const admin = await requireAdmin();
     if (admin instanceof Response) return admin;
 

@@ -32,8 +32,8 @@ export default function MilestoneItem({
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const [updateState, updateAction] = useActionState(updateMilestone, { message: null, error: null });
-  const [createTopicState, createTopicAction] = useActionState(createTopic, { message: null, error: null });
+  const [updateState, updateAction] = useActionState<any, any>(updateMilestone as any, { message: null, error: null });
+  const [createTopicState, createTopicAction] = useActionState<any, any>(createTopic as any, { message: null, error: null });
 
   useEffect(() => {
     if (updateState?.message) {

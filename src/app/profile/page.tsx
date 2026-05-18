@@ -3,7 +3,8 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
-import ProfileIdCard from "@/components/profile/ProfileIdCard";
+import PassportCard from "@/components/profile/PassportCard";
+import ActivityHeatmap from "@/components/profile/ActivityHeatmap";
 import GoalArchitectWidget from "@/components/profile/GoalArchitectWidget";
 import ResourceStackWidget from "@/components/profile/ResourceStackWidget";
 import SettingsWidget from "@/components/profile/SettingsWidget";
@@ -19,7 +20,7 @@ export default async function ProfilePage() {
   }
 
   // Fetch all data in parallel for the new widget-based layout
-  const [user, goals, savedResources, submissionCount, adminStats] = await Promise.all([
+  const [user, goals, savedResources, submissionCount, adminStats, analyticsEvents] = await Promise.all([
     prisma.user.findUnique({ 
       where: { id: userId },
       select: {
@@ -30,7 +31,11 @@ export default async function ProfilePage() {
         education: true,
         role: true,
         createdAt: true,
-        image: true
+        image: true,
+        developerTitle: true,
+        githubUrl: true,
+        portfolioUrl: true,
+        badges: true,
       }
     }),
     prisma.goal.findMany({
@@ -79,7 +84,20 @@ export default async function ProfilePage() {
         return { pendingResources, pendingOpportunities, totalUsers };
       }
       return null;
-    })()
+    })(),
+    prisma.analyticsEvent.findMany({
+      where: { 
+        userId,
+        createdAt: {
+          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+        }
+      },
+      select: {
+        id: true,
+        eventType: true,
+        createdAt: true,
+      }
+    })
   ]);
 
   if (!user) {
@@ -132,12 +150,13 @@ export default async function ProfilePage() {
 
         {/* --- Top Row: Profile & Goals --- */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-1">
-            <ProfileIdCard
+          <div className="lg:col-span-1 flex flex-col gap-6">
+            <PassportCard
               user={user}
               savedCount={savedResources.length}
               submittedCount={submissionCount}
             />
+            <ActivityHeatmap events={analyticsEvents} />
           </div>
           <div className="lg:col-span-3">
             <GoalArchitectWidget goals={goalsWithProgress} />

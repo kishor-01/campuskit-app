@@ -8,8 +8,8 @@ import { motion } from "framer-motion";
 
 // This array is the single source of truth for the cycle order.
 // It should match the theme names used in your CSS (see `src/app/globals.css`).
-// Keep the order intentional: light -> dark -> synthwave -> mocha
-const THEME_CYCLE_ORDER = ["light", "dark", "synthwave", "mocha"];
+// Keep the order intentional: light -> dark
+const THEME_CYCLE_ORDER = ["light", "dark"];
 
 export default function ThemeToggle() {
   const { setTheme, resolvedTheme } = useTheme();
@@ -65,7 +65,7 @@ export default function ThemeToggle() {
   const nextTheme = THEME_CYCLE_ORDER[nextIndex];
 
   // The button should show an icon for the NEXT theme (per your request)
-  const NextIcon = nextTheme === 'dark' ? Moon : nextTheme === 'light' ? Sun : nextTheme === 'synthwave' ? Star : Coffee;
+  const NextIcon = nextTheme === 'dark' ? Moon : Sun;
 
   const handleClick = () => {
     // Use next-themes to set the theme (this updates the document class and localStorage).

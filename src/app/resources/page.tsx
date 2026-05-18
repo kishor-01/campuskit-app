@@ -14,10 +14,12 @@ type ResourceWithCategory = Resource & {
   isInitiallySaved: boolean;
 };
 
+export const revalidate = 60;
+
 export default async function ResourcesPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const session = await auth();
   const userId = session?.user?.id;
@@ -28,12 +30,20 @@ export default async function ResourcesPage({
   // Get current page and category from URL search parameters
   const page = parseInt((Array.isArray(sp?.page) ? sp?.page[0] : sp?.page) as string) || 1;
   const category = (Array.isArray(sp?.category) ? sp?.category[0] : sp?.category) as string | undefined;
+  const sort = (Array.isArray(sp?.sort) ? sp?.sort[0] : sp?.sort) as string || 'latest';
 
   // Build the filter for our Prisma query - use ResourceStatus enum
   const whereClause = {
     status: ResourceStatus.APPROVED, // Use enum instead of string
+    publishedAt: { lte: new Date() },
     ...(category && { category: { name: category } }),
   };
+
+  // Determine ordering
+  let orderByClause: any = { createdAt: 'desc' };
+  if (sort === 'oldest') orderByClause = { createdAt: 'asc' };
+  if (sort === 'popular') orderByClause = { savedByUsers: { _count: 'desc' } };
+  if (sort === 'a-z') orderByClause = { name: 'asc' };
 
   try {
     // Fetch all necessary data in parallel for maximum performance
@@ -47,7 +57,7 @@ export default async function ResourcesPage({
       prisma.resource.findMany({
         where: whereClause,
         include: { category: true },
-        orderBy: { createdAt: 'desc' },
+        orderBy: orderByClause,
         skip: (page - 1) * RESOURCES_PER_PAGE,
         take: RESOURCES_PER_PAGE,
       }),
@@ -79,6 +89,7 @@ export default async function ResourcesPage({
         totalPages={totalPages}
         currentPage={page}
         currentCategory={category}
+        currentSort={sort}
       />
     );
 

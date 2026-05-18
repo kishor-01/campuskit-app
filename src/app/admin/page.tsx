@@ -1,7 +1,7 @@
 // src/app/admin/page.tsx - Updated with role-based UI
 import prisma from "@/lib/prisma";
 import Link from "next/link";
-import { Users, Book, Map, Layers3, Briefcase, FileText, Link as LinkIcon, Shield } from "lucide-react";
+import { Users, Book, Map, Layers3, Briefcase, FileText, Link as LinkIcon, Shield, BarChart3, Flag, Inbox } from "lucide-react";
 import { checkPermission, isUserAtLeast, getCurrentUser } from "@/lib/auth-utils";
 import { Permission, Role } from "@prisma/client";
 
@@ -18,7 +18,10 @@ export default async function AdminPage() {
     articleCount,
     affiliateLinkCount,
     pendingResourceCount,
+    pendingSubmissionCount,
     pendingOpportunityCount,
+    pendingReportCount,
+    unreadInboxCount,
     canManageUsers,
     canManageBlog,
     canManageAffiliates,
@@ -27,14 +30,17 @@ export default async function AdminPage() {
     isAtLeastEditor,
   ] = await Promise.all([
     (await checkPermission(Permission.USER_READ)) ? prisma.user.count() : 0,
-    prisma.resource.count({ where: { status: 'APPROVED' } }),
+    prisma.resource.count(),
     prisma.category.count(),
-    prisma.roadmap.count({ where: { isPublished: true } }),
-    prisma.opportunity.count({ where: { status: 'PUBLISHED' }}),
-    prisma.article.count({ where: { status: 'PUBLISHED' }}),
+    prisma.roadmap.count(),
+    prisma.opportunity.count(),
+    prisma.article.count(),
     prisma.affiliateLink.count(),
     prisma.resource.count({ where: { status: 'PENDING' } }),
+    prisma.resourceSubmission.count({ where: { status: 'PENDING' } }),
     prisma.opportunity.count({ where: { status: 'PENDING' } }),
+    prisma.contentReport.count({ where: { status: 'PENDING' } }),
+    prisma.contactMessage.count({ where: { status: 'UNREAD' } }),
     checkPermission(Permission.USER_MANAGE),
     checkPermission(Permission.BLOG_WRITE),
     checkPermission(Permission.AFFILIATE_MANAGE),
@@ -96,29 +102,29 @@ export default async function AdminPage() {
           requiredPermission={Permission.USER_READ}
         />
         <StatCard 
-          title="Approved Resources" 
+          title="Total Resources" 
           value={resourceCount} 
           subtitle={`${categoryCount} categories`} 
-          href="/admin/resources?tab=APPROVED" 
+          href="/admin/resources" 
           icon={<Book size={20} />} 
         />
         <StatCard 
-          title="Manage Categories" 
-          value={categoryCount} 
-          href="/admin/categories" 
-          icon={<Layers3 size={20} />} 
-        />
-        <StatCard 
-          title="Published Roadmaps" 
+          title="Total Roadmaps" 
           value={roadmapCount} 
           href="/admin/roadmaps" 
           icon={<Map size={20} />} 
+        />
+        <StatCard 
+          title="Total Opportunities" 
+          value={opportunityCount} 
+          href="/admin/opportunities" 
+          icon={<Briefcase size={20} />} 
         />
         
         {/* Conditional cards based on permissions */}
         {canManageBlog && (
           <StatCard 
-            title="Published Articles" 
+            title="Total Articles" 
             value={articleCount} 
             href="/admin/blog" 
             icon={<FileText size={20} />} 
@@ -132,6 +138,20 @@ export default async function AdminPage() {
             icon={<LinkIcon size={20} />} 
           />
         )}
+        <StatCard 
+          title="User Reports" 
+          value={pendingReportCount} 
+          subtitle="Pending review" 
+          href="/admin/moderation" 
+          icon={<Flag size={20} />} 
+        />
+        <StatCard 
+          title="Inbox Messages" 
+          value={unreadInboxCount} 
+          subtitle="Unread" 
+          href="/admin/inbox" 
+          icon={<Inbox size={20} />} 
+        />
       </div>
 
       {/* Moderation Section - Only show if user can moderate */}
@@ -146,6 +166,16 @@ export default async function AdminPage() {
                 {pendingResourceCount > 0 && (
                   <span className="ml-2 inline-block py-0.5 px-2 rounded-full text-xs font-semibold bg-primary-foreground text-primary">
                     {pendingResourceCount}
+                  </span>
+                )}
+              </Link>
+            )}
+            {canModerateResources && (
+              <Link href="/admin/submissions" className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-semibold hover:bg-blue-700">
+                Community Submissions
+                {pendingSubmissionCount > 0 && (
+                  <span className="ml-2 inline-block py-0.5 px-2 rounded-full text-xs font-semibold bg-white text-blue-600">
+                    {pendingSubmissionCount}
                   </span>
                 )}
               </Link>
@@ -199,6 +229,15 @@ export default async function AdminPage() {
               Manage Users
             </Link>
           )}
+          <Link href="/admin/analytics" className="px-3 py-2 bg-primary text-primary-foreground border border-primary rounded-md text-sm font-semibold hover:bg-primary/90 transition-colors text-center flex items-center justify-center gap-1.5">
+            <BarChart3 size={14} /> Platform Analytics
+          </Link>
+          <Link href="/admin/moderation" className="px-3 py-2 bg-background border border-muted rounded-md text-sm hover:bg-muted transition-colors text-center flex items-center justify-center gap-1.5">
+            <Flag size={14} /> Moderation
+          </Link>
+          <Link href="/admin/inbox" className="px-3 py-2 bg-background border border-muted rounded-md text-sm hover:bg-muted transition-colors text-center flex items-center justify-center gap-1.5">
+            <Inbox size={14} /> Inbox
+          </Link>
         </div>
       </div>
     </div>

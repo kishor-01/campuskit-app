@@ -64,7 +64,7 @@ export async function createCategory(prevState: any, formData: FormData) {
     }
 
     const created = await prisma.category.create({ 
-      data: { name } 
+      data: { name } as any
     });
 
     revalidatePath('/admin/resources');

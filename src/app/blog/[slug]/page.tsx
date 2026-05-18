@@ -5,11 +5,18 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@/auth";
-import { FileText, Pencil } from "lucide-react";
+import { FileText, Pencil, Clock, Tag } from "lucide-react";
 import DOMPurify from 'isomorphic-dompurify';
 import { unstable_noStore as noStore } from 'next/cache';
 
-// LatestArticleCard component (unchanged)
+// Dynamic imports for client components
+import ArticleContentRenderer from "@/components/blog/ArticleContentRenderer";
+import ArticleToC from "@/components/blog/ArticleToC";
+import SeriesWidget from "@/components/blog/SeriesWidget";
+import CloneToGoalsWidget from "@/components/blog/CloneToGoalsWidget";
+import BookmarkArticleButton from "@/components/blog/BookmarkArticleButton";
+
+// LatestArticleCard component
 const LatestArticleCard = ({
   article,
   index,
@@ -36,15 +43,36 @@ export default async function ArticlePage({ params }: { params: { slug: string }
   // Fetch session first
   const session = await auth();
   const isAdmin = session?.user?.isAdmin === true;
+  const userId = session?.user?.id;
 
-  // Fetch article
+  // Fetch article with series data
   const article = await prisma.article.findUnique({
       where: { slug: params.slug, status: 'PUBLISHED' },
-      include: { author: { select: { name: true } } },
+      include: {
+        author: { select: { name: true } },
+        series: {
+          include: {
+            articles: {
+              where: { status: 'PUBLISHED' },
+              select: { slug: true, title: true, seriesOrder: true },
+              orderBy: { seriesOrder: 'asc' },
+            },
+          },
+        },
+      },
   });
 
   if (!article) {
     notFound();
+  }
+
+  // Check if user has saved this article
+  let isArticleSaved = false;
+  if (userId) {
+    const savedRecord = await prisma.savedArticle.findUnique({
+      where: { userId_articleId: { userId, articleId: article.id } },
+    });
+    isArticleSaved = !!savedRecord;
   }
 
   // Fetch latest articles
@@ -58,13 +86,20 @@ export default async function ArticlePage({ params }: { params: { slug: string }
   // Sanitize the HTML content
   const cleanHtml = DOMPurify.sanitize(article.content);
 
+  const hasBlueprint = !!article.clonableBlueprint;
+  const hasSeries = !!article.series;
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
 
-        <div className="hidden lg:block lg:col-span-1"></div>
+        {/* Left sidebar — Table of Contents (desktop only) */}
+        <div className="hidden lg:block lg:col-span-1">
+          <ArticleToC htmlContent={cleanHtml} />
+        </div>
 
         <article className="lg:col-span-3">
+          {/* Admin edit link */}
           <div className="mb-8">
             {isAdmin && (
               <div className="mb-4">
@@ -74,35 +109,75 @@ export default async function ArticlePage({ params }: { params: { slug: string }
                 </Link>
               </div>
             )}
+
+            {/* Series Widget (top) */}
+            {hasSeries && article.series && article.seriesOrder && (
+              <SeriesWidget
+                seriesTitle={article.series.title}
+                seriesSlug={article.series.slug}
+                currentOrder={article.seriesOrder}
+                articles={article.series.articles}
+              />
+            )}
+
+            {/* Clonable Blueprint Widget */}
+            {hasBlueprint && userId && (
+              <div className="mb-6">
+                <CloneToGoalsWidget articleId={article.id} articleTitle={article.title} />
+              </div>
+            )}
+
             <h1 className="text-4xl md:text-5xl font-extrabold text-foreground mb-4 leading-tight">{article.title}</h1>
-            <div className="flex items-center text-sm text-muted-foreground">
-              <span>By {article.author?.name ?? 'EduLink Team'}</span>
-              <span className="mx-2">•</span>
+
+            {/* Article meta row */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+              <span>By {article.authorOverride || article.author?.name || 'Seniofy Team'}</span>
+              <span className="hidden sm:inline">•</span>
               <span>{new Date(article.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</span>
+              <span className="hidden sm:inline">•</span>
+              <span className="inline-flex items-center gap-1">
+                <Clock size={14} />
+                {article.readTimeMins} min read
+              </span>
+              {/* Bookmark button */}
+              {userId && (
+                <BookmarkArticleButton articleId={article.id} isInitiallySaved={isArticleSaved} />
+              )}
             </div>
+
+            {/* Tags */}
+            {article.tags.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mt-3">
+                <Tag size={14} className="text-muted-foreground" />
+                {article.tags.map((tag) => (
+                  <span key={tag} className="text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Image section (unchanged) */}
+          {/* Image section */}
           <div className="relative w-full aspect-video bg-muted rounded-lg overflow-hidden mb-8">
             {article.imageUrl ? ( <Image src={article.imageUrl} alt={article.title} fill className="object-cover"/> ) : ( <div className="w-full h-full flex items-center justify-center"><FileText className="w-16 h-16 text-muted-foreground" /></div> )}
           </div>
 
-          {/* Render sanitized HTML */}
-          <div
-            className="prose prose-lg dark:prose-invert max-w-none
-                       prose-p:text-muted-foreground
-                       prose-headings:text-foreground
-                       prose-a:text-primary hover:prose-a:underline
-                       prose-strong:text-foreground
-                       prose-blockquote:border-primary
-                       prose-code:text-primary prose-code:before:content-[''] prose-code:after:content-['']
-                       prose-img:rounded-lg"
-            dangerouslySetInnerHTML={{ __html: cleanHtml }}
-          />
+          {/* Render content with Sandpack + Mermaid interception */}
+          <ArticleContentRenderer htmlContent={cleanHtml} />
 
+          {/* Bottom series navigation */}
+          {hasSeries && article.series && article.seriesOrder && (
+            <SeriesWidget
+              seriesTitle={article.series.title}
+              seriesSlug={article.series.slug}
+              currentOrder={article.seriesOrder}
+              articles={article.series.articles}
+            />
+          )}
         </article>
 
-        {/* Sidebar section (unchanged) */}
+        {/* Right sidebar */}
         <aside className="lg:col-span-1">
            <div className="sticky top-24 lg:-mr-14">
             <h3 className="text-xl font-bold text-foreground mb-4">Latest Articles</h3>

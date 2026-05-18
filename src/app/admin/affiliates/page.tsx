@@ -16,10 +16,11 @@ const sortOptions = [
 export default async function AffiliateManagementPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
-  const sort = searchParams.sort || "createdAt-desc";
-  const query = searchParams.q;
+  const sp = await searchParams;
+  const sort = sp.sort || "createdAt-desc";
+  const query = sp.q;
   const [field, order] = sort.split("-");
 
   const orderBy = { [field]: order };
@@ -27,8 +28,8 @@ export default async function AffiliateManagementPage({
   const where = query
     ? {
         OR: [
-          { name: { contains: query, mode: "insensitive" } },
-          { slug: { contains: query, mode: "insensitive" } },
+          { name: { contains: query, mode: "insensitive" as const } },
+          { slug: { contains: query, mode: "insensitive" as const } },
         ],
       }
     : {};
@@ -36,10 +37,10 @@ export default async function AffiliateManagementPage({
   const [partners, links] = await Promise.all([
     prisma.affiliatePartner.findMany({ orderBy: { name: "asc" } }),
     prisma.affiliateLink.findMany({
-      where,
+      where: where as any,
       include: { partner: true },
       orderBy,
-    }),
+    }) as any,
   ]);
 
   return (

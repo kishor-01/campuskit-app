@@ -5,7 +5,7 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useDebouncedCallback } from 'use-debounce';
 
-export default function SearchControl({ placeholder = "Search..." }: { placeholder?: string }) {
+export default function SearchControl({ placeholder = "Search...", paramName = "q" }: { placeholder?: string; paramName?: string }) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -13,9 +13,9 @@ export default function SearchControl({ placeholder = "Search..." }: { placehold
   const handleSearch = useDebouncedCallback((term: string) => {
     const params = new URLSearchParams(searchParams)
     if (term) {
-      params.set('q', term)
+      params.set(paramName, term)
     } else {
-      params.delete('q')
+      params.delete(paramName)
     }
     router.replace(`${pathname}?${params.toString()}`)
   }, 300);
@@ -26,7 +26,7 @@ export default function SearchControl({ placeholder = "Search..." }: { placehold
         type="text"
         placeholder={placeholder}
         onChange={(e) => handleSearch(e.target.value)}
-        defaultValue={searchParams.get('q')?.toString()}
+        defaultValue={searchParams.get(paramName)?.toString()}
         className="p-2 pl-8 bg-input rounded-md text-sm w-64"
       />
     </div>

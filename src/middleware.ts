@@ -28,12 +28,17 @@ export default async function middleware(req: NextRequest) {
     return res;
   }
 
-  // Updated protected paths list
-  const protectedPaths = ["/profile", "/my-resources", "/admin", "/submit-resource", "/my-goals"];
-  const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
+  // Secure-by-default: Only allow explicitly public paths
+  const publicPaths = [
+    "/", "/about", "/contact", "/blog", "/resources", "/roadmaps",
+    "/opportunities", "/login", "/signup", "/forgot-password",
+    "/reset-password", "/verify-email", "/tools"
+  ];
+  const isPublic = pathname === "/" || publicPaths.some((p) => p !== "/" && pathname.startsWith(p));
+  const isProtected = !isPublic;
 
   try {
-      const session = await nextAuthHandler(req);
+      const session = await nextAuthHandler(req as any) as any;
 
       if (session instanceof Response) {
           console.log("🧩 [Middleware] Auth handler returned a response (e.g., redirect).");

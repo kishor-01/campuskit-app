@@ -15,7 +15,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center font-bold text-primary text-3xl mx-auto">
             C
           </div>
-          <h1 className="mt-6 text-4xl font-bold text-foreground">EduLink</h1>
+          <h1 className="mt-6 text-4xl font-bold text-foreground">Seniofy</h1>
         </motion.div>
         <motion.p
           initial={{ opacity: 0 }}

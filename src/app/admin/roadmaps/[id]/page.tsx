@@ -9,10 +9,14 @@ export default async function ManageRoadmapStepsPage({ params }: { params: { id:
     prisma.roadmap.findUnique({
       where: { id: params.id },
       include: {
+        branches: {
+          orderBy: { order: 'asc' },
+        },
         steps: {
           orderBy: { order: 'asc' },
           include: {
             linkedResources: true,
+            branch: true,
           },
         },
       },

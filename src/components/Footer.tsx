@@ -10,8 +10,8 @@ import toast from "react-hot-toast";
 
 export default function Footer() {
   const socialIcons = [
-    { icon: <Twitter />, href: "https://x.com/GetEduLink", label: "X (Twitter)" },
-    { icon: <Instagram />, href: "https://www.instagram.com/getedulink/", label: "Instagram" },
+    { icon: <Twitter />, href: "https://x.com/GetSeniofy", label: "X (Twitter)" },
+    { icon: <Instagram />, href: "https://www.instagram.com/getSeniofy/", label: "Instagram" },
     { icon: <Linkedin />, href: "#", label: "LinkedIn" },
     { icon: <Youtube />, href: "#", label: "YouTube" },
   ];
@@ -62,7 +62,7 @@ export default function Footer() {
           <div className="md:col-span-5 lg:col-span-4 space-y-4">
              <div className="flex items-center gap-2">
                 <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center font-bold text-primary-foreground">CK</div>
-                <h3 className="text-2xl font-bold">EduLink</h3>
+                <h3 className="text-2xl font-bold">Seniofy</h3>
             </div>
             <p className="text-muted-foreground text-sm max-w-xs">
               Your digital senior, curating the best resources for your success.
@@ -114,7 +114,7 @@ export default function Footer() {
 
         {/* Bottom Bar */}
         <div className="mt-12 border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-muted-foreground text-sm">&copy; {new Date().getFullYear()} EduLink. All rights reserved.</p>
+          <p className="text-muted-foreground text-sm">&copy; {new Date().getFullYear()} Seniofy. All rights reserved.</p>
           <div className="flex space-x-4">
             {socialIcons.map((social) => (
               <motion.a

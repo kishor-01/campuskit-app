@@ -142,7 +142,7 @@ export default function LoginPage() {
         transition={{ duration: 0.7, ease: "easeOut" }}
       >
         <motion.div variants={containerVariants} initial="hidden" animate="visible">
-          <motion.h1 variants={itemVariants} className="text-4xl font-bold">EduLink</motion.h1>
+          <motion.h1 variants={itemVariants} className="text-4xl font-bold">Seniofy</motion.h1>
           <motion.p variants={itemVariants} className="mt-4 text-lg opacity-80">
             Welcome back. Let's find what you need.
           </motion.p>

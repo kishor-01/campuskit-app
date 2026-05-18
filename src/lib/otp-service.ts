@@ -1,13 +1,13 @@
 // src/lib/otp-service.ts
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
+import crypto from 'crypto';
 
 export interface OtpResult {
   success: boolean;
   message?: string;
   otp?: string;
 }
-
 export interface VerifyOtpResult {
   success: boolean;
   message?: string;
@@ -19,15 +19,21 @@ export interface VerifyOtpResult {
  */
 export class OtpService {
   private readonly OTP_EXPIRY_MINUTES = 10;
+  // OTP length: 6 digits for user convenience
   private readonly OTP_LENGTH = 6;
 
   /**
    * Generate a random numeric OTP
    */
   generateOtp(): string {
-    return Math.floor(
-      100000 + Math.random() * 900000
-    ).toString();
+    // Secure random numeric OTP using crypto
+    const digits = '0123456789';
+    const bytes = crypto.randomBytes(this.OTP_LENGTH);
+    let otp = '';
+    for (let i = 0; i < this.OTP_LENGTH; i++) {
+      otp += digits[bytes[i] % digits.length];
+    }
+    return otp;
   }
 
   /**
@@ -59,7 +65,7 @@ export class OtpService {
       }
 
       const otpCode = this.generateOtp();
-      const hashedOtp = await bcrypt.hash(otpCode, 10);
+      const hashedOtp = await bcrypt.hash(otpCode, 8);
       const expiresAt = new Date(Date.now() + this.OTP_EXPIRY_MINUTES * 60 * 1000);
 
       await prisma.otp.create({

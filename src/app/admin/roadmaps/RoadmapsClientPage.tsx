@@ -2,7 +2,7 @@
 
 'use client'
 
-import { useFormState } from 'react-dom'
+import { useActionState } from 'react'
 import { useEffect, useRef } from 'react'
 import type { Roadmap, RoadmapStep } from '@prisma/client'
 import { createRoadmap, deleteRoadmap, toggleRoadmapStatus } from '@/actions'
@@ -22,9 +22,9 @@ const StatusBadge = ({ isPublished }: { isPublished: boolean }) => (
 
 export default function RoadmapsClientPage({ roadmaps }: { roadmaps: RoadmapWithSteps[] }) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [createState, createAction] = useFormState(createRoadmap, { message: null, error: null });
-  const [deleteState, deleteAction] = useFormState(deleteRoadmap, { message: null, error: null });
-  const [toggleState, toggleAction] = useFormState(toggleRoadmapStatus, { message: null, error: null });
+  const [createState, createAction] = useActionState<any, any>(createRoadmap as any, { message: null, error: null });
+  const [deleteState, deleteAction] = useActionState<any, any>(deleteRoadmap as any, { message: null, error: null });
+  const [toggleState, toggleAction] = useActionState<any, any>(toggleRoadmapStatus as any, { message: null, error: null });
 
   useEffect(() => {
     if (createState?.message) {

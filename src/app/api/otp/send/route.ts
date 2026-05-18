@@ -1,8 +1,8 @@
 // src/app/api/otp/send/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import bcrypt from 'bcrypt';
-import { emailService } from '@/lib/email-service';
+import bcrypt from 'bcryptjs';
+import { sendOTPEmail } from '@/lib/mail';
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,9 +51,10 @@ export async function POST(request: NextRequest) {
     });
 
     // 📧 Send via configured provider
-    const emailResult = await emailService.sendOtpEmail(normalizedEmail, otpCode);
-
-    if (!emailResult?.success) {
+    try {
+      await sendOTPEmail(normalizedEmail, otpCode);
+    } catch (error) {
+      console.error('Failed to send OTP email:', error);
       return NextResponse.json(
         { error: 'Failed to send OTP email' },
         { status: 500 }

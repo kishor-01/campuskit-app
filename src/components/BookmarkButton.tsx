@@ -38,7 +38,7 @@ export default function BookmarkButton({
           onChange?.(previous);
           toast.error(result.error);
         } else {
-          toast.success(result?.message ?? (isSaved ? "Removed from saved" : "Saved"));
+          toast.success("saved" in result && result.saved ? "Saved" : "Removed from saved");
         }
       } catch (err) {
         setIsSaved(previous);

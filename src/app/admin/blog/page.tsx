@@ -18,11 +18,12 @@ const ARTICLES_PER_PAGE = 10;
 export default async function BlogManagementPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
-  const sortParam = searchParams.sort || "createdAt-desc";
-  const queryParam = searchParams.q;
-  const pageParam = searchParams.page || "1";
+  const sp = await searchParams;
+  const sortParam = sp.sort || "createdAt-desc";
+  const queryParam = sp.q;
+  const pageParam = sp.page || "1";
 
   const page = Math.max(1, parseInt(pageParam, 10));
   const [field, order] = sortParam.split("-");
@@ -37,8 +38,8 @@ export default async function BlogManagementPage({
       }
     : {};
 
-  // NEW: Fetch affiliate links along with articles
-  const [totalArticles, articles, affiliateLinks] = await Promise.all([
+  // NEW: Fetch affiliate links and series along with articles
+  const [totalArticles, articles, affiliateLinks, allSeries] = await Promise.all([
     prisma.article.count({ where }),
     prisma.article.findMany({
       where,
@@ -54,6 +55,10 @@ export default async function BlogManagementPage({
       orderBy: {
         name: 'asc'
       }
+    }),
+    prisma.articleSeries.findMany({
+      select: { id: true, title: true, slug: true },
+      orderBy: { title: 'asc' }
     }),
   ]);
 
@@ -72,8 +77,8 @@ export default async function BlogManagementPage({
         </div>
       </div>
       <div className="grid grid-cols-1 gap-8">
-        {/* NEW: Pass affiliateLinks to BlogManager */}
-        <BlogManager articles={articles} affiliateLinks={affiliateLinks} />
+        {/* NEW: Pass affiliateLinks and allSeries to BlogManager */}
+        <BlogManager articles={articles} affiliateLinks={affiliateLinks} allSeries={allSeries} />
       </div>
       <div className="mt-12">
         <PaginationControls

@@ -38,12 +38,12 @@ export default React.memo(function Navbar() {
           <div className="flex items-center justify-between h-16">
             
             <div className="flex-1 flex justify-start">
-              <Link href="/" className="flex items-center gap-2" aria-label="EduLink home">
+              <Link href="/" className="flex items-center gap-2" aria-label="Seniofy home">
                 <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center font-bold text-primary-foreground text-lg">
                   CK
                 </div>
                 <span className="hidden sm:inline-block text-2xl font-bold bg-gradient-to-br from-foreground to-muted-foreground/80 text-transparent bg-clip-text">
-                  EduLink
+                  Seniofy
                 </span>
               </Link>
             </div>

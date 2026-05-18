@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Mail, ArrowLeft, CheckCircle } from "lucide-react";
 
 const containerVariants = {
@@ -23,7 +24,7 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
-  const [emailSent, setEmailSent] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,10 +44,12 @@ export default function ForgotPasswordPage() {
 
       if (data.success) {
         setMessage({ 
-          text: "Password reset instructions sent to your email!", 
+          text: "Password reset instructions sent! Redirecting...", 
           type: "success" 
         });
-        setEmailSent(true);
+        setTimeout(() => {
+          router.push(`/reset-password?email=${encodeURIComponent(email)}`);
+        }, 1500);
       } else {
         setMessage({ 
           text: data.error || "Failed to send reset email", 
@@ -63,46 +66,6 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  if (emailSent) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md text-center"
-        >
-          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-6" />
-          <h1 className="text-2xl font-bold text-foreground mb-4">
-            Check Your Email
-          </h1>
-          <p className="text-muted-foreground mb-6">
-            We've sent password reset instructions to <strong>{email}</strong>
-          </p>
-          <p className="text-sm text-muted-foreground mb-8">
-            The reset link will expire in 1 hour.
-          </p>
-          <div className="space-y-3">
-            <Link
-              href="/login"
-              className="block w-full bg-primary text-primary-foreground font-medium py-3 rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              Back to Login
-            </Link>
-            <button
-              onClick={() => {
-                setEmailSent(false);
-                setMessage({ text: "", type: "" });
-              }}
-              className="block w-full border border-muted py-3 rounded-lg hover:bg-muted/10 transition-colors"
-            >
-              Send Again
-            </button>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen grid grid-cols-1 md:grid-cols-2">
       {/* Left Section */}
@@ -118,7 +81,7 @@ export default function ForgotPasswordPage() {
             Back to Login
           </Link>
           <motion.h1 variants={itemVariants} className="text-4xl font-bold">
-            EduLink
+            Seniofy
           </motion.h1>
           <motion.p variants={itemVariants} className="mt-4 text-lg opacity-80">
             Reset your password and get back to learning.

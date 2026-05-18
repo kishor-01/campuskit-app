@@ -1,7 +1,7 @@
 // /src/actions/resourceActions.ts
 'use server';
 
-import { ResourceStatus } from '@prisma/client';
+import { ResourceStatus, DifficultyTier, ResourceHealth } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
@@ -56,6 +56,13 @@ const CreateResourceSchema = z.object({
   imageUrl: z.string().url('Valid image URL is required').optional().or(z.literal('')),
   categoryId: z.string().min(1, 'Category is required'),
   status: z.nativeEnum(ResourceStatus),
+  difficultyTier: z.nativeEnum(DifficultyTier).optional(),
+  seniorInsight: z.string().optional(),
+  timeRequired: z.string().optional(),
+  prerequisites: z.string().optional(),
+  visualizations: z.string().optional(),
+  publishedAt: z.string().optional(),
+  authorOverride: z.string().optional(),
 });
 
 const UpdateResourceSchema = z.object({
@@ -66,6 +73,13 @@ const UpdateResourceSchema = z.object({
   imageUrl: z.string().url('Valid image URL is required').optional().or(z.literal('')),
   categoryId: z.string().min(1, 'Category is required'),
   status: z.nativeEnum(ResourceStatus),
+  difficultyTier: z.nativeEnum(DifficultyTier).optional(),
+  seniorInsight: z.string().optional(),
+  timeRequired: z.string().optional(),
+  prerequisites: z.string().optional(),
+  visualizations: z.string().optional(),
+  publishedAt: z.string().optional(),
+  authorOverride: z.string().optional(),
 });
 
 export async function createResource(prevState: any, formData: FormData) {
@@ -79,13 +93,25 @@ export async function createResource(prevState: any, formData: FormData) {
       imageUrl: formData.get('imageUrl'),
       categoryId: formData.get('categoryId'),
       status: formData.get('status') as ResourceStatus,
+      difficultyTier: (formData.get('difficultyTier') as DifficultyTier) || undefined,
+      seniorInsight: formData.get('seniorInsight') as string || undefined,
+      timeRequired: formData.get('timeRequired') || undefined,
+      prerequisites: formData.get('prerequisites') || undefined,
+      visualizations: formData.get('visualizations') || undefined,
+      publishedAt: formData.get('publishedAt') as string || undefined,
+      authorOverride: formData.get('authorOverride') as string || undefined,
     });
 
     if (!validatedFields.success) {
       return { error: validatedFields.error.flatten().fieldErrors };
     }
 
-    const { name, description, url, imageUrl, categoryId, status } = validatedFields.data;
+    const { name, description, url, imageUrl, categoryId, status, difficultyTier, seniorInsight, timeRequired, prerequisites, visualizations, publishedAt, authorOverride } = validatedFields.data;
+
+    const parsedPublishedAt = publishedAt ? new Date(publishedAt) : new Date();
+
+    const parsedPrerequisites = prerequisites ? prerequisites.split('\n').map(s => s.trim()).filter(Boolean) : [];
+    const parsedVisualizations = visualizations ? [{ type: 'mermaid', content: visualizations }] : undefined;
 
     // Check if resource with same URL already exists
     const existingResource = await prisma.resource.findFirst({
@@ -104,6 +130,13 @@ export async function createResource(prevState: any, formData: FormData) {
         imageUrl: imageUrl || null,
         categoryId,
         status,
+        difficultyTier: difficultyTier || "INTERMEDIATE",
+        seniorInsight: seniorInsight || "Pending senior insight",
+        timeRequired: timeRequired || "2-4 Hours",
+        prerequisites: parsedPrerequisites.length > 0 ? parsedPrerequisites : undefined,
+        visualizations: parsedVisualizations,
+        publishedAt: parsedPublishedAt,
+        authorOverride: authorOverride || null,
       },
     });
 
@@ -137,13 +170,25 @@ export async function updateResource(prevState: any, formData: FormData) {
       imageUrl: formData.get('imageUrl'),
       categoryId: formData.get('categoryId'),
       status: formData.get('status') as ResourceStatus,
+      difficultyTier: (formData.get('difficultyTier') as DifficultyTier) || undefined,
+      seniorInsight: formData.get('seniorInsight') as string || undefined,
+      timeRequired: formData.get('timeRequired') || undefined,
+      prerequisites: formData.get('prerequisites') || undefined,
+      visualizations: formData.get('visualizations') || undefined,
+      publishedAt: formData.get('publishedAt') as string || undefined,
+      authorOverride: formData.get('authorOverride') as string || undefined,
     });
 
     if (!validatedFields.success) {
       return { error: validatedFields.error.flatten().fieldErrors };
     }
 
-    const { id, name, description, url, imageUrl, categoryId, status } = validatedFields.data;
+    const { id, name, description, url, imageUrl, categoryId, status, difficultyTier, seniorInsight, timeRequired, prerequisites, visualizations, publishedAt, authorOverride } = validatedFields.data;
+
+    const parsedPublishedAt = publishedAt ? new Date(publishedAt) : new Date();
+
+    const parsedPrerequisites = prerequisites ? prerequisites.split('\n').map(s => s.trim()).filter(Boolean) : [];
+    const parsedVisualizations = visualizations ? [{ type: 'mermaid', content: visualizations }] : undefined;
 
     // Check if another resource with same URL exists
     const existingResource = await prisma.resource.findFirst({
@@ -166,6 +211,13 @@ export async function updateResource(prevState: any, formData: FormData) {
         imageUrl: imageUrl || null,
         categoryId,
         status,
+        difficultyTier: difficultyTier || "INTERMEDIATE",
+        seniorInsight: seniorInsight || "Pending senior insight",
+        timeRequired: timeRequired || "2-4 Hours",
+        prerequisites: parsedPrerequisites.length > 0 ? parsedPrerequisites : undefined,
+        visualizations: parsedVisualizations,
+        publishedAt: parsedPublishedAt,
+        authorOverride: authorOverride || null,
       },
     });
 

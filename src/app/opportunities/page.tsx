@@ -1,28 +1,33 @@
 // src/app/opportunities/page.tsx
 import prisma from '@/lib/prisma';
-import { OpportunityType, OpportunityStatus } from '@prisma/client';
-import OpportunityList from '@/components/OpportunityList'; // The new client component
+import { OpportunityType, OpportunityStatus, OpportunityTier } from '@prisma/client';
+import OpportunityList from '@/components/OpportunityList';
 import React from 'react';
 
 // Define how many opportunities to show per page
 const OPPORTUNITIES_PER_PAGE = 12;
 
+export const revalidate = 60;
+
 export default async function OpportunitiesPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   // Ensure searchParams is awaited (Next.js can require awaiting dynamic APIs)
   const sp = await searchParams as { [key: string]: string | string[] | undefined };
 
-  // Get current page and type from URL search parameters
+  // Get current page, type, and tier from URL search parameters
   const page = parseInt((Array.isArray(sp?.page) ? sp?.page[0] : sp?.page) as string) || 1;
   const type = (Array.isArray(sp?.type) ? sp?.type[0] : sp?.type) as OpportunityType | undefined;
+  const tier = (Array.isArray(sp?.tier) ? sp?.tier[0] : sp?.tier) as OpportunityTier | undefined;
 
   // Build the filter for our Prisma query
   const whereClause = {
     status: OpportunityStatus.PUBLISHED,
+    publishedAt: { lte: new Date() },
     ...(type && { type: type }),
+    ...(tier && { tier: tier }),
   };
 
   try {
@@ -56,6 +61,7 @@ export default async function OpportunitiesPage({
         totalPages={totalPages}
         currentPage={page}
         currentType={type}
+        currentTier={tier}
       />
     );
 

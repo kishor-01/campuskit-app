@@ -14,7 +14,7 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { ease: "easeOut" } },
+  visible: { opacity: 1, y: 0, transition: { ease: "easeOut" as any } },
 };
 
 export default function LoginForm() {
@@ -27,7 +27,7 @@ export default function LoginForm() {
     >
       <motion.div variants={itemVariants} className="text-center">
         <h1 className="text-3xl font-bold text-foreground">Welcome Back!</h1>
-        <p className="text-muted-foreground">Log in to continue to EduLink.</p>
+        <p className="text-muted-foreground">Log in to continue to Seniofy.</p>
       </motion.div>
 
       <motion.form variants={itemVariants} className="space-y-4">

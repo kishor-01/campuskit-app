@@ -51,14 +51,16 @@ export default function SettingsWidget({ userRole }: SettingsWidgetProps) {
         <div className="pt-2 border-t border-border">
           <Link 
             href="/profile/edit"
-            className="block w-full text-left p-3 text-sm text-muted-foreground hover:bg-muted rounded-lg transition-colors"
+            className="flex items-center w-full text-left p-3 text-sm text-muted-foreground hover:bg-muted rounded-lg transition-colors"
           >
+            <UserCog className="w-4 h-4 mr-2" />
             Edit Profile
           </Link>
           <Link 
-            href="/privacy"
-            className="block w-full text-left p-3 text-sm text-muted-foreground hover:bg-muted rounded-lg transition-colors"
+            href="/profile/privacy"
+            className="flex items-center w-full text-left p-3 text-sm text-muted-foreground hover:bg-muted rounded-lg transition-colors"
           >
+            <Settings className="w-4 h-4 mr-2" />
             Privacy Settings
           </Link>
         </div>

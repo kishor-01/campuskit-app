@@ -5,17 +5,19 @@
 import prisma from "@/lib/prisma";
 import { z } from "zod";
 
-// Zod schema for validating form data
+// Zod schema for validating form data — strict spam protection
 const ContactSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  email: z.string().email({ message: "Please enter a valid email." }),
-  message: z.string().min(10, { message: "Message must be at least 10 characters." }),
+  name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(100, { message: "Name must be under 100 characters." }),
+  email: z.string().email({ message: "Please enter a valid email." }).max(255, { message: "Email too long." }).refine(val => !val.endsWith('.xyz') && !val.endsWith('.top'), { message: "Suspicious email domain." }),
+  subject: z.string().max(200, { message: "Subject too long." }).optional(),
+  message: z.string().min(10, { message: "Message must be at least 10 characters." }).max(2000, { message: "Message cannot exceed 2000 characters." }),
 });
 
 export async function sendContactMessage(prevState: any, formData: FormData) {
   const validatedFields = ContactSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
+    subject: formData.get("subject") || undefined,
     message: formData.get("message"),
   });
 
@@ -29,7 +31,12 @@ export async function sendContactMessage(prevState: any, formData: FormData) {
 
   try {
     await prisma.contactMessage.create({
-      data: validatedFields.data,
+      data: {
+        name: validatedFields.data.name,
+        email: validatedFields.data.email,
+        subject: validatedFields.data.subject || null,
+        message: validatedFields.data.message,
+      },
     });
 
     return { success: true, message: "Thank you! Your message has been sent." };

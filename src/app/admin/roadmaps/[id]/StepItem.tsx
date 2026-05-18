@@ -2,23 +2,25 @@
 
 'use client'
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useActionState } from 'react';
-import { updateRoadmapStep } from '@/actions';
-import { Trash2, Edit, Link as LinkIcon } from 'lucide-react';
+import { updateRoadmapStep, assignStepToBranch } from '@/actions';
+import { Trash2, Edit, Link as LinkIcon, GitBranch } from 'lucide-react';
 import Modal from '@/components/admin/Modal';
 import LinkResourcesForm from './LinkResourcesForm';
 import { toast } from 'react-hot-toast';
 import { SubmitButton } from '@/components/admin/SubmitButton';
-import type { RoadmapStep, Resource } from '@prisma/client';
+import type { RoadmapStep, RoadmapBranch, Resource } from '@prisma/client';
 
 type StepWithLinkedResources = RoadmapStep & {
   linkedResources: { resourceId: string }[];
+  branch?: RoadmapBranch | null;
 };
 
 type StepItemProps = {
   step: StepWithLinkedResources;
   allResources: Resource[];
+  branches: RoadmapBranch[];
   deleteAction: (payload: FormData) => void;
 };
 
@@ -28,13 +30,24 @@ type UpdateState = {
   error?: { [key: string]: string[] } | string | null;
 };
 
-export default function StepItem({ step, allResources, deleteAction }: StepItemProps) {
+type AssignState = {
+  message?: string | null;
+  error?: string | null;
+};
+
+export default function StepItem({ step, allResources, branches, deleteAction }: StepItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
   
   // Use useActionState with explicit generics (same pattern that worked above)
   const [updateState, updateAction] = useActionState<UpdateState, FormData>(
     updateRoadmapStep as (state: UpdateState, formData: FormData) => Promise<UpdateState>,
+    { message: null, error: null }
+  );
+
+  const [assignState, assignAction] = useActionState<AssignState, FormData>(
+    assignStepToBranch as (state: AssignState, formData: FormData) => Promise<AssignState>,
     { message: null, error: null }
   );
 
@@ -52,7 +65,22 @@ export default function StepItem({ step, allResources, deleteAction }: StepItemP
     }
   }, [updateState]);
 
+  useEffect(() => {
+    if (assignState?.message) toast.success(assignState.message);
+    if (assignState?.error) toast.error(assignState.error);
+  }, [assignState]);
+
   const linkedResourceIds = step.linkedResources.map(lr => lr.resourceId);
+
+  const handleBranchChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const formData = new FormData();
+    formData.append('stepId', step.id);
+    formData.append('roadmapId', step.roadmapId);
+    formData.append('branchId', e.target.value);
+    startTransition(() => {
+      assignAction(formData);
+    });
+  };
 
   if (isEditing) {
     return (
@@ -83,6 +111,22 @@ export default function StepItem({ step, allResources, deleteAction }: StepItemP
           <div className="flex-1">
             <p className="font-semibold">{step.title}</p>
             <p className="text-sm text-muted-foreground">{step.description}</p>
+            
+            {/* Branch badge */}
+            {step.branch && (
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium mt-1 border"
+                style={{
+                  backgroundColor: `${step.branch.color || '#6366f1'}15`,
+                  color: step.branch.color || '#6366f1',
+                  borderColor: `${step.branch.color || '#6366f1'}30`,
+                }}
+              >
+                <GitBranch size={10} />
+                {step.branch.title}
+              </span>
+            )}
+
             {linkedResourceIds.length > 0 && (
               <p className="text-xs text-green-600 mt-1">
                 {linkedResourceIds.length} linked resource{linkedResourceIds.length !== 1 ? 's' : ''}
@@ -91,6 +135,24 @@ export default function StepItem({ step, allResources, deleteAction }: StepItemP
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+          {/* Branch assignment dropdown */}
+          {branches.length > 0 && (
+            <select
+              value={step.branchId || ''}
+              onChange={handleBranchChange}
+              disabled={isPending}
+              className="text-xs bg-muted/50 border border-border rounded-md px-2 py-1.5 max-w-[140px] disabled:opacity-50"
+              title="Assign to branch"
+            >
+              <option value="">No Branch</option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  🔀 {b.title}
+                </option>
+              ))}
+            </select>
+          )}
+
           <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-1 text-sm font-semibold text-blue-600 px-3 py-1 rounded-md hover:bg-blue-500/10">
             Link Resources ({linkedResourceIds.length}) <LinkIcon size={14} />
           </button>

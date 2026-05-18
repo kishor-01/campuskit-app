@@ -124,7 +124,7 @@ export default function ProfileIdCard({ user, savedCount, submittedCount }: Prof
         style={{ transform: "translateZ(40px)" }}
         className="text-2xl font-bold text-foreground truncate max-w-full mb-1"
       >
-        {user.name || "EduLink User"}
+        {user.name || "Seniofy User"}
       </h2>
       
       <p style={{ transform: "translateZ(30px)" }} className="text-sm text-muted-foreground mb-2">
