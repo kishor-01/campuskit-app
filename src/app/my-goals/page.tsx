@@ -8,6 +8,7 @@ import GoalCard from '@/components/goals/GoalCard';
 import React from 'react';
 import { Target, Flame, Clock, Trophy } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
 export default async function MyGoalsPage() {
   try {
     const session = await auth();
