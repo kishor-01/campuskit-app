@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../../../lib/prisma';
-import { emailService } from '../../../lib/email-service';
+import { sendNewsletterWelcome } from '../../../lib/email';
 import rateLimit from '../../../lib/rateLimiter';
 
 // A thin testable wrapper that uses relative imports so test runners without path alias
@@ -39,7 +39,7 @@ export async function POST(req: any) {
 
     try {
       const confirmUrl = `${process.env.NEXTAUTH_URL}/api/newsletter/confirm?token=${confirmToken}&email=${encodeURIComponent(email)}`;
-      await emailService.sendOtpEmail(email, `Thanks for subscribing! Confirm: ${confirmUrl}`);
+      await sendNewsletterWelcome(email, confirmUrl);
     } catch (e) {
       console.error('Newsletter email error:', e);
     }

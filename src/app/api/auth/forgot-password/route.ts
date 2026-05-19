@@ -1,7 +1,7 @@
 // src/app/api/auth/forgot-password/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { sendOTPEmail } from '@/lib/mail';
+import { sendPasswordResetEmail } from '@/lib/email';
 import { otpService } from '@/lib/otp-service';
 import bcrypt from 'bcryptjs';
 import rateLimit from '@/lib/rateLimiter';
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     // Send reset OTP email
     try {
-      await sendOTPEmail(email, otpCode);
+      await sendPasswordResetEmail(email, otpCode);
     } catch (error) {
       console.error('Failed to send OTP email:', error);
       return NextResponse.json(

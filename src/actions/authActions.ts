@@ -5,7 +5,7 @@ import { AuthError } from "next-auth";
 import { signIn } from "@/auth";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { sendOTPEmail } from "@/lib/mail";
+import { sendOtpEmail } from "@/lib/email";
 import { otpService } from "@/lib/otp-service";
 import { headers } from "next/headers";
 import { rateLimit } from "@/lib/rateLimiter";
@@ -92,7 +92,7 @@ export async function registerUser(prevState: any, formData: FormData) {
     });
 
     // Send OTP email
-    await sendOTPEmail(email, otp);
+    await sendOtpEmail(email, otp);
 
     return {
       success: true,
@@ -218,7 +218,7 @@ export async function resendOtp(prevState: any, formData: FormData) {
       },
     });
 
-    await sendOTPEmail(email, otp);
+    await sendOtpEmail(email, otp);
 
     return { success: true, message: "OTP sent successfully." };
   } catch (error) {
@@ -266,7 +266,7 @@ export async function sendInitialOtp(prevState: any, formData: FormData) {
       },
     });
 
-    await sendOTPEmail(email, otp);
+    await sendOtpEmail(email, otp);
 
     return { success: true, message: "OTP sent successfully." };
   } catch (error) {

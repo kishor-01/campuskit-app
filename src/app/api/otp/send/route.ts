@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import { sendOTPEmail } from '@/lib/mail';
+import { sendOtpEmail } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     // 📧 Send via configured provider
     try {
-      await sendOTPEmail(normalizedEmail, otpCode);
+      await sendOtpEmail(normalizedEmail, otpCode);
     } catch (error) {
       console.error('Failed to send OTP email:', error);
       return NextResponse.json(

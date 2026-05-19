@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import crypto from 'crypto';
 import { logSecurityEvent } from '@/lib/audit-logger';
-import { emailService } from '@/lib/email-service';
+import { sendEmailChangeAlert } from '@/lib/email';
 import { invalidateAllSessions } from '@/lib/session-utils';
 
 export async function GET(req: NextRequest) {
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
 
     // Send notification to old email
     try {
-      const notifyRes = await emailService.sendEmailChangeVerification(reqRow.old_email, `${process.env.NEXTAUTH_URL || ''}`);
+      const notifyRes = await sendEmailChangeAlert(reqRow.old_email, `${process.env.NEXTAUTH_URL || ''}`);
       // ignore errors
     } catch (err) {}
 
