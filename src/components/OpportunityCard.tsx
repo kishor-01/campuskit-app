@@ -94,7 +94,7 @@ export default function OpportunityCard({ opportunity }: OpportunityCardProps) {
 
           {/* Deadline Urgency Badge */}
           {isUrgent && !isExpired && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full opp-deadline-pulse">
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800/50 px-2 py-0.5 rounded-full opp-deadline-pulse">
               <Clock size={10} /> {daysLeft === 0 ? 'Last Day!' : `${daysLeft}d left`}
             </span>
           )}
@@ -112,7 +112,7 @@ export default function OpportunityCard({ opportunity }: OpportunityCardProps) {
             <span className="font-medium">{opportunity.organization}</span>
           </div>
           {opportunity.isRemote && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/50 px-2 py-0.5 rounded-full">
               <Globe size={10} /> Remote
             </span>
           )}

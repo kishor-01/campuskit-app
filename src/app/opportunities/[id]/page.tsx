@@ -112,7 +112,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                 href={opportunity.applyUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full px-8 py-4 bg-white text-primary font-extrabold rounded-2xl hover:bg-secondary transition-all text-lg shadow-xl"
+                className="flex items-center justify-center gap-2 w-full px-8 py-4 bg-white text-slate-900 font-extrabold rounded-2xl hover:bg-white/90 transition-all text-lg shadow-xl"
               >
                 Apply Now <ArrowUpRight size={20} />
               </a>
@@ -143,7 +143,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
               <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
                 <Briefcase className="text-primary" /> About the Opportunity
               </h2>
-              <div className="prose prose-lg max-w-none text-muted-foreground leading-relaxed">
+              <div className="prose prose-lg dark:prose-invert max-w-none text-muted-foreground leading-relaxed">
                 {opportunity.description.split('\n').map((para, i) => (
                   <p key={i} className="mb-4">{para}</p>
                 ))}
