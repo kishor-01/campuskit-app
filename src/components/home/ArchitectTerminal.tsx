@@ -81,7 +81,7 @@ export default function ArchitectTerminal() {
   const currentCycle = CYCLES[cycleIndex];
 
   return (
-    <div className="w-full max-w-lg mx-auto bg-card border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col relative z-10 backdrop-blur-md bg-opacity-90 dark:bg-opacity-80">
+    <div className="hidden md:flex w-full max-w-lg mx-auto bg-card border border-border rounded-xl shadow-2xl overflow-hidden flex-col relative z-10 backdrop-blur-md bg-opacity-90 dark:bg-opacity-80">
       {/* macOS Style Window Header */}
       <div className="flex items-center px-4 py-3 border-b border-border bg-muted/30">
         <div className="flex space-x-2">

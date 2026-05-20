@@ -233,7 +233,7 @@ export default function HomePageClient({ resources, opportunities, articles, roa
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, delay: 0.2 }}
-            className="relative w-full flex justify-center lg:justify-end z-10 pointer-events-none"
+            className="relative w-full flex justify-center lg:justify-end z-10 pointer-events-none hidden md:block"
           >
             <div className="pointer-events-auto w-full max-w-lg">
               <ArchitectTerminal />

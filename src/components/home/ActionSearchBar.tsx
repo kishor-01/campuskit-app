@@ -92,7 +92,7 @@ export default function ActionSearchBar() {
           <button
             type="button"
             onClick={() => setMode("learn")}
-            className={`flex-1 md:w-24 py-2 px-3 text-sm font-semibold rounded-lg transition-all ${
+            className={`flex-1 md:w-24 py-3 md:py-2 px-3 text-sm font-semibold rounded-lg transition-all ${
               mode === "learn"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
@@ -103,7 +103,7 @@ export default function ActionSearchBar() {
           <button
             type="button"
             onClick={() => setMode("build")}
-            className={`flex-1 md:w-24 py-2 px-3 text-sm font-semibold rounded-lg transition-all ${
+            className={`flex-1 md:w-24 py-3 md:py-2 px-3 text-sm font-semibold rounded-lg transition-all ${
               mode === "build"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"

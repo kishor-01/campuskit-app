@@ -6,10 +6,10 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Menu as MenuIcon } from "lucide-react";
+import { Menu as MenuIcon, Bell as BellIcon } from "lucide-react";
 import { motion } from "framer-motion";
+import MobileMoreMenu from "./MobileMoreMenu";
 
-const MobileMenu = dynamic(() => import("./MobileMenu"), { ssr: false });
 const ProfileMenu = dynamic(() => import("./ProfileMenu"), { ssr: false });
 
 type NavItem = { href: string; label: string };
@@ -25,7 +25,7 @@ const NAV_ITEMS: NavItem[] = [
 export default React.memo(function Navbar() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
   const isActive = (href: string) => {
     return pathname === href || (href !== "/" && pathname.startsWith(href));
@@ -38,7 +38,7 @@ export default React.memo(function Navbar() {
           <div className="flex items-center justify-between h-16">
             
             <div className="flex-1 flex justify-start">
-              <Link href="/" className="flex items-center gap-2" aria-label="Seniofy home">
+              <Link href="/" className="flex items-center gap-2 py-2 px-2 -ml-2 min-h-[44px] min-w-[44px]" aria-label="Seniofy home">
                 <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center font-bold text-primary-foreground text-lg">
                   CK
                 </div>
@@ -74,36 +74,46 @@ export default React.memo(function Navbar() {
               ))}
             </nav>
 
-            <div className="flex-1 flex justify-end items-center gap-2">
-              <div className="hidden md:flex items-center gap-2">
+            {/* Mobile Actions: Bell & Hamburger Menu */}
+            <div className="flex md:hidden items-center gap-1 justify-end flex-1">
+              <button
+                className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center relative"
+                aria-label="Notifications"
+              >
+                <BellIcon className="h-5 w-5" />
+                <span className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              </button>
+              
+              <button
+                onClick={() => setMoreMenuOpen(true)}
+                className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                aria-label="Open navigation menu"
+              >
+                <MenuIcon className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="hidden md:flex flex-1 justify-end items-center gap-2">
+              <div className="flex items-center gap-2">
                 {status === "loading" && <div className="h-8 w-24 bg-muted rounded-md animate-pulse" />}
                 {status === "unauthenticated" && (
                   <>
-                    <Link href="/login" className="text-muted-foreground hover:text-foreground px-3 py-2 rounded-md text-sm font-medium">
+                    <Link href="/login" className="text-muted-foreground hover:text-foreground px-3 py-2 rounded-md text-sm font-medium min-h-[44px] flex items-center justify-center">
                       Login
                     </Link>
-                    <Link href="/signup" className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-semibold">
+                    <Link href="/signup" className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-semibold min-h-[44px] flex items-center justify-center">
                       Sign Up
                     </Link>
                   </>
                 )}
                 {status === "authenticated" && <ProfileMenu />}
               </div>
-              
-              <button
-                onClick={() => setMobileOpen(true)}
-                className="p-2 rounded-md md:hidden hover:bg-muted"
-                aria-label="Open menu"
-              >
-                <MenuIcon className="h-5 w-5 text-muted-foreground" />
-              </button>
             </div>
           </div>
         </div>
       </header>
       
-      {/* FIX: Pass the full session object to the MobileMenu */}
-      <MobileMenu open={mobileOpen} onClose={() => setMobileOpen(false)} session={session} status={status} />
+      <MobileMoreMenu open={moreMenuOpen} onClose={() => setMoreMenuOpen(false)} />
     </>
   );
 });
