@@ -28,7 +28,7 @@ async function testPublishedAt() {
         description: 'This is a test resource',
         url: `https://example.com/${resourceId}`,
         categoryId: category.id,
-        difficultyTier: DifficultyTier.JUNIOR,
+        difficultyTier: DifficultyTier.BEGINNER,
         seniorInsight: 'Test insight',
         status: ResourceStatus.APPROVED,
         healthStatus: ResourceHealth.HEALTHY,

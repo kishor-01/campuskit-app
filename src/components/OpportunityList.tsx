@@ -38,6 +38,38 @@ const tierOrder: Record<string, number> = {
   TIER_3: 2,
 };
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.15,
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring" as const,
+      stiffness: 400,
+      damping: 30
+    }
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.95,
+    transition: {
+      type: "spring" as const,
+      stiffness: 400,
+      damping: 30
+    }
+  }
+};
+
 function OpportunityListContent({
   opportunities,
   types,
@@ -136,12 +168,12 @@ function OpportunityListContent({
       {/* Dynamic Hero Search Section */}
       <motion.div
         layout
-        className="bg-card border-b border-border relative overflow-hidden"
+        className="bg-card border-b border-border/40 relative overflow-hidden"
         animate={{
           paddingBottom: isActiveSearch ? "2rem" : "5rem",
           paddingTop: isActiveSearch ? "2rem" : "5rem"
         }}
-        transition={{ duration: 0.5, ease: "easeInOut" }}
+        transition={{ type: "spring", stiffness: 400, damping: 30 }}
       >
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-20">
           <div className="absolute -top-[20%] -right-[10%] w-[50%] h-[150%] bg-gradient-to-l from-primary/30 to-transparent blur-3xl rounded-full transform rotate-12" />
@@ -155,7 +187,7 @@ function OpportunityListContent({
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0, overflow: "hidden" }}
-                transition={{ duration: 0.3 }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 className="mb-8"
               >
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
@@ -262,6 +294,9 @@ function OpportunityListContent({
         {/* Opportunities Grid */}
         <motion.div
           layout
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
           <AnimatePresence>
@@ -269,10 +304,7 @@ function OpportunityListContent({
               <motion.div
                 key={opportunity.id}
                 layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.2 }}
+                variants={itemVariants}
               >
                 <OpportunityCard opportunity={opportunity} />
               </motion.div>

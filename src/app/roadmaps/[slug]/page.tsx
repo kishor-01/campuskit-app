@@ -13,12 +13,13 @@ const difficultyConfig: Record<string, { label: string; color: string; icon: typ
   SENIOR: { label: 'Senior', color: 'text-red-400', icon: Shield },
 };
 
-export default async function RoadmapDetailPage({ params }: { params: { slug: string } }) {
+export default async function RoadmapDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const resolvedParams = await params;
   const session = await auth();
 
   const roadmap = await prisma.roadmap.findUnique({
     where: {
-      slug: params.slug,
+      slug: resolvedParams.slug,
       isPublished: true,
     },
     include: {

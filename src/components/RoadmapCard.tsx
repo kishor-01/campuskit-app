@@ -24,9 +24,9 @@ export default function RoadmapCard({ roadmap }: RoadmapCardProps) {
 
   return (
     <Link href={href} className="block group" id={`roadmap-card-${roadmap.slug}`}>
-      <div className="relative bg-card p-6 rounded-2xl h-full border border-border overflow-hidden
+      <div className="relative bg-card p-6 rounded-2xl h-full border border-border/40 overflow-hidden
                       group-hover:border-primary/50 group-hover:shadow-lg group-hover:shadow-primary/5
-                      transition-all duration-500">
+                      transition-all duration-300 shadow-sm dark:shadow-none">
         {/* Gradient accent */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/60 via-primary to-primary/60 
                         opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

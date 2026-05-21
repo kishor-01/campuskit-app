@@ -2,12 +2,19 @@
 
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
+import { recordUserActivity } from "@/lib/streakService";
 
 export async function trackEvent(eventType: string, metadata?: any) {
   // Fire and forget pattern - we wrap in try/catch and don't rethrow
   try {
     const session = await auth();
     const userId = session?.user?.id || null;
+
+    if (userId) {
+      recordUserActivity(userId).catch((err) => {
+        console.error("[Streak] Error recording user activity:", err);
+      });
+    }
 
     // Do not await this if we want it to be fully fire-and-forget from the caller's perspective, 
     // but since it's a server action, the caller (client) awaits the HTTP request. 

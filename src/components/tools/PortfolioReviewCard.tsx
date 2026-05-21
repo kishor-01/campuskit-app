@@ -30,7 +30,7 @@ export function PortfolioReviewCard({ data }: PortfolioReviewCardProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      transition={{ type: "spring", stiffness: 400, damping: 30 }}
     >
       <Card className="w-full max-w-3xl mx-auto border-zinc-800 bg-zinc-950/50 backdrop-blur-md overflow-hidden">
         <CardHeader className="border-b border-zinc-800 bg-zinc-900/50 pb-6">

@@ -6,6 +6,7 @@ import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
+import { recordUserActivity } from '@/lib/streakService'
 
 /**
  * Helper to get the authenticated user session, throwing an error if not found.
@@ -330,6 +331,11 @@ export async function toggleSubTopicStatus(id: string, isCompleted: boolean) {
 
   // --- Streak Logic ---
   if (goalId && nowCompleting) {
+    // Record user activity streak
+    recordUserActivity(session.user.id).catch((err) => {
+      console.error("[Streak] Error recording user activity in toggleSubTopicStatus:", err);
+    });
+
     const goal = await prisma.goal.findUnique({ where: { id: goalId }, select: { currentStreak: true, longestStreak: true, lastActivityDate: true } });
 
     if (goal) {

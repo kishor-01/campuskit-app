@@ -10,6 +10,7 @@ import ResourceStackWidget from "@/components/profile/ResourceStackWidget";
 import SettingsWidget from "@/components/profile/SettingsWidget";
 import ContributionWidget from "@/components/profile/ContributionWidget";
 import AdminQuickActions from "@/components/profile/AdminQuickActions";
+import StatsRow from "@/components/profile/StatsRow";
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -20,7 +21,7 @@ export default async function ProfilePage() {
   }
 
   // Fetch all data in parallel for the new widget-based layout
-  const [user, goals, savedResources, submissionCount, adminStats, analyticsEvents] = await Promise.all([
+  const [user, goals, savedResources, submissionCount, adminStats, analyticsEvents, totalContributions] = await Promise.all([
     prisma.user.findUnique({ 
       where: { id: userId },
       select: {
@@ -36,6 +37,9 @@ export default async function ProfilePage() {
         githubUrl: true,
         portfolioUrl: true,
         badges: true,
+        currentStreak: true,
+        longestStreak: true,
+        lastActiveAt: true,
       }
     }),
     prisma.goal.findMany({
@@ -97,7 +101,8 @@ export default async function ProfilePage() {
         eventType: true,
         createdAt: true,
       }
-    })
+    }),
+    prisma.analyticsEvent.count({ where: { userId } })
   ]);
 
   if (!user) {
@@ -155,6 +160,12 @@ export default async function ProfilePage() {
               user={user}
               savedCount={savedResources.length}
               submittedCount={submissionCount}
+            />
+            <StatsRow
+              currentStreak={user.currentStreak}
+              longestStreak={user.longestStreak}
+              totalContributions={totalContributions}
+              lastActiveAt={user.lastActiveAt}
             />
             <ActivityHeatmap events={analyticsEvents} />
           </div>

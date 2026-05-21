@@ -127,7 +127,7 @@ export default function ProfileMenu() {
             initial={{ opacity: 0, scale: 0.95, y: -8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -8 }}
-            transition={{ duration: 0.12 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
             className="absolute right-0 mt-2 w-72 origin-top-right bg-card border border-border rounded-lg shadow-lg z-50 overflow-hidden"
           >
             {/* User Info Section */}

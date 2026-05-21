@@ -99,6 +99,16 @@ export async function approveSubmission(id: string) {
           },
         },
       });
+
+      // 4. Automatically create a COMMUNITY notification for the user
+      await tx.notification.create({
+        data: {
+          userId: submission.userId,
+          title: 'Resource Approved',
+          message: 'Your resource was approved and added to the platform!',
+          type: 'COMMUNITY',
+        },
+      });
     });
 
     revalidatePath('/admin/submissions');

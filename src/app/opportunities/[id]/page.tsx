@@ -28,7 +28,7 @@ const tierDisplayConfig: Record<string, { label: string; badgeClass: string; des
   },
   TIER_2: {
     label: '🥈 Tier 2 — High Growth',
-    badgeClass: 'bg-gradient-to-r from-slate-400 to-slate-300 text-slate-800',
+    badgeClass: 'bg-gradient-to-r from-slate-400 to-slate-300 text-slate-800 dark:from-slate-700 dark:to-slate-800 dark:text-slate-200 border dark:border-slate-600/40',
     description: 'High-growth Startups, National Competitions',
   },
   TIER_3: {
@@ -71,17 +71,17 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   const deadline = getDeadlineStatus(opportunity.endDate);
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background text-foreground pb-36 md:pb-24">
       {/* Hero Header */}
       <div className="bg-primary text-primary-foreground py-16 md:py-24 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full translate-x-1/2 translate-y-1/2 blur-3xl" />
+          <div className="absolute top-0 left-0 w-96 h-96 bg-white/20 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/20 rounded-full translate-x-1/2 translate-y-1/2 blur-3xl" />
         </div>
 
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex flex-col md:flex-row items-center gap-8">
-            <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-3xl shadow-2xl flex items-center justify-center shrink-0 overflow-hidden">
+            <div className="w-24 h-24 md:w-32 md:h-32 bg-card text-card-foreground border border-border/40 rounded-3xl shadow-2xl dark:shadow-none flex items-center justify-center shrink-0 overflow-hidden">
               {opportunity.imageUrl ? (
                 <img src={opportunity.imageUrl} alt={opportunity.organization} className="w-full h-full object-cover" />
               ) : (
@@ -104,7 +104,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                   </span>
                 )}
               </div>
-              <h1 className="text-3xl md:text-5xl font-extrabold mb-3">{opportunity.title}</h1>
+              <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-3">{opportunity.title}</h1>
               <p className="text-xl text-primary-foreground/80 font-medium">{opportunity.organization}</p>
             </div>
             <div className="w-full md:w-auto space-y-3">
@@ -112,7 +112,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                 href={opportunity.applyUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full px-8 py-4 bg-white text-slate-900 font-extrabold rounded-2xl hover:bg-white/90 transition-all text-lg shadow-xl"
+                className="flex items-center justify-center gap-2 w-full px-8 py-4 bg-primary-foreground text-primary font-extrabold rounded-2xl hover:bg-primary-foreground/90 transition-all text-lg shadow-xl"
               >
                 Apply Now <ArrowUpRight size={20} />
               </a>
@@ -139,11 +139,11 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* About */}
-            <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
-              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+            <div className="bg-card border border-border/40 rounded-3xl p-8 shadow-sm dark:shadow-none">
+              <h2 className="text-2xl font-bold tracking-tight mb-6 flex items-center gap-2">
                 <Briefcase className="text-primary" /> About the Opportunity
               </h2>
-              <div className="prose prose-lg dark:prose-invert max-w-none text-muted-foreground leading-relaxed">
+              <div className="prose prose-lg dark:prose-invert prose-a:text-primary max-w-none text-muted-foreground leading-relaxed bg-transparent dark:bg-card text-foreground dark:text-card-foreground">
                 {opportunity.description.split('\n').map((para, i) => (
                   <p key={i} className="mb-4">{para}</p>
                 ))}
@@ -152,8 +152,8 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
             {/* Senior Insight Card */}
             {opportunity.seniorInsight && opportunity.seniorInsight !== "Focus on building a strong portfolio to stand out." && (
-              <div className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/20 border border-amber-200/60 dark:border-amber-800/40 rounded-3xl p-8 shadow-sm">
-                <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-amber-800 dark:text-amber-200">
+              <div className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/20 border border-amber-200/40 dark:border-amber-800/30 rounded-3xl p-8 shadow-sm dark:shadow-none">
+                <h2 className="text-xl font-bold tracking-tight mb-4 flex items-center gap-2 text-amber-800 dark:text-amber-200">
                   <Lightbulb className="text-amber-500" /> Senior Insight
                 </h2>
                 <p className="text-amber-900/80 dark:text-amber-100/80 leading-relaxed text-[15px] italic">
@@ -164,8 +164,8 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
             {/* Skills Required */}
             {opportunity.skillsRequired && opportunity.skillsRequired.length > 0 && (
-              <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
-                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <div className="bg-card border border-border/40 rounded-3xl p-8 shadow-sm dark:shadow-none">
+                <h2 className="text-xl font-bold tracking-tight mb-4 flex items-center gap-2">
                   <CheckCircle2 className="text-primary" /> Skills Required
                 </h2>
                 <div className="flex flex-wrap gap-2">
@@ -183,17 +183,17 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
             {/* Mermaid Visualizations */}
             {mermaidChart && (
-              <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
-                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                  <Network className="text-primary" /> Opportunity Process & Map
+              <div className="bg-card border border-border/40 rounded-3xl p-8 shadow-sm dark:shadow-none">
+                <h2 className="text-2xl font-bold tracking-tight mb-6 flex items-center gap-2">
+                  <Network className="text-primary" /> Process Process & Map
                 </h2>
                 <MermaidRenderer chart={mermaidChart} />
               </div>
             )}
 
             {/* AI Prep Action Panel */}
-            <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/20 border border-indigo-200/60 dark:border-indigo-800/40 rounded-3xl p-8 shadow-sm">
-              <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-indigo-800 dark:text-indigo-200">
+            <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/20 border border-indigo-200/40 dark:border-indigo-800/30 rounded-3xl p-8 shadow-sm dark:shadow-none">
+              <h2 className="text-xl font-bold tracking-tight mb-2 flex items-center gap-2 text-indigo-800 dark:text-indigo-200">
                 <BrainCircuit className="text-indigo-500" /> AI Prep Station
               </h2>
               <p className="text-sm text-indigo-600/70 dark:text-indigo-300/60 mb-6">
@@ -204,7 +204,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                 {/* ATS Deep Link */}
                 <Link
                   href={`/tools/ats-resume-matcher?prefill=${opportunity.id}`}
-                  className="flex items-center gap-3 p-4 bg-white dark:bg-card rounded-2xl border border-indigo-200/40 dark:border-indigo-700/30 hover:border-indigo-400 hover:shadow-md transition-all group/btn"
+                  className="flex items-center gap-3 p-4 bg-card text-card-foreground rounded-2xl border border-border/40 dark:border-border/30 hover:border-indigo-400 hover:shadow-md transition-all group/btn"
                 >
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white shrink-0">
                     <FileSearch size={20} />
@@ -227,8 +227,8 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
           {/* Sidebar: The Essentials */}
           <div className="space-y-6">
-            <div className="bg-card border border-border rounded-3xl p-6 shadow-sm sticky top-24">
-              <h3 className="text-lg font-bold mb-6">Key Details</h3>
+            <div className="bg-card border border-border/40 rounded-3xl p-6 shadow-sm dark:shadow-none sticky top-24">
+              <h3 className="text-lg font-bold tracking-tight mb-6">Key Details</h3>
 
               <div className="space-y-5">
                 <div className="flex items-start gap-4">
@@ -237,7 +237,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Location</p>
-                    <p className="text-sm font-semibold text-foreground">{opportunity.location}</p>
+                    <p className="text-sm font-medium text-muted-foreground/90">{opportunity.location}</p>
                   </div>
                 </div>
 
@@ -247,7 +247,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Timeline</p>
-                    <p className="text-sm font-semibold text-foreground">
+                    <p className="text-sm font-medium text-muted-foreground/90">
                       {formatDate(opportunity.startDate)}
                       {opportunity.endDate && ` — ${formatDate(opportunity.endDate)}`}
                       {!opportunity.startDate && !opportunity.endDate && 'Rolling Applications'}
@@ -262,19 +262,19 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Duration</p>
-                      <p className="text-sm font-semibold text-foreground">{opportunity.duration}</p>
+                      <p className="text-sm font-medium text-muted-foreground/90">{opportunity.duration}</p>
                     </div>
                   </div>
                 )}
 
                 {opportunity.stipendRange && (
                   <div className="flex items-start gap-4">
-                    <div className="p-2 bg-muted rounded-lg text-emerald-600">
+                    <div className="p-2 bg-muted rounded-lg text-emerald-600 dark:text-emerald-400">
                       <DollarSign size={20} />
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Stipend</p>
-                      <p className="text-sm font-semibold text-foreground">{opportunity.stipendRange}</p>
+                      <p className="text-sm font-medium text-muted-foreground/90">{opportunity.stipendRange}</p>
                     </div>
                   </div>
                 )}
@@ -285,7 +285,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Type</p>
-                    <p className="text-sm font-semibold text-foreground capitalize">
+                    <p className="text-sm font-medium text-muted-foreground/90 capitalize">
                       {opportunity.type.replace(/_/g, ' ')}
                     </p>
                   </div>
@@ -297,7 +297,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Difficulty</p>
-                    <p className="text-sm font-semibold text-foreground">
+                    <p className="text-sm font-medium text-muted-foreground/90">
                       {difficultyLabels[opportunity.difficulty] || opportunity.difficulty}
                     </p>
                   </div>
@@ -306,8 +306,8 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
               {/* Prep Resources */}
               {opportunity.prepResources && opportunity.prepResources.length > 0 && (
-                <div className="mt-6 pt-5 border-t border-border">
-                  <h4 className="text-sm font-bold mb-3 flex items-center gap-1.5">
+                <div className="mt-6 pt-5 border-t border-border/40">
+                  <h4 className="text-sm font-bold tracking-tight mb-3 flex items-center gap-1.5">
                     <BookOpen size={14} className="text-primary" /> Prep Resources
                   </h4>
                   <div className="space-y-2">
@@ -317,7 +317,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-xs text-primary hover:text-primary/80 transition-colors group/link"
+                        className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors group/link"
                       >
                         <ExternalLink size={12} className="shrink-0" />
                         <span className="truncate group-hover/link:underline">{url.replace(/^https?:\/\//, '').split('/')[0]}</span>
@@ -327,7 +327,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                 </div>
               )}
 
-              <div className="mt-6 pt-5 border-t border-border">
+              <div className="mt-6 pt-5 border-t border-border/40">
                 <div className="bg-primary/5 rounded-2xl p-4 flex items-center gap-3">
                   <CheckCircle2 className="text-primary shrink-0" size={20} />
                   <p className="text-xs text-primary font-medium leading-tight">
@@ -339,6 +339,22 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           </div>
 
         </div>
+      </div>
+
+      {/* Sticky Mobile Apply Bar */}
+      <div className="fixed bottom-16 left-0 right-0 z-40 bg-background/85 backdrop-blur-md border-t border-border/40 p-4 md:hidden flex items-center justify-between gap-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] safe-bottom-bar">
+        <div className="flex flex-col min-w-0">
+          <span className="text-xs text-muted-foreground font-semibold truncate uppercase tracking-wider">{opportunity.organization}</span>
+          <span className="text-sm font-bold text-foreground truncate">{opportunity.title}</span>
+        </div>
+        <a
+          href={opportunity.applyUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-1.5 px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all text-xs shrink-0 shadow-md min-h-[40px] min-w-[100px]"
+        >
+          Apply Now <ArrowUpRight size={14} />
+        </a>
       </div>
 
       <style>{`

@@ -61,7 +61,11 @@ model User {
   savedArticles      SavedArticle[]
   sessions           Session[]
   portfolioAudits    PortfolioAudit[]
+  notifications      Notification[]
   resourceSubmissions ResourceSubmission[]
+  currentStreak      Int             @default(0)
+  longestStreak      Int             @default(0)
+  lastActiveAt       DateTime?
 
   // Developer Passport
   developerTitle     String          @default("Initiate")
@@ -620,4 +624,25 @@ model AnalyticsEvent {
   createdAt   DateTime @default(now())
 
   @@index([eventType, createdAt]) // Crucial for fast dashboard querying
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType
+  isRead    Boolean          @default(false)
+  actionUrl String?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  SYSTEM
+  COMMUNITY
+  ACHIEVEMENT
 }

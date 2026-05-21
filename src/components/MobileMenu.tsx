@@ -51,7 +51,7 @@ export default function MobileMenu({ open, onClose, session, status }: MobileMen
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
-            transition={{ type: "spring", stiffness: 400, damping: 40 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
             role="dialog"
             aria-modal="true"
             className="fixed inset-y-0 right-0 z-50 bg-background border-l border-border w-[min(70vw,280px)] flex flex-col"

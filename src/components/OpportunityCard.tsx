@@ -29,19 +29,19 @@ function getDaysUntilDeadline(endDate: Date | null | undefined): number | null {
 const tierConfig: Record<string, { label: string; borderClass: string; badgeClass: string; glowClass: string }> = {
   TIER_1: {
     label: '🥇 Tier 1',
-    borderClass: 'border-amber-400/60',
+    borderClass: 'border-amber-400/40',
     badgeClass: 'bg-gradient-to-r from-amber-500 to-yellow-400 text-white shadow-lg shadow-amber-500/25',
-    glowClass: 'shadow-[0_0_30px_-5px_rgba(245,158,11,0.3)]',
+    glowClass: 'shadow-[0_0_30px_-5px_rgba(245,158,11,0.2)]',
   },
   TIER_2: {
     label: '🥈 Tier 2',
-    borderClass: 'border-slate-400/40',
+    borderClass: 'border-slate-400/30',
     badgeClass: 'bg-gradient-to-r from-slate-400 to-slate-300 text-slate-800',
     glowClass: '',
   },
   TIER_3: {
     label: '🥉 Tier 3',
-    borderClass: 'border-border',
+    borderClass: 'border-border/40',
     badgeClass: 'bg-muted text-muted-foreground',
     glowClass: '',
   },
@@ -58,10 +58,10 @@ export default function OpportunityCard({ opportunity }: OpportunityCardProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+      whileHover={{ y: -4, transition: { type: "spring", stiffness: 400, damping: 30 } }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
-      className={`group relative h-full bg-card border ${tier.borderClass} rounded-2xl overflow-hidden flex flex-col transition-all duration-300 ${tier.glowClass}`}
+      className={`group relative h-full bg-card border ${tier.borderClass} rounded-2xl overflow-hidden flex flex-col transition-all duration-300 shadow-sm dark:shadow-none ${tier.glowClass}`}
     >
       {/* Top Accent Bar — color based on tier */}
       <div className={`h-1 w-full transition-all duration-300 ${
@@ -173,6 +173,7 @@ export default function OpportunityCard({ opportunity }: OpportunityCardProps) {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
             className="mb-3 p-2.5 rounded-lg bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30"
           >
             <div className="flex items-start gap-1.5">

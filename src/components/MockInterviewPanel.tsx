@@ -53,7 +53,7 @@ export default function MockInterviewPanel({ opportunityId, title, organization 
       <button
         onClick={handleGenerate}
         disabled={loading}
-        className="flex items-center gap-3 p-4 bg-white dark:bg-card rounded-2xl border border-indigo-200/40 dark:border-indigo-700/30 hover:border-indigo-400 hover:shadow-md transition-all group/btn text-left"
+        className="flex items-center gap-3 p-4 bg-card text-card-foreground rounded-2xl border border-border/40 dark:border-border/30 hover:border-indigo-400 hover:shadow-md transition-all group/btn text-left"
       >
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white shrink-0">
           {loading ? <Loader2 size={20} className="animate-spin" /> : <BrainCircuit size={20} />}
@@ -81,9 +81,10 @@ export default function MockInterviewPanel({ opportunityId, title, organization 
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
             className="overflow-hidden"
           >
-            <div className="mt-3 p-4 bg-white dark:bg-card rounded-2xl border border-indigo-200/30 dark:border-indigo-700/20 space-y-3">
+            <div className="mt-3 p-4 bg-card text-card-foreground rounded-2xl border border-border/30 dark:border-border/20 space-y-3">
               <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2">
                 Interview Questions for {organization}
               </p>

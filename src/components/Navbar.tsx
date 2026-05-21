@@ -11,6 +11,7 @@ import { motion } from "framer-motion";
 import MobileMoreMenu from "./MobileMoreMenu";
 
 const ProfileMenu = dynamic(() => import("./ProfileMenu"), { ssr: false });
+const NotificationCenter = dynamic(() => import("./NotificationCenter"), { ssr: false });
 
 type NavItem = { href: string; label: string };
 
@@ -76,13 +77,7 @@ export default React.memo(function Navbar() {
 
             {/* Mobile Actions: Bell & Hamburger Menu */}
             <div className="flex md:hidden items-center gap-1 justify-end flex-1">
-              <button
-                className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center relative"
-                aria-label="Notifications"
-              >
-                <BellIcon className="h-5 w-5" />
-                <span className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              </button>
+              <NotificationCenter />
               
               <button
                 onClick={() => setMoreMenuOpen(true)}
@@ -106,7 +101,12 @@ export default React.memo(function Navbar() {
                     </Link>
                   </>
                 )}
-                {status === "authenticated" && <ProfileMenu />}
+                {status === "authenticated" && (
+                  <div className="flex items-center gap-1">
+                    <NotificationCenter />
+                    <ProfileMenu />
+                  </div>
+                )}
               </div>
             </div>
           </div>

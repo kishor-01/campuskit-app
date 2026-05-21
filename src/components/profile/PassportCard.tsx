@@ -2,8 +2,9 @@
 
 import { motion, useMotionValue, useTransform, useSpring } from "framer-motion";
 import { Role } from "@prisma/client";
-import { Shield, Crown, Edit3, Eye, UserCheck, MapPin, Link as LinkIcon, Github } from "lucide-react";
+import { Shield, Crown, Edit3, Eye, UserCheck, MapPin, Link as LinkIcon, Github, Flag, Flame, Hexagon, Zap } from "lucide-react";
 import Image from "next/image";
+import { BADGES } from "@/lib/gamificationRules";
 
 interface User {
   id: string;
@@ -65,6 +66,28 @@ const getRoleColor = (role: Role) => {
     default:
       return "from-gray-500 to-gray-600";
   }
+};
+
+const getTitleStyle = (title: string) => {
+  switch (title) {
+    case "Initiate":
+      return "text-muted-foreground font-semibold";
+    case "Junior Engineer":
+      return "text-foreground/80 font-semibold";
+    case "Senior Developer":
+      return "text-primary font-bold";
+    case "System Architect":
+      return "bg-clip-text text-transparent bg-gradient-to-r from-foreground to-muted-foreground font-extrabold tracking-wide drop-shadow-sm";
+    default:
+      return "text-muted-foreground font-semibold";
+  }
+};
+
+const badgeIconMap: Record<string, React.ComponentType<any>> = {
+  Flag,
+  Flame,
+  Hexagon,
+  Zap,
 };
 
 export default function PassportCard({ user, savedCount, submittedCount }: PassportCardProps) {
@@ -133,7 +156,7 @@ export default function PassportCard({ user, savedCount, submittedCount }: Passp
         {user.name || "Seniofy User"}
       </h2>
       
-      <p style={{ transform: "translateZ(30px)" }} className="text-sm font-semibold text-primary mb-2">
+      <p style={{ transform: "translateZ(30px)" }} className={`text-sm mb-2 ${getTitleStyle(user.developerTitle)}`}>
         {user.developerTitle}
       </p>
 
@@ -172,6 +195,31 @@ export default function PassportCard({ user, savedCount, submittedCount }: Passp
           </a>
         )}
       </div>
+
+      {/* Badges Section */}
+      {user.badges && user.badges.length > 0 && (
+        <div style={{ transform: "translateZ(25px)" }} className="flex flex-wrap justify-center gap-2 mb-4">
+          {user.badges.map((badgeId) => {
+            const badge = BADGES.find((b) => b.id === badgeId);
+            if (!badge) return null;
+            const IconComponent = badgeIconMap[badge.icon] || Flag;
+            return (
+              <div key={badgeId} className="relative group flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-secondary/40 backdrop-blur-sm border border-border/60 flex items-center justify-center text-foreground hover:scale-110 hover:bg-secondary/70 transition-all duration-200 cursor-pointer shadow-sm">
+                  <IconComponent className="w-5 h-5 text-primary" />
+                </div>
+                <div className="opacity-0 group-hover:opacity-100 pointer-events-none absolute bottom-full mb-2.5 z-50 flex flex-col items-center w-48 transition-all duration-200 scale-95 group-hover:scale-100 origin-bottom">
+                  <div className="bg-popover text-popover-foreground text-xs rounded-lg p-2.5 shadow-xl border border-border flex flex-col gap-1 text-center font-normal">
+                    <span className="font-bold text-foreground">{badge.name}</span>
+                    <span className="text-[10px] text-muted-foreground">{badge.description}</span>
+                  </div>
+                  <div className="w-2 h-2 bg-popover border-r border-b border-border rotate-45 -mt-1" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Stats */}
       <div style={{ transform: "translateZ(25px)" }} className="grid grid-cols-2 gap-4 w-full mt-2 border-t border-border/50 pt-4">
