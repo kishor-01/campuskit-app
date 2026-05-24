@@ -2,9 +2,42 @@
 
 import { motion, useMotionValue, useTransform, useSpring } from "framer-motion";
 import { Role } from "@prisma/client";
-import { Shield, Crown, Edit3, Eye, UserCheck, MapPin, Link as LinkIcon, Github, Flag, Flame, Hexagon, Zap } from "lucide-react";
+import { Shield, Crown, Edit3, Eye, UserCheck, MapPin, Link as LinkIcon, Github, Flag, Flame, Hexagon, Zap, Share2 } from "lucide-react";
 import Image from "next/image";
 import { BADGES } from "@/lib/gamificationRules";
+import toast from "react-hot-toast";
+
+// Inline share button — glassmorphic, absolute-positioned
+function SharePassportButton({ userId }: { userId: string }) {
+  const handleShare = async () => {
+    const url = `${window.location.origin}/u/${userId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Passport link copied!');
+    } catch {
+      // Fallback for older browsers
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      toast.success('Passport link copied!');
+    }
+  };
+
+  return (
+    <button
+      onClick={handleShare}
+      title="Share your Developer Passport"
+      className="absolute top-4 right-4 z-20 w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md bg-foreground/5 border border-foreground/10 text-muted-foreground hover:text-primary hover:bg-primary/10 hover:border-primary/30 transition-all duration-200 cursor-pointer shadow-sm"
+    >
+      <Share2 className="w-4 h-4" />
+    </button>
+  );
+}
 
 interface User {
   id: string;
@@ -127,6 +160,9 @@ export default function PassportCard({ user, savedCount, submittedCount }: Passp
       }}
       className="relative bg-gradient-to-br from-card to-card/80 border border-border rounded-xl p-6 flex flex-col items-center text-center shadow-lg h-full"
     >
+      {/* Share Button — absolute top-right */}
+      <SharePassportButton userId={user.id} />
+
       {/* Role Gradient Background */}
       <div className={`absolute inset-0 bg-gradient-to-br ${getRoleColor(user.role)} opacity-5 rounded-xl`} />
       

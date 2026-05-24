@@ -85,8 +85,8 @@ const ContentShelf = ({ title, items, renderItem, viewAllLink }: { title: string
         {items.map((item, index) => (
           <motion.div
             key={item.id}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.5, delay: index * 0.05 }}
           >
@@ -115,8 +115,8 @@ const ValuePropSection = () => {
           {features.map((feature, i) => (
             <motion.div
               key={feature.title}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
               viewport={{ once: true, amount: 0.5 }}
               transition={{ duration: 0.6, delay: i * 0.1 }}
               className="bg-background p-6 rounded-lg border border-border text-center"
@@ -150,8 +150,8 @@ const TestimonialSection = () => {
           {testimonials.map((t, i) => (
             <motion.div
               key={t.name}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
               viewport={{ once: true, amount: 0.5 }}
               transition={{ duration: 0.6, delay: i * 0.1 }}
               className="bg-card p-6 rounded-lg border border-border"
@@ -214,8 +214,8 @@ export default function HomePageClient({ resources, opportunities, articles, roa
         <ParticleForgeBackground />
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 items-center gap-12">
           <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             transition={{ duration: 0.7 }}
             className="relative z-40 w-full"
           >
@@ -230,8 +230,8 @@ export default function HomePageClient({ resources, opportunities, articles, roa
           </motion.div>
           
           <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             transition={{ duration: 0.7, delay: 0.2 }}
             className="relative w-full flex justify-center lg:justify-end z-10 pointer-events-none hidden md:block"
           >

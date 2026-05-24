@@ -381,3 +381,41 @@
     --chart-5: 340 75% 55%;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CONSTELLATION ENGINE — SkillNode animations
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@keyframes constellation-pulse-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 0 0 rgba(139, 92, 246, 0),
+      0 0 8px rgba(139, 92, 246, 0.15);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px rgba(139, 92, 246, 0.08),
+      0 0 20px rgba(139, 92, 246, 0.30);
+  }
+}
+
+/* Applied to UNLOCKED SkillNode wrapper */
+.skill-node-unlocked {
+  animation: constellation-pulse-glow 2.8s ease-in-out infinite;
+  border-radius: 1rem;
+}
+
+/* Override the glow on the card itself */
+.skill-node-glow {
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.18), 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* React Flow canvas container — ensure dark background fills fully */
+.constellation-canvas {
+  background-color: #020817 !important;
+}
+
+/* React Flow edge path override for animated dashes */
+.react-flow__edge-path {
+  stroke-linecap: round;
+}

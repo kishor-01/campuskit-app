@@ -1,7 +1,7 @@
 // src/components/OpportunityCard.tsx
 'use client';
 
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Opportunity } from '@prisma/client';
 import { MapPin, ArrowRight, Building2, Globe, Clock, DollarSign, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
@@ -55,13 +55,10 @@ export default function OpportunityCard({ opportunity }: OpportunityCardProps) {
   const tier = tierConfig[opportunity.tier] || tierConfig.TIER_3;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4, transition: { type: "spring", stiffness: 400, damping: 30 } }}
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
-      className={`group relative h-full bg-card border ${tier.borderClass} rounded-2xl overflow-hidden flex flex-col transition-all duration-300 shadow-sm dark:shadow-none ${tier.glowClass}`}
+    <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className={`group relative h-full bg-card border ${tier.borderClass} rounded-2xl overflow-hidden flex flex-col shadow-sm dark:shadow-none ${tier.glowClass} transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/5`}
     >
       {/* Top Accent Bar — color based on tier */}
       <div className={`h-1 w-full transition-all duration-300 ${
@@ -168,22 +165,24 @@ export default function OpportunityCard({ opportunity }: OpportunityCardProps) {
         </div>
 
         {/* Senior Insight Preview — on hover */}
-        {isHovered && opportunity.seniorInsight && opportunity.seniorInsight !== "Focus on building a strong portfolio to stand out." && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="mb-3 p-2.5 rounded-lg bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30"
-          >
-            <div className="flex items-start gap-1.5">
-              <Lightbulb size={12} className="text-amber-500 mt-0.5 shrink-0" />
-              <p className="text-[11px] text-amber-800 dark:text-amber-200 leading-relaxed line-clamp-2">
-                {opportunity.seniorInsight}
-              </p>
-            </div>
-          </motion.div>
-        )}
+        <AnimatePresence>
+          {isHovered && opportunity.seniorInsight && opportunity.seniorInsight !== "Focus on building a strong portfolio to stand out." && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              className="mb-3 p-2.5 rounded-lg bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30"
+            >
+              <div className="flex items-start gap-1.5">
+                <Lightbulb size={12} className="text-amber-500 mt-0.5 shrink-0" />
+                <p className="text-[11px] text-amber-800 dark:text-amber-200 leading-relaxed line-clamp-2">
+                  {opportunity.seniorInsight}
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Action Button */}
         <Link
@@ -204,6 +203,6 @@ export default function OpportunityCard({ opportunity }: OpportunityCardProps) {
           50% { opacity: 0.65; }
         }
       `}</style>
-    </motion.div>
+    </div>
   );
 }

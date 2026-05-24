@@ -17,7 +17,9 @@ import {
   Edit3,
   Eye,
   UserCheck,
-  Settings
+  Settings,
+  Map,
+  LayoutDashboard,
 } from "lucide-react";
 import { Role } from "@prisma/client";
 import ThemeToggle from "./ThemeToggle";
@@ -149,12 +151,28 @@ export default function ProfileMenu() {
             {/* Navigation Links */}
             <div className="py-2">
               <Link 
+                href="/dashboard" 
+                onClick={() => setIsOpen(false)}
+                className="flex items-center w-full px-4 py-2.5 text-sm font-semibold text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 hover:text-violet-600 transition-colors"
+              >
+                <LayoutDashboard className="w-4 h-4 mr-3" /> 
+                Mission Control
+              </Link>
+              <Link 
                 href="/profile" 
                 onClick={() => setIsOpen(false)}
                 className="flex items-center w-full px-4 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               >
                 <User className="w-4 h-4 mr-3" /> 
                 My Profile
+              </Link>
+              <Link 
+                href="/lifemap" 
+                onClick={() => setIsOpen(false)}
+                className="flex items-center w-full px-4 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <Map className="w-4 h-4 mr-3 text-indigo-400" /> 
+                Lifemap
               </Link>
               <Link 
                 href="/profile/edit" 

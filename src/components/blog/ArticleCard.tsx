@@ -3,7 +3,6 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
 import { FileText } from 'lucide-react';
 
 // Define a type for the article data we expect
@@ -20,14 +19,9 @@ interface ArticleCardProps {
   article: Article;
 }
 
-const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' as any } },
-};
-
 export default function ArticleCard({ article }: ArticleCardProps) {
   return (
-    <motion.div variants={cardVariants} className="h-full">
+    <div className="h-full">
       <Link href={`/blog/${article.slug}`} className="block group h-full">
         <div className="bg-card border border-border rounded-lg overflow-hidden h-full flex flex-col shadow-sm hover:shadow-md transition-shadow">
           <div className="relative aspect-video bg-muted">
@@ -57,7 +51,7 @@ export default function ArticleCard({ article }: ArticleCardProps) {
           </div>
         </div>
       </Link>
-    </motion.div>
+    </div>
   );
 }
 

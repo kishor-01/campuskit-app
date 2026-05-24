@@ -5,6 +5,8 @@
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { auth } from '@/auth'
+import { trackEvent } from './analyticsActions'
 
 // Zod Schema for Roadmap
 const RoadmapSchema = z.object({
@@ -242,5 +244,117 @@ export async function linkResourcesToStep(formData: FormData) {
     return { message: `Linked ${resourceIds.length} resources.` };
   } catch(e) {
     return { error: 'Failed to link resources.' };
+  }
+}
+
+// Action to toggle step completion for the user
+export async function completeStepAction(stepId: string, isCompleted: boolean) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { error: 'You must be logged in to perform this action.' };
+  }
+
+  const userId = session.user.id;
+
+  try {
+    const step = await prisma.roadmapStep.findUnique({
+      where: { id: stepId },
+      select: { id: true, roadmapId: true, title: true }
+    });
+
+    if (!step) {
+      return { error: 'Step not found.' };
+    }
+
+    if (isCompleted) {
+      // Mark as complete
+      await prisma.userRoadmapStepCompletion.upsert({
+        where: {
+          userId_roadmapStepId: {
+            userId,
+            roadmapStepId: stepId,
+          },
+        },
+        update: {},
+        create: {
+          userId,
+          roadmapStepId: stepId,
+        },
+      });
+
+      // Trigger gamification / analytics
+      trackEvent('ROADMAP_STEP_COMPLETED', {
+        stepId,
+        roadmapId: step.roadmapId,
+        stepTitle: step.title,
+      }).catch((err) => {
+        console.error('[Gamification] trackEvent failed:', err);
+      });
+    } else {
+      // Mark as incomplete
+      await prisma.userRoadmapStepCompletion.deleteMany({
+        where: {
+          userId,
+          roadmapStepId: stepId,
+        },
+      });
+    }
+
+    const roadmap = await prisma.roadmap.findUnique({
+      where: { id: step.roadmapId },
+      select: { slug: true }
+    });
+
+    if (roadmap) {
+      revalidatePath(`/roadmaps/${roadmap.slug}`);
+    }
+
+    return { success: true };
+  } catch (e: any) {
+    console.error('completeStepAction error:', e);
+    return { error: 'Failed to update step completion status.' };
+  }
+}
+
+// Action to save/update user's custom mission plan
+export async function saveUserMissionPlanAction(roadmapId: string, roadmapStepIds: string[]) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { error: 'You must be logged in to perform this action.' };
+  }
+
+  const userId = session.user.id;
+
+  try {
+    const plan = await prisma.userMissionPlan.upsert({
+      where: {
+        userId_roadmapId: {
+          userId,
+          roadmapId,
+        },
+      },
+      update: {
+        roadmapStepIds,
+      },
+      create: {
+        userId,
+        roadmapId,
+        roadmapStepIds,
+      },
+    });
+
+    const roadmap = await prisma.roadmap.findUnique({
+      where: { id: roadmapId },
+      select: { slug: true }
+    });
+
+    if (roadmap) {
+      revalidatePath(`/roadmaps/${roadmap.slug}`);
+    }
+
+    return { success: true, plan };
+  } catch (e: any) {
+    console.error('saveUserMissionPlanAction error:', e);
+    return { error: 'Failed to save mission plan.' };
   }
 }

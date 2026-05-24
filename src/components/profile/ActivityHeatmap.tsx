@@ -29,7 +29,7 @@ export default function ActivityHeatmap({ events }: ActivityHeatmapProps) {
   };
 
   return (
-    <div className="bg-card border border-border rounded-xl p-6 shadow-sm mt-6">
+    <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-foreground">Contribution Activity</h3>
         <span className="text-xs text-muted-foreground">Last 30 Days</span>
@@ -44,8 +44,8 @@ export default function ActivityHeatmap({ events }: ActivityHeatmapProps) {
           return (
             <motion.div
               key={day.toISOString()}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               transition={{ delay: index * 0.01 }}
               title={`${format(day, 'MMM d, yyyy')}: ${count} contributions`}
               className={`w-4 h-4 rounded-sm transition-colors cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-primary ${getIntensity(count)}`}

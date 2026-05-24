@@ -7,7 +7,7 @@ import { useEffect, useRef } from 'react'
 import type { Roadmap, RoadmapStep } from '@prisma/client'
 import { createRoadmap, deleteRoadmap, toggleRoadmapStatus } from '@/actions'
 import Link from 'next/link'
-import { PlusCircle, Trash2, ArrowRight, Eye, EyeOff } from 'lucide-react'
+import { PlusCircle, Trash2, ArrowRight, Eye, EyeOff, GitBranch } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { SubmitButton } from '@/components/admin/SubmitButton'
 import ViewRoadmapButton from './ViewRoadmapButton'
@@ -79,6 +79,9 @@ export default function RoadmapsClientPage({ roadmaps }: { roadmaps: RoadmapWith
                   </button>
                 </form>
                 <ViewRoadmapButton isPublished={roadmap.isPublished} slug={roadmap.slug} />
+                <Link href={`/admin/forge/${roadmap.slug}`} className="flex items-center gap-1 text-sm font-semibold bg-violet-600/20 text-violet-400 border border-violet-500/30 px-3 py-2 rounded-md hover:bg-violet-600/30 transition-colors">
+                  <GitBranch size={14} /> Graph Forge
+                </Link>
                 <Link href={`/admin/roadmaps/${roadmap.id}`} className="flex items-center gap-1 text-sm font-semibold bg-primary text-primary-foreground px-3 py-2 rounded-md hover:bg-primary/90">
                   Manage Steps <ArrowRight size={14} />
                 </Link>

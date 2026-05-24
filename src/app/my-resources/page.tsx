@@ -20,7 +20,10 @@ export default async function MyResourcesPage() {
     include: {
       resource: { // Include the full resource data for each saved item
         include: {
-          category: true // Also include the category for filtering
+          category: true, // Also include the category for filtering
+          _count: {
+            select: { savedByUsers: true }
+          }
         }
       },
     },

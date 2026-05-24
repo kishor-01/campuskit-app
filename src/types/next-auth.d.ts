@@ -16,12 +16,14 @@ declare module "next-auth" {
       id: string;
       isAdmin: boolean;
       role: Role;
+      onboarded?: boolean;
     } & DefaultSession["user"];
   }
 
   interface User {
     isAdmin: boolean;
     role: Role;
+    onboarded?: boolean;
   }
 }
 
@@ -30,5 +32,6 @@ declare module "next-auth/jwt" {
   interface JWT {
     isAdmin: boolean;
     role: Role;
+    onboarded?: boolean;
   }
 }

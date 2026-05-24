@@ -56,7 +56,12 @@ export default async function ResourcesPage({
       // Fetch the paginated list of resources based on the filter
       prisma.resource.findMany({
         where: whereClause,
-        include: { category: true },
+        include: { 
+          category: true,
+          _count: {
+            select: { savedByUsers: true }
+          }
+        },
         orderBy: orderByClause,
         skip: (page - 1) * RESOURCES_PER_PAGE,
         take: RESOURCES_PER_PAGE,

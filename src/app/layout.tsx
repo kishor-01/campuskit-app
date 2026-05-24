@@ -3,9 +3,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Providers from "./providers";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import MobileBottomNav from "@/components/MobileBottomNav";
+import AppLayoutWrapper from "@/components/AppLayoutWrapper";
 
 export const metadata: Metadata = {
   title: "Seniofy",
@@ -36,12 +34,7 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           <Providers>
-            <div className="flex flex-col min-h-screen pb-16 md:pb-0">
-              <Navbar />
-              <main className="flex-grow">{children}</main>
-              <Footer />
-              <MobileBottomNav />
-            </div>
+            <AppLayoutWrapper>{children}</AppLayoutWrapper>
           </Providers>
         </ThemeProvider>
       </body>

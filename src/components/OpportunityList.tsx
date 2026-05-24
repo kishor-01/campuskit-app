@@ -38,38 +38,6 @@ const tierOrder: Record<string, number> = {
   TIER_3: 2,
 };
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.15,
-    }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 15 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: "spring" as const,
-      stiffness: 400,
-      damping: 30
-    }
-  },
-  exit: {
-    opacity: 0,
-    scale: 0.95,
-    transition: {
-      type: "spring" as const,
-      stiffness: 400,
-      damping: 30
-    }
-  }
-};
-
 function OpportunityListContent({
   opportunities,
   types,
@@ -167,13 +135,9 @@ function OpportunityListContent({
     <div className="min-h-screen bg-background pb-20">
       {/* Dynamic Hero Search Section */}
       <motion.div
-        layout
-        className="bg-card border-b border-border/40 relative overflow-hidden"
-        animate={{
-          paddingBottom: isActiveSearch ? "2rem" : "5rem",
-          paddingTop: isActiveSearch ? "2rem" : "5rem"
-        }}
-        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="bg-card border-b border-border/40 relative overflow-hidden pt-24 pb-12 md:pt-20 md:pb-12 px-4"
       >
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-20">
           <div className="absolute -top-[20%] -right-[10%] w-[50%] h-[150%] bg-gradient-to-l from-primary/30 to-transparent blur-3xl rounded-full transform rotate-12" />
@@ -181,30 +145,24 @@ function OpportunityListContent({
         </div>
 
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <AnimatePresence mode="wait">
-            {!isActiveSearch && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0, overflow: "hidden" }}
-                transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                className="mb-8"
-              >
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
-                  <Trophy size={16} /> Competitive Intelligence Hub
-                </div>
-                <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-foreground mb-4">
-                  Find your next <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60">big opportunity.</span>
-                </h1>
-                <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-                  Tier-1 global programs, elite internships, and exclusive deals — curated and ranked by career impact.
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mb-6"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-4">
+              <Trophy size={14} /> Competitive Intelligence Hub
+            </div>
+            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-foreground mb-3">
+              Find your next <span className="text-primary">big opportunity.</span>
+            </h1>
+            <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto">
+              Tier-1 global programs, elite internships, and exclusive deals — curated and ranked by career impact.
+            </p>
+          </motion.div>
 
           {/* Google-style Huge Search Bar */}
-          <motion.div layout className="max-w-3xl mx-auto relative group mt-4">
+          <div className="max-w-3xl mx-auto relative group mt-4">
             <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-primary/40 rounded-full blur opacity-25 group-hover:opacity-40 transition duration-500"></div>
             <div className="relative bg-background rounded-full border-2 border-border focus-within:border-primary focus-within:shadow-md shadow-sm overflow-hidden flex items-center px-4 transition-all">
               <Search className="text-muted-foreground w-6 h-6 ml-2" />
@@ -216,7 +174,7 @@ function OpportunityListContent({
                 className="w-full bg-transparent border-none px-4 py-4 text-lg focus:outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground/60"
               />
             </div>
-          </motion.div>
+          </div>
         </div>
       </motion.div>
 
@@ -292,25 +250,11 @@ function OpportunityListContent({
         </div>
 
         {/* Opportunities Grid */}
-        <motion.div
-          layout
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
-          <AnimatePresence>
-            {filteredAndSortedOpportunities.map((opportunity, i) => (
-              <motion.div
-                key={opportunity.id}
-                layout
-                variants={itemVariants}
-              >
-                <OpportunityCard opportunity={opportunity} />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </motion.div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredAndSortedOpportunities.map((opportunity) => (
+            <OpportunityCard key={opportunity.id} opportunity={opportunity} />
+          ))}
+        </div>
 
         {filteredAndSortedOpportunities.length === 0 && (
           <motion.div

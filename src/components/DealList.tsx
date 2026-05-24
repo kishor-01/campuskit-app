@@ -13,7 +13,6 @@ type Deal = {
   description?: string | null;
   affiliateUrl?: string | null;
 };
-import { motion, AnimatePresence } from "framer-motion";
 import DealCard from "./DealCard";
 
 
@@ -42,14 +41,12 @@ export default function DealList({ deals }: { deals: Deal[] }) {
         ))}
       </div>
 
-      {/* Animated Grid */}
-      <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        <AnimatePresence>
-          {filteredDeals.map((deal) => (
-            <DealCard key={deal.id} deal={deal} />
-          ))}
-        </AnimatePresence>
-      </motion.div>
+      {/* Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {filteredDeals.map((deal) => (
+          <DealCard key={deal.id} deal={deal} />
+        ))}
+      </div>
     </div>
   );
 }

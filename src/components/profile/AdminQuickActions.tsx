@@ -48,8 +48,8 @@ export default function AdminQuickActions({ stats }: AdminQuickActionsProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6"
     >
       <div className="flex items-center justify-between mb-4">

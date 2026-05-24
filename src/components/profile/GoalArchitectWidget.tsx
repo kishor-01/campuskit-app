@@ -3,20 +3,15 @@
 
 import { Target, ArrowRight, PlusCircle, Calendar } from 'lucide-react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 
-// A simple progress bar component with enhanced animation
+// A simple progress bar component with CSS-only animation
 const ProgressBar = ({ percent }: { percent: number }) => {
   const hue = (percent / 100) * 120; // 0=red, 120=green
   return (
-    <div className="w-full bg-muted rounded-full h-1.5">
-      <motion.div
-        className="h-1.5 rounded-full"
-        style={{ background: `hsl(${hue}, 70%, 50%)` }}
-        initial={{ width: 0 }}
-        whileInView={{ width: `${percent}%` }}
-        viewport={{ once: true, amount: 0.8 }} // Animate when 80% of it is in view
-        transition={{ duration: 0.8, ease: "easeOut" }}
+    <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+      <div
+        className="h-1.5 rounded-full transition-[width] duration-700 ease-out"
+        style={{ background: `hsl(${hue}, 70%, 50%)`, width: `${percent}%` }}
       />
     </div>
   );

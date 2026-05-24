@@ -207,3 +207,64 @@ export async function updatePrivacySettings(data: { isPublicProfile: boolean, sh
     throw new Error('Failed to update privacy settings.');
   }
 }
+
+const CompleteOnboardingSchema = z.object({
+  domain: z.string().min(1, 'Domain is required'),
+  level: z.string().min(1, 'Experience level is required'),
+  objective: z.string().min(1, 'Objective is required'),
+});
+
+export async function completeOnboarding(data: { domain: string; level: string; objective: string }) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { error: 'Unauthorized: not signed in' };
+    }
+
+    const validatedFields = CompleteOnboardingSchema.safeParse(data);
+    if (!validatedFields.success) {
+      return { error: 'Invalid onboarding data provided' };
+    }
+
+    const { domain, level, objective } = validatedFields.data;
+
+    // Map experience level to developer title if applicable
+    let developerTitle = undefined;
+    if (level === 'Junior') {
+      developerTitle = 'Junior Engineer';
+    } else if (level === 'Mid-Level') {
+      developerTitle = 'Senior Developer';
+    } else if (level === 'Student/Initiate') {
+      developerTitle = 'Initiate';
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Update the User record
+      await tx.user.update({
+        where: { id: session.user.id },
+        data: {
+          onboarded: true,
+          domain,
+          objective,
+          ...(developerTitle ? { developerTitle } : {}),
+        },
+      });
+
+      // 2. Dispatch achievement notification
+      await tx.notification.create({
+        data: {
+          userId: session.user.id,
+          title: 'Achievement Unlocked!',
+          message: 'Welcome to the Command Center.',
+          type: 'ACHIEVEMENT',
+        },
+      });
+    });
+
+    revalidatePath('/profile');
+    return { success: true };
+  } catch (error: any) {
+    console.error('completeOnboarding error:', error);
+    return { error: 'Failed to complete onboarding. Please try again.' };
+  }
+}

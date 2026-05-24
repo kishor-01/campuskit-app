@@ -193,6 +193,16 @@ export async function linkResourcesToStep(formData: FormData) {
   return await mod.linkResourcesToStep(formData);
 }
 
+export async function completeStepAction(stepId: string, isCompleted: boolean) {
+  const mod = await import('./roadmapActions');
+  return await mod.completeStepAction(stepId, isCompleted);
+}
+
+export async function saveUserMissionPlanAction(roadmapId: string, roadmapStepIds: string[]) {
+  const mod = await import('./roadmapActions');
+  return await mod.saveUserMissionPlanAction(roadmapId, roadmapStepIds);
+}
+
 export async function createBranch(prevState: any, formData: FormData) {
   const mod = await import('./roadmapActions');
   return await mod.createBranch(prevState, formData);
@@ -304,3 +314,79 @@ export async function submitContentReport(data: { contentType: string, contentId
   const mod = await import('./moderationActions');
   return await mod.submitContentReport(data);
 }
+
+export async function reportResourceAction(resourceId: string, reason: string) {
+  const mod = await import('./resourceActions');
+  return await mod.reportResourceAction(resourceId, reason);
+}
+
+/* --- Personal Actions (Notes & Custom Objectives) --- */
+export async function saveStepNoteAction(stepId: string, isCustom: boolean, content: string) {
+  const mod = await import('./personalActions');
+  return await mod.saveStepNoteAction(stepId, isCustom, content);
+}
+
+export async function createCustomStepAction(roadmapId: string, title: string) {
+  const mod = await import('./personalActions');
+  return await mod.createCustomStepAction(roadmapId, title);
+}
+
+/* --- Spatial Actions --- */
+export async function saveNodePositionsAction(roadmapId: string, positions: { stepId: string; positionX: number; positionY: number }[]) {
+  const mod = await import('./spatialActions');
+  return await mod.saveNodePositionsAction(roadmapId, positions);
+}
+
+export async function spawnStickyNoteAction(roadmapId: string, positionX: number, positionY: number) {
+  const mod = await import('./spatialActions');
+  return await mod.spawnStickyNoteAction(roadmapId, positionX, positionY);
+}
+
+export async function updateStickyNoteAction(
+  noteId: string,
+  content?: string,
+  color?: string,
+  positionX?: number,
+  positionY?: number
+) {
+  const mod = await import('./spatialActions');
+  return await mod.updateStickyNoteAction(noteId, content, color, positionX, positionY);
+}
+
+export async function deleteStickyNoteAction(noteId: string) {
+  const mod = await import('./spatialActions');
+  return await mod.deleteStickyNoteAction(noteId);
+}
+
+/* --- Lifemap Actions --- */
+export async function getLifemapNodesAction() {
+  const mod = await import('./lifemapActions');
+  return await mod.getLifemapNodesAction();
+}
+
+export async function createLifemapNodeAction(data: any) {
+  const mod = await import('./lifemapActions');
+  return await mod.createLifemapNodeAction(data);
+}
+
+export async function updateLifemapNodeAction(id: string, data: any) {
+  const mod = await import('./lifemapActions');
+  return await mod.updateLifemapNodeAction(id, data);
+}
+
+export async function deleteLifemapNodeAction(id: string) {
+  const mod = await import('./lifemapActions');
+  return await mod.deleteLifemapNodeAction(id);
+}
+
+export async function saveLifemapEdgeAction(data: any) {
+  const mod = await import('./lifemapEdgeActions');
+  return await mod.saveLifemapEdgeAction(data);
+}
+
+/* --- Constellation Seed Action (Dev/Admin) --- */
+export async function seedConstellationAction(roadmapId: string, _formData?: FormData) {
+  const mod = await import('./seedConstellationAction');
+  return await mod.seedConstellationAction(roadmapId, _formData);
+}
+

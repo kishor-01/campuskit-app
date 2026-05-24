@@ -12,18 +12,12 @@ type Deal = {
   description?: string | null;
   affiliateUrl?: string | null;
 };
-import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 
 export default function DealCard({ deal }: { deal: Deal }) {
   return (
-    <motion.div
-      layout="position"
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      transition={{ duration: 0.3 }}
-      className="relative p-6 bg-muted/50 rounded-xl overflow-hidden group border border-transparent hover:border-primary"
+    <div
+      className="relative p-6 bg-muted/50 rounded-xl overflow-hidden group border border-transparent hover:border-primary transition-all duration-300"
     >
       <div className="flex items-start justify-between">
         <div>
@@ -54,6 +48,6 @@ export default function DealCard({ deal }: { deal: Deal }) {
           <ArrowUpRight className="w-4 h-4 ml-1 opacity-40" />
         </button>
       )}
-    </motion.div>
+    </div>
   );
 }

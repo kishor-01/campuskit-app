@@ -5,7 +5,7 @@ import { auth } from '@/auth';
 import { notFound, redirect } from 'next/navigation';
 import GoalDetailClientPage from './GoalDetailClientPage'; // The new client component
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export default async function GoalDetailPage({ params }: Params) {
   const session = await auth();
@@ -13,10 +13,12 @@ export default async function GoalDetailPage({ params }: Params) {
     redirect('/login');
   }
 
+  const { id } = await params;
+
   // Fetch all necessary data in parallel
   const [goal, allApprovedResources] = await Promise.all([
     prisma.goal.findUnique({
-      where: { id: params.id, userId: session.user.id },
+      where: { id, userId: session.user.id },
       include: {
         milestones: {
           orderBy: { order: 'asc' },

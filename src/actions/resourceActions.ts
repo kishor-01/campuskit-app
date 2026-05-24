@@ -408,3 +408,12 @@ export async function updateResourceStatus(id: string, status: ResourceStatus) {
     return { error: 'Failed to update resource status' };
   }
 }
+
+export async function reportResourceAction(resourceId: string, reason: string) {
+  const { submitContentReport } = await import('./moderationActions');
+  return await submitContentReport({
+    contentType: 'RESOURCE',
+    contentId: resourceId,
+    reason,
+  });
+}

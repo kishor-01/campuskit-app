@@ -4,10 +4,11 @@ import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import ManageStepsClientPage from "./ManageStepsClientPage";
 
-export default async function ManageRoadmapStepsPage({ params }: { params: { id: string } }) {
+export default async function ManageRoadmapStepsPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
   const [roadmap, allApprovedResources] = await Promise.all([
     prisma.roadmap.findUnique({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       include: {
         branches: {
           orderBy: { order: 'asc' },

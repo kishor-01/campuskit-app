@@ -37,8 +37,10 @@ const LatestArticleCard = ({
   );
 };
 
-export default async function ArticlePage({ params }: { params: { slug: string } }) {
+export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   noStore(); // Force dynamic
+
+  const resolvedParams = await params;
 
   // Fetch session first
   const session = await auth();
@@ -47,7 +49,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
 
   // Fetch article with series data
   const article = await prisma.article.findUnique({
-      where: { slug: params.slug, status: 'PUBLISHED' },
+      where: { slug: resolvedParams.slug, status: 'PUBLISHED' },
       include: {
         author: { select: { name: true } },
         series: {

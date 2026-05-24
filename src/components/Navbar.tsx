@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Menu as MenuIcon, Bell as BellIcon } from "lucide-react";
+import { Menu as MenuIcon, Bell as BellIcon, Map, LayoutDashboard, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import MobileMoreMenu from "./MobileMoreMenu";
 
@@ -27,6 +27,17 @@ export default React.memo(function Navbar() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+
+  const navItems = React.useMemo(() => {
+    if (status === "authenticated") {
+      return [
+        { href: "/dashboard", label: "Dashboard" },
+        ...NAV_ITEMS,
+        { href: "/lifemap", label: "Lifemap" },
+      ];
+    }
+    return NAV_ITEMS;
+  }, [status]);
 
   const isActive = (href: string) => {
     return pathname === href || (href !== "/" && pathname.startsWith(href));
@@ -50,7 +61,7 @@ export default React.memo(function Navbar() {
             </div>
 
             <nav className="hidden md:flex items-center space-x-1" aria-label="Primary">
-              {NAV_ITEMS.map((item) => (
+              {navItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -61,6 +72,12 @@ export default React.memo(function Navbar() {
                   }`}
                   aria-current={isActive(item.href) ? "page" : undefined}
                 >
+                  {item.label === "Dashboard" && (
+                    <LayoutDashboard className="w-4 h-4 mr-1.5 text-violet-400 inline-block align-text-bottom" />
+                  )}
+                  {item.label === "Lifemap" && (
+                    <Map className="w-4 h-4 mr-1.5 text-indigo-400 inline-block align-text-bottom" />
+                  )}
                   {item.label}
                   {isActive(item.href) && (
                     <motion.span
@@ -93,11 +110,11 @@ export default React.memo(function Navbar() {
                 {status === "loading" && <div className="h-8 w-24 bg-muted rounded-md animate-pulse" />}
                 {status === "unauthenticated" && (
                   <>
-                    <Link href="/login" className="text-muted-foreground hover:text-foreground px-3 py-2 rounded-md text-sm font-medium min-h-[44px] flex items-center justify-center">
-                      Login
+                    <Link href="/login" className="text-muted-foreground hover:text-foreground px-3 py-2 rounded-md text-sm font-medium min-h-[44px] flex items-center justify-center transition-colors">
+                      Sign In
                     </Link>
-                    <Link href="/signup" className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-semibold min-h-[44px] flex items-center justify-center">
-                      Sign Up
+                    <Link href="/signup" className="flex items-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-500 hover:to-indigo-500 px-4 py-2 rounded-xl text-sm font-bold min-h-[44px] transition-all shadow-[0_0_16px_rgba(139,92,246,0.25)] hover:shadow-[0_0_24px_rgba(139,92,246,0.4)]">
+                      <Zap className="w-3.5 h-3.5" /> Get Started
                     </Link>
                   </>
                 )}

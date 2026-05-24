@@ -76,6 +76,18 @@ model User {
   isPublicProfile    Boolean         @default(true)
   showHeatmap        Boolean         @default(true)
   allowEmails        Boolean         @default(true)
+  onboarded          Boolean         @default(false)
+  domain             String?
+  objective          String?
+  roadmapStepCompletions UserRoadmapStepCompletion[]
+  missionPlans           UserMissionPlan[]
+  stepNotes              UserStepNote[]
+  customSteps            UserCustomStep[]
+  nodePositions          UserNodePosition[]
+  lifemapNodes           LifemapNode[]
+  lifemapEdges           LifemapEdge[]
+  nodeProgress           UserNodeProgress[]
+  nodeNotes              UserNodeNote[]
 
   @@index([email])
   @@index([username])
@@ -242,6 +254,10 @@ model Roadmap {
   updatedAt      DateTime        @default(now()) @updatedAt
   steps          RoadmapStep[]
   branches       RoadmapBranch[]
+  missionPlans   UserMissionPlan[]
+  customSteps    UserCustomStep[]
+  learningNodes  LearningNode[]
+  learningEdges  LearningEdge[]
 }
 
 model RoadmapBranch {
@@ -269,6 +285,8 @@ model RoadmapStep {
   roadmap         Roadmap               @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
   branch          RoadmapBranch?        @relation(fields: [branchId], references: [id], onDelete: SetNull)
   linkedResources RoadmapStepResource[]
+  completions     UserRoadmapStepCompletion[]
+  notes           UserStepNote[]
 
   @@unique([roadmapId, order])
 }
@@ -646,3 +664,241 @@ enum NotificationType {
   COMMUNITY
   ACHIEVEMENT
 }
+
+model UserRoadmapStepCompletion {
+  id            String      @id @default(cuid())
+  userId        String
+  roadmapStepId String
+  completedAt   DateTime    @default(now())
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roadmapStep   RoadmapStep @relation(fields: [roadmapStepId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roadmapStepId])
+  @@index([userId])
+  @@index([roadmapStepId])
+  @@map("user_roadmap_step_completions")
+}
+
+model UserMissionPlan {
+  id              String      @id @default(cuid())
+  userId          String
+  roadmapId       String
+  roadmapStepIds  String[]    // Custom ordered roadmapStep IDs in Active Mission
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roadmap         Roadmap     @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roadmapId])
+  @@index([userId])
+  @@index([roadmapId])
+  @@map("user_mission_plans")
+}
+
+model UserStepNote {
+  id            String          @id @default(cuid())
+  userId        String
+  roadmapStepId String?
+  customStepId  String?
+  roadmapId     String?
+  positionX     Float?
+  positionY     Float?
+  color         String?         @default("yellow")
+  content       String          @db.Text
+  updatedAt     DateTime        @updatedAt
+  createdAt     DateTime        @default(now())
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roadmapStep   RoadmapStep?    @relation(fields: [roadmapStepId], references: [id], onDelete: Cascade)
+  customStep    UserCustomStep? @relation(fields: [customStepId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roadmapStepId])
+  @@unique([userId, customStepId])
+  @@index([userId])
+  @@index([roadmapStepId])
+  @@index([customStepId])
+  @@index([roadmapId])
+  @@map("user_step_notes")
+}
+
+model UserCustomStep {
+  id          String         @id @default(cuid())
+  userId      String
+  roadmapId   String
+  title       String
+  theory      String?        @db.Text
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roadmap     Roadmap        @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  notes       UserStepNote[]
+
+  @@index([userId])
+  @@index([roadmapId])
+  @@map("user_custom_steps")
+}
+
+model UserNodePosition {
+  id            String   @id @default(cuid())
+  userId        String
+  roadmapId     String
+  stepId        String   // Can represent either a standard roadmapStepId or a userCustomStepId
+  positionX     Float
+  positionY     Float
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roadmapId, stepId])
+  @@index([userId])
+  @@index([roadmapId])
+  @@map("user_node_positions")
+}
+
+model LifemapNode {
+  id            String        @id @default(cuid())
+  userId        String
+  title         String
+  description   String?       @db.Text
+  targetDate    DateTime
+  tags          String[]
+  colorTheme    String        @default("indigo")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outgoingEdges LifemapEdge[] @relation("EdgeSource")
+  incomingEdges LifemapEdge[] @relation("EdgeTarget")
+
+  @@index([userId])
+  @@index([targetDate])
+  @@map("lifemap_nodes")
+}
+
+model LifemapEdge {
+  id        String   @id @default(cuid())
+  userId    String
+  sourceId  String
+  targetId  String
+  createdAt DateTime @default(now())
+
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  source    LifemapNode @relation("EdgeSource", fields: [sourceId], references: [id], onDelete: Cascade)
+  target    LifemapNode @relation("EdgeTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sourceId, targetId])
+  @@index([userId])
+  @@index([sourceId])
+  @@index([targetId])
+  @@map("lifemap_edges")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROADMAP V2 — Constellation Engine (DAG Architecture)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum NodeProgressStatus {
+  LOCKED
+  UNLOCKED
+  COMPLETED
+}
+
+model LearningNode {
+  id            String        @id @default(cuid())
+  roadmapId     String
+  title         String
+  briefing      String        @db.Text
+  type          String        @default("concept") // 'concept' | 'practice' | 'milestone'
+  positionX     Float         @default(0)
+  positionY     Float         @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  roadmap       Roadmap       @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  outgoingEdges LearningEdge[] @relation("LearningEdgeSource")
+  incomingEdges LearningEdge[] @relation("LearningEdgeTarget")
+  userProgress       UserNodeProgress[]
+  userNotes          UserNodeNote[]
+  affiliateResources AffiliateResource[]
+
+  @@index([roadmapId])
+  @@map("learning_nodes")
+}
+
+model LearningEdge {
+  id           String       @id @default(cuid())
+  roadmapId    String
+  sourceNodeId String
+  targetNodeId String
+
+  roadmap      Roadmap      @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  source       LearningNode @relation("LearningEdgeSource", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  target       LearningNode @relation("LearningEdgeTarget", fields: [targetNodeId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceNodeId, targetNodeId])
+  @@index([roadmapId])
+  @@map("learning_edges")
+}
+
+model UserNodeProgress {
+  id          String             @id @default(cuid())
+  userId      String
+  nodeId      String
+  status      NodeProgressStatus @default(LOCKED)
+  completedAt DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  node        LearningNode       @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, nodeId])
+  @@index([userId])
+  @@index([nodeId])
+  @@map("user_node_progress")
+}
+
+// ─── V2 Cloud Note Sync ───────────────────────────────────────────────────────
+
+model UserNodeNote {
+  id        String       @id @default(cuid())
+  userId    String
+  nodeId    String
+  content   String       @db.Text
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  node      LearningNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, nodeId])
+  @@index([userId])
+  @@index([nodeId])
+  @@map("user_node_notes")
+}
+
+// ─── V2 Affiliate Arsenal ─────────────────────────────────────────────────────
+
+enum AffiliateResourceType {
+  COURSE
+  BOOK
+  TOOL
+  ARTICLE
+}
+
+model AffiliateResource {
+  id          String                @id @default(cuid())
+  nodeId      String
+  title       String
+  description String
+  url         String
+  type        AffiliateResourceType @default(COURSE)
+  isPremium   Boolean               @default(false)
+  createdAt   DateTime              @default(now())
+
+  node        LearningNode          @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@index([nodeId])
+  @@map("affiliate_resources")
+}
+

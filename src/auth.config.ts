@@ -73,6 +73,7 @@ export const authConfig = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.onboarded = (user as any).onboarded;
       }
       return token;
     },
@@ -81,6 +82,7 @@ export const authConfig = {
       if (session.user && token) {
         session.user.id = token.id as string;
         session.user.role = token.role;
+        session.user.onboarded = token.onboarded as boolean;
       }
       return session;
     },

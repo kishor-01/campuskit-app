@@ -89,6 +89,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           (user as any).role === Role.ADMIN ||
           (user as any).role === Role.SUPER_ADMIN;
         token.sessionVersion = (user as any).sessionVersion || 0;
+        token.onboarded = (user as any).onboarded;
       }
 
       // True JWT Invalidation: Verify sessionVersion with the database
@@ -96,7 +97,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: token.sub },
-            select: { sessionVersion: true, role: true, image: true }
+            select: { sessionVersion: true, role: true, image: true, onboarded: true }
           });
 
           // If user is deleted or session version changed, invalidate token
@@ -109,10 +110,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           } else if (dbUser.sessionVersion !== token.sessionVersion) {
             return null as any; // Invalidates the JWT token
           }
-          // Sync role and image to token
+          // Sync role, image, and onboarded to token
           token.role = dbUser.role;
           token.isAdmin = dbUser.role === Role.ADMIN || dbUser.role === Role.SUPER_ADMIN;
           token.image = dbUser.image;
+          token.onboarded = dbUser.onboarded;
         } catch (err) {
           console.error("[AUTH] Error checking session version", err);
         }
@@ -128,6 +130,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.isAdmin = token.isAdmin as boolean;
         if (token.image) session.user.image = token.image as string;
         (session.user as any).sessionVersion = token.sessionVersion;
+        session.user.onboarded = token.onboarded as boolean;
       }
       return session;
     },
@@ -155,10 +158,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
 
     async redirect({ url, baseUrl }) {
-      // Always redirect OAuth logins to homepage after success
+      // Redirect to /dashboard after login unless a specific callbackUrl was set
+      if (url === baseUrl || url === `${baseUrl}/`) return `${baseUrl}/dashboard`;
       if (url.startsWith("/")) return `${baseUrl}${url}`;
       if (new URL(url).origin === baseUrl) return url;
-      return `${baseUrl}/`;
+      return `${baseUrl}/dashboard`;
     },
   },
   // ───────────────────────────────

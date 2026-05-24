@@ -40,7 +40,12 @@ export default async function ResourceDetailPage({
         status: 'APPROVED',
         NOT: { id: resource.id },
       },
-      include: { category: true },
+      include: { 
+        category: true,
+        _count: {
+          select: { savedByUsers: true }
+        }
+      },
       take: 3,
       orderBy: { createdAt: 'desc' },
     }),

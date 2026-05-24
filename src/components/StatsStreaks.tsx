@@ -2,7 +2,6 @@
 
 "use client";
 
-import { motion } from "framer-motion";
 import { Bookmark, Upload, Calendar } from "lucide-react";
 
 interface StatsStreaksProps {
@@ -30,10 +29,7 @@ export default function StatsStreaks({ savedCount, submittedCount, joinDate }: S
   }).format(new Date(joinDate));
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.3 }} // Staggered delay
+    <div
       className="h-full bg-muted/50 rounded-2xl p-6"
     >
       <h3 className="text-xl font-semibold text-foreground mb-4">Your Stats</h3>
@@ -54,6 +50,6 @@ export default function StatsStreaks({ savedCount, submittedCount, joinDate }: S
           value={formattedJoinDate}
         />
       </div>
-    </motion.div>
+    </div>
   );
 }

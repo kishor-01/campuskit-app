@@ -15,8 +15,8 @@ export default async function middleware(req: NextRequest) {
 
   // Handle login redirects for already authenticated users
   if (pathname === "/login" && sessionToken) {
-    console.log("🧩 [Middleware] Authenticated user hit /login — redirecting to /");
-    const res = NextResponse.redirect(new URL("/", req.url));
+    console.log("🧩 [Middleware] Authenticated user hit /login — redirecting to /dashboard");
+    const res = NextResponse.redirect(new URL("/dashboard", req.url));
     res.cookies.set("authjs.callback-url", "", { maxAge: 0, path: "/" });
     return res;
   }
@@ -26,6 +26,11 @@ export default async function middleware(req: NextRequest) {
     const res = NextResponse.next();
     res.cookies.set("authjs.callback-url", "", { maxAge: 0, path: "/" });
     return res;
+  }
+
+  // Public profile routes — bypass auth entirely for social scrapers and public viewers
+  if (pathname.startsWith('/u/')) {
+    return NextResponse.next();
   }
 
   // Secure-by-default: Only allow explicitly public paths
@@ -50,6 +55,25 @@ export default async function middleware(req: NextRequest) {
       const isAdmin = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
       
       console.log(`🧩 [Middleware] User Status: loggedIn=${isLoggedIn}, role=${userRole}`);
+
+      // ──────────────────────────────────────────────
+      // Onboarding Interception
+      // ──────────────────────────────────────────────
+      if (isLoggedIn) {
+        const onboarded = session.user?.onboarded;
+        if (onboarded !== true && pathname !== "/onboarding") {
+          const routesToIntercept = ["/profile", "/opportunities"];
+          const isInterceptTarget = isProtected || routesToIntercept.some((r) => pathname.startsWith(r));
+          if (isInterceptTarget) {
+            console.log("🧩 [Middleware] User not onboarded — redirecting to /onboarding");
+            return NextResponse.redirect(new URL("/onboarding", req.url));
+          }
+        }
+        if (onboarded === true && pathname === "/onboarding") {
+          console.log("🧩 [Middleware] User already onboarded — redirecting from /onboarding to /dashboard");
+          return NextResponse.redirect(new URL("/dashboard", req.url));
+        }
+      }
 
       if (isProtected) {
           if (!isLoggedIn) {
