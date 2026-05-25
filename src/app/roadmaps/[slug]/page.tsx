@@ -8,7 +8,7 @@ import ConstellationView from './ConstellationView';
 import type { ConstellationNode, ConstellationEdge } from './ConstellationCanvas';
 import type { NodeStatus } from '@/lib/graphEngine';
 import { seedConstellationAction } from '@/actions/seedConstellationAction';
-import { Sparkles, GitBranch, Lock, Zap, CheckCircle2 } from 'lucide-react';
+import { Sparkles, GitBranch, Lock, Zap, CheckCircle2, Clock, Users, Target } from 'lucide-react';
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 export async function generateMetadata({
@@ -51,6 +51,9 @@ export default async function RoadmapDetailPage({
   });
 
   if (!roadmap) notFound();
+
+  // Convenience aliases for the new metadata fields
+  const { estimatedTime, targetAudience, prerequisiteText } = roadmap;
 
   // ── 2. Empty State — no nodes seeded yet ──────────────────────────────────
   if (roadmap.learningNodes.length === 0) {
@@ -199,7 +202,7 @@ export default async function RoadmapDetailPage({
   return (
     <div className="fixed inset-0 overflow-hidden bg-[#020817]">
       {/* Header overlay */}
-      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-3 bg-gradient-to-b from-slate-950/90 via-slate-950/50 to-transparent pointer-events-none">
+      <div className="absolute top-0 left-0 right-0 z-20 flex items-start justify-between px-6 py-3 bg-gradient-to-b from-slate-950/90 via-slate-950/50 to-transparent pointer-events-none">
         <div>
           <p className="text-[10px] text-slate-500 font-mono tracking-widest uppercase mb-0.5">
             Skill Graph · Constellation Engine
@@ -207,10 +210,30 @@ export default async function RoadmapDetailPage({
           <h1 className="text-lg font-bold text-slate-100 tracking-tight">
             {roadmap.title}
           </h1>
+          {/* Metadata badges */}
+          {(estimatedTime || targetAudience || prerequisiteText) && (
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              {estimatedTime && (
+                <span className="flex items-center gap-1 text-[9px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full">
+                  <Clock className="w-2.5 h-2.5" /> {estimatedTime}
+                </span>
+              )}
+              {targetAudience && (
+                <span className="flex items-center gap-1 text-[9px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                  <Users className="w-2.5 h-2.5" /> {targetAudience}
+                </span>
+              )}
+              {prerequisiteText && (
+                <span className="flex items-center gap-1 text-[9px] font-bold text-slate-400 bg-slate-800/60 border border-slate-700/40 px-2 py-0.5 rounded-full">
+                  <Target className="w-2.5 h-2.5" /> Prereqs: {prerequisiteText}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-4 pointer-events-none">
+        <div className="flex items-center gap-4 pointer-events-none mt-1">
           <LegendItem icon={<Lock className="w-2.5 h-2.5 text-slate-600" />} label="Locked" />
           <LegendItem icon={<Zap className="w-2.5 h-2.5 text-violet-400 animate-pulse" />} label="Unlocked" />
           <LegendItem icon={<CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />} label="Completed" />

@@ -178,3 +178,42 @@ export async function deleteAffiliateResourceAction(resourceId: string, slug: st
   revalidatePath(`/admin/forge/${slug}`);
   return { success: true };
 }
+
+// ─── 9. Update roadmap metadata (contextual AI context + user display) ─────────
+export async function updateRoadmapMetadataAction(
+  roadmapId: string,
+  slug: string,
+  data: {
+    title: string;
+    description: string;
+    targetAudience: string;
+    prerequisiteText: string;
+    estimatedTime: string;
+    outcomes: string;
+  }
+) {
+  await requireAdmin();
+
+  if (!data.title.trim()) {
+    return { success: false, error: 'Title is required.' };
+  }
+
+  const roadmap = await prisma.roadmap.update({
+    where: { id: roadmapId },
+    data: {
+      title: data.title.trim(),
+      description: data.description.trim(),
+      targetAudience: data.targetAudience.trim() || null,
+      prerequisiteText: data.prerequisiteText.trim() || null,
+      estimatedTime: data.estimatedTime.trim() || null,
+      outcomes: data.outcomes.trim() || null,
+    },
+    select: { slug: true },
+  });
+
+  revalidatePath(`/admin/forge/${slug}`);
+  revalidatePath(`/admin/forge/${roadmap.slug}`);
+  revalidatePath(`/roadmaps/${slug}`);
+  revalidatePath(`/roadmaps/${roadmap.slug}`);
+  return { success: true };
+}

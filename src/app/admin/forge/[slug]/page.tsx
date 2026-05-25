@@ -6,6 +6,7 @@ import prisma from '@/lib/prisma';
 import { isUserAtLeast } from '@/lib/auth-utils';
 import { Role } from '@prisma/client';
 import ForgeCanvas from './ForgeCanvas';
+import ForgeSettings from './ForgeSettings';
 import Link from 'next/link';
 import { ArrowLeft, GitBranch } from 'lucide-react';
 
@@ -41,6 +42,18 @@ export default async function ForgePage({ params }: { params: Promise<{ slug: st
   });
 
   if (!roadmap) notFound();
+
+  // ── Roadmap metadata for ForgeSettings modal ──────────────────────────────
+  const roadmapMeta = {
+    id: roadmap.id,
+    slug: roadmap.slug,
+    title: roadmap.title,
+    description: roadmap.description,
+    targetAudience: roadmap.targetAudience,
+    prerequisiteText: roadmap.prerequisiteText,
+    estimatedTime: roadmap.estimatedTime,
+    outcomes: roadmap.outcomes,
+  };
 
   // ── Serialize for client ──────────────────────────────────────────────────
   const forgeNodes = roadmap.learningNodes.map((n) => ({
@@ -98,6 +111,8 @@ export default async function ForgePage({ params }: { params: Promise<{ slug: st
               {roadmap.learningEdges.length} edges
             </span>
           </div>
+          {/* Roadmap Settings */}
+          <ForgeSettings roadmap={roadmapMeta} />
           {/* View live */}
           <Link
             href={`/roadmaps/${roadmap.slug}`}

@@ -250,6 +250,12 @@ model Roadmap {
   seniorInsight  String          @default("Pending senior insight")
   estimatedHours Int?
   prerequisites  String[]
+  // ── Contextual AI Metadata ─────────────────────────────────────────────────
+  targetAudience String?         // e.g. "Intermediate Frontend Developers"
+  prerequisiteText String?       // prose prereqs e.g. "Basic React, HTML, CSS"
+  estimatedTime  String?         // e.g. "4 Weeks"
+  outcomes       String?         // e.g. "Master RSCs, build full-stack Next.js app"
+  // ──────────────────────────────────────────────────────────────────────────
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @default(now()) @updatedAt
   steps          RoadmapStep[]

@@ -3,9 +3,11 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   Save, Trash2, Loader2, BookOpen, Zap, Trophy, SlidersHorizontal,
-  Link2, Plus, Crown, GraduationCap, Book, Wrench, FileText, X,
+  Link2, Plus, Crown, GraduationCap, Book, Wrench, FileText, X, Sparkles, Eye, PencilLine,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import {
@@ -14,6 +16,7 @@ import {
   createAffiliateResourceAction,
   deleteAffiliateResourceAction,
 } from '@/actions/forgeActions';
+import { generateNodeBriefingAction, generateArsenalDescriptionAction } from '@/actions/forgeCopilotActions';
 import type { ForgeNodeData } from './ForgeCanvas';
 import type { AffiliateResourceItem } from '@/app/roadmaps/[slug]/ConstellationCanvas';
 
@@ -123,7 +126,9 @@ export default function ForgeInspector({
   const [briefing, setBriefing] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   // ── Arsenal form state ─────────────────────────────────────────────────
   const [showAddForm, setShowAddForm] = useState(false);
@@ -133,6 +138,7 @@ export default function ForgeInspector({
   const [resType, setResType] = useState<ResourceType>('COURSE');
   const [resPremium, setResPremium] = useState(false);
   const [isAddingResource, setIsAddingResource] = useState(false);
+  const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
   const [localResources, setLocalResources] = useState<AffiliateResourceItem[]>([]);
 
   // Sync node fields
@@ -173,6 +179,30 @@ export default function ForgeInspector({
       setIsSaving(false);
     }
   }, [node, isSaving, title, type, briefing, slug, onNodeUpdate]);
+
+  // ── AI Co-Pilot Generation ─────────────────────────────────────────────
+  const handleGenerateBriefing = useCallback(async () => {
+    if (!title.trim() || isGenerating) return;
+    setIsGenerating(true);
+    try {
+      // In a real app we'd pass the actual roadmap title. For now we use the slug as a stand-in or 
+      // fetch it from context, but slug works fine for prompt context.
+      const roadmapContextTitle = slug.replace(/-/g, ' '); 
+      const result = await generateNodeBriefingAction(roadmapContextTitle, title.trim(), type);
+      
+      if (!result.success || !result.briefing) {
+        throw new Error(result.error || 'AI generation failed');
+      }
+      
+      setBriefing(result.briefing);
+      markDirty();
+      toast.success('Briefing generated via Co-Pilot');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to generate intel');
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [title, type, slug, isGenerating, markDirty]);
 
   // ── Delete node ────────────────────────────────────────────────────────
   const handleDelete = useCallback(async () => {
@@ -239,6 +269,22 @@ export default function ForgeInspector({
     setLocalResources((prev) => prev.filter((r) => r.id !== resourceId));
     if (node) onResourcesChange(node.id);
   }, [node, onResourcesChange]);
+
+  // ── Arsenal Description AI generator ─────────────────────────────────────
+  const handleGenerateDescription = useCallback(async () => {
+    if (!resTitle.trim() || isGeneratingDesc || !node) return;
+    setIsGeneratingDesc(true);
+    try {
+      const result = await generateArsenalDescriptionAction(resTitle.trim(), node.title || 'this topic');
+      if (!result.success || !result.description) throw new Error(result.error);
+      setResDesc(result.description);
+      toast.success('Description generated');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to generate description');
+    } finally {
+      setIsGeneratingDesc(false);
+    }
+  }, [resTitle, node, isGeneratingDesc]);
 
   const isOpen = node !== null;
 
@@ -340,22 +386,76 @@ export default function ForgeInspector({
                 </div>
 
                 <div>
-                  <label htmlFor="forge-node-briefing" className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
-                    Tactical Briefing
-                  </label>
-                  <textarea
-                    id="forge-node-briefing"
-                    value={briefing}
-                    onChange={(e) => { setBriefing(e.target.value); markDirty(); }}
-                    rows={7}
-                    placeholder="Describe what this node covers..."
-                    className="w-full resize-none rounded-xl border border-slate-800/60 bg-slate-900/50
-                      px-3 py-2.5 text-sm text-slate-300 placeholder-slate-600 leading-relaxed
-                      focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40
-                      transition-all font-mono text-[13px]"
-                    spellCheck={false}
-                  />
-                  <p className="text-[10px] text-slate-600 mt-1.5">{briefing.length} chars</p>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label htmlFor="forge-node-briefing" className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      Tactical Briefing
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      {/* Preview toggle */}
+                      <button
+                        onClick={() => setShowPreview((v) => !v)}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider
+                          transition-all ${
+                          showPreview
+                            ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
+                            : 'text-slate-500 bg-slate-800/40 border border-slate-700/40 hover:text-slate-300'
+                        }`}
+                        title={showPreview ? 'Switch to Edit' : 'Preview Markdown'}
+                      >
+                        {showPreview
+                          ? <><PencilLine className="w-2.5 h-2.5" /> Edit</>
+                          : <><Eye className="w-2.5 h-2.5" /> Preview</>}
+                      </button>
+                      {/* AI generate */}
+                      <button
+                        onClick={handleGenerateBriefing}
+                        disabled={isGenerating || !title.trim()}
+                        className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider
+                          text-violet-400 bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/20
+                          transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {isGenerating ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3 h-3" />
+                        )}
+                        Auto-Generate Intel
+                      </button>
+                    </div>
+                  </div>
+
+                  {showPreview ? (
+                    /* ── Markdown Preview ── */
+                    <div className="min-h-[168px] rounded-xl border border-emerald-500/20 bg-slate-900/50 px-3 py-2.5 overflow-y-auto">
+                      {briefing.trim() ? (
+                        <div className="prose prose-invert prose-sm max-w-none
+                          prose-headings:text-slate-200 prose-headings:font-bold prose-headings:mb-2 prose-headings:mt-3
+                          prose-p:text-slate-300 prose-p:leading-relaxed prose-p:my-1.5
+                          prose-strong:text-slate-100 prose-strong:font-semibold
+                          prose-code:text-violet-300 prose-code:bg-violet-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none
+                          prose-li:text-slate-300 prose-li:my-0.5 prose-ul:my-2 prose-ol:my-2">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{briefing}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-600 italic">Nothing to preview yet.</p>
+                      )}
+                    </div>
+                  ) : (
+                    /* ── Raw Edit Textarea ── */
+                    <textarea
+                      id="forge-node-briefing"
+                      value={briefing}
+                      onChange={(e) => { setBriefing(e.target.value); markDirty(); }}
+                      rows={7}
+                      placeholder="Describe what this node covers... (Markdown supported)"
+                      className="w-full resize-none rounded-xl border border-slate-800/60 bg-slate-900/50
+                        px-3 py-2.5 text-sm text-slate-300 placeholder-slate-600 leading-relaxed
+                        focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40
+                        transition-all font-mono text-[13px]"
+                      spellCheck={false}
+                    />
+                  )}
+                  <p className="text-[10px] text-slate-600 mt-1.5">{briefing.length} chars · Markdown supported</p>
                 </div>
               </div>
             )}
@@ -394,15 +494,32 @@ export default function ForgeInspector({
                         text-xs text-slate-200 placeholder-slate-600
                         focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
                     />
-                    <textarea
-                      value={resDesc}
-                      onChange={(e) => setResDesc(e.target.value)}
-                      placeholder="Brief description..."
-                      rows={2}
-                      className="w-full resize-none rounded-lg border border-slate-800/60 bg-slate-900/60 px-3 py-2
-                        text-xs text-slate-300 placeholder-slate-600 leading-relaxed
-                        focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
-                    />
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Description</label>
+                        <button
+                          onClick={handleGenerateDescription}
+                          disabled={isGeneratingDesc || !resTitle.trim()}
+                          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold
+                            text-violet-400 bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/20
+                            transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {isGeneratingDesc
+                            ? <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                            : <Sparkles className="w-2.5 h-2.5" />}
+                          Auto-fill
+                        </button>
+                      </div>
+                      <textarea
+                        value={resDesc}
+                        onChange={(e) => setResDesc(e.target.value)}
+                        placeholder="Brief description..."
+                        rows={2}
+                        className="w-full resize-none rounded-lg border border-slate-800/60 bg-slate-900/60 px-3 py-2
+                          text-xs text-slate-300 placeholder-slate-600 leading-relaxed
+                          focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
+                      />
+                    </div>
                     <div className="flex items-center gap-2">
                       <Link2 className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
                       <input

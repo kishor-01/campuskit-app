@@ -3,6 +3,8 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   X,
   BookOpen,
@@ -22,7 +24,7 @@ import {
   Cloud,
 } from 'lucide-react';
 import { completeNodeAction } from '@/actions/nodeProgressActions';
-import { saveNodeNoteAction } from '@/actions/nodeNoteActions';
+import SandboxEditor from '@/components/roadmap/SandboxEditor';
 import type { ConstellationNode, AffiliateResourceItem } from './ConstellationCanvas';
 import type { NodeStatus } from '@/lib/graphEngine';
 
@@ -160,19 +162,15 @@ interface NodeDrawerProps {
 // ─── Main Drawer ──────────────────────────────────────────────────────────────
 export default function NodeDrawer({ node, roadmapId, initialNote, onClose }: NodeDrawerProps) {
   const [activeTab, setActiveTab] = useState<Tab>('Briefing');
-  const [sandboxNote, setSandboxNote] = useState(initialNote);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [isCompleting, setIsCompleting] = useState(false);
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentNodeId = useRef<string | null>(null);
 
   // ── Sync note content when node changes ──────────────────────────────────
   useEffect(() => {
     if (!node) return;
-    // Reset tab + note when a different node is selected
     if (node.id !== currentNodeId.current) {
       currentNodeId.current = node.id;
-      setSandboxNote(initialNote);
       setSaveState('idle');
       setActiveTab('Briefing');
     }
@@ -187,27 +185,6 @@ export default function NodeDrawer({ node, roadmapId, initialNote, onClose }: No
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [node, onClose]);
-
-  // ── Debounced cloud save (1000ms) ────────────────────────────────────────
-  const handleNoteChange = useCallback(
-    (value: string) => {
-      setSandboxNote(value);
-      setSaveState('saving');
-
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
-
-      debounceTimer.current = setTimeout(async () => {
-        if (!currentNodeId.current) return;
-        const result = await saveNodeNoteAction(currentNodeId.current, value);
-        setSaveState(result.error ? 'error' : 'saved');
-        // Return to idle after a brief "Saved" confirmation
-        if (!result.error) {
-          setTimeout(() => setSaveState('idle'), 2000);
-        }
-      }, 1000);
-    },
-    []
-  );
 
   // ── Complete node ────────────────────────────────────────────────────────
   const handleComplete = useCallback(async () => {
@@ -335,9 +312,21 @@ export default function NodeDrawer({ node, roadmapId, initialNote, onClose }: No
                       Tactical Briefing
                     </p>
                     <div className="rounded-xl border border-slate-800/60 bg-slate-900/40 p-4">
-                      <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">
-                        {node.briefing}
-                      </p>
+                      {node.briefing ? (
+                        <div className="prose prose-invert prose-sm max-w-none
+                          prose-headings:text-slate-200 prose-headings:font-bold prose-headings:mb-2 prose-headings:mt-3
+                          prose-p:text-slate-300 prose-p:leading-relaxed prose-p:my-1.5
+                          prose-strong:text-slate-100 prose-strong:font-semibold
+                          prose-code:text-violet-300 prose-code:bg-violet-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none
+                          prose-li:text-slate-300 prose-li:my-0.5
+                          prose-ul:my-2 prose-ol:my-2">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {node.briefing}
+                          </ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-500 italic">No briefing available for this node.</p>
+                      )}
                     </div>
                   </div>
 
@@ -389,7 +378,7 @@ export default function NodeDrawer({ node, roadmapId, initialNote, onClose }: No
 
               {/* — SANDBOX TAB — */}
               {activeTab === 'Sandbox' && (
-                <div className="p-6 flex flex-col gap-3 h-full">
+                <div className="p-6 flex flex-col gap-3">
                   <div className="flex items-center justify-between flex-shrink-0">
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                       Study Sandbox
@@ -412,19 +401,18 @@ export default function NodeDrawer({ node, roadmapId, initialNote, onClose }: No
                     </span>
                   </div>
 
-                  <textarea
-                    value={sandboxNote}
-                    onChange={(e) => handleNoteChange(e.target.value)}
-                    placeholder={`Notes for "${node.title}"...\n\nJot down key insights, questions, code snippets, or study references. Your notes sync to your account automatically.`}
-                    className="flex-1 min-h-[280px] w-full resize-none rounded-xl border border-slate-800/60
-                      bg-slate-900/40 p-4 text-sm text-slate-300 placeholder-slate-600
-                      focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40
-                      font-mono leading-relaxed transition-all duration-200"
-                    spellCheck={false}
-                  />
+                  {/* ✔ TipTap rich-text editor */}
+                  {node && (
+                    <SandboxEditor
+                      nodeId={node.id}
+                      nodeTitle={node.title}
+                      initialContent={initialNote}
+                      onSaveStateChange={setSaveState}
+                    />
+                  )}
 
                   <p className="text-[10px] text-slate-600 leading-relaxed flex-shrink-0">
-                    Notes are encrypted and synced to your account — accessible from any device.
+                    Rich text notes — Bold, Italic, Code, Headings, Lists. Synced to your account automatically.
                   </p>
                 </div>
               )}
