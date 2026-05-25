@@ -60,6 +60,8 @@ export default async function ForgePage({ params }: { params: Promise<{ slug: st
     id: n.id,
     title: n.title,
     briefing: n.briefing,
+    knowledgeCheck: n.knowledgeCheck ?? null,
+    seniorInsight: n.seniorInsight ?? null,
     type: n.type,
     positionX: n.positionX,
     positionY: n.positionY,

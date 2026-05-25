@@ -358,31 +358,6 @@ export async function deleteStickyNoteAction(noteId: string) {
   return await mod.deleteStickyNoteAction(noteId);
 }
 
-/* --- Lifemap Actions --- */
-export async function getLifemapNodesAction() {
-  const mod = await import('./lifemapActions');
-  return await mod.getLifemapNodesAction();
-}
-
-export async function createLifemapNodeAction(data: any) {
-  const mod = await import('./lifemapActions');
-  return await mod.createLifemapNodeAction(data);
-}
-
-export async function updateLifemapNodeAction(id: string, data: any) {
-  const mod = await import('./lifemapActions');
-  return await mod.updateLifemapNodeAction(id, data);
-}
-
-export async function deleteLifemapNodeAction(id: string) {
-  const mod = await import('./lifemapActions');
-  return await mod.deleteLifemapNodeAction(id);
-}
-
-export async function saveLifemapEdgeAction(data: any) {
-  const mod = await import('./lifemapEdgeActions');
-  return await mod.saveLifemapEdgeAction(data);
-}
 
 /* --- Constellation Seed Action (Dev/Admin) --- */
 export async function seedConstellationAction(roadmapId: string, _formData?: FormData) {

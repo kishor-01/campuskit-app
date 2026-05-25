@@ -22,6 +22,9 @@ import {
   Crown,
   CloudUpload,
   Cloud,
+  CheckSquare,
+  Square,
+  Lightbulb,
 } from 'lucide-react';
 import { completeNodeAction } from '@/actions/nodeProgressActions';
 import SandboxEditor from '@/components/roadmap/SandboxEditor';
@@ -164,6 +167,7 @@ export default function NodeDrawer({ node, roadmapId, initialNote, onClose }: No
   const [activeTab, setActiveTab] = useState<Tab>('Briefing');
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [isCompleting, setIsCompleting] = useState(false);
+  const [knowledgeCheckDone, setKnowledgeCheckDone] = useState(false);
   const currentNodeId = useRef<string | null>(null);
 
   // ── Sync note content when node changes ──────────────────────────────────
@@ -173,6 +177,7 @@ export default function NodeDrawer({ node, roadmapId, initialNote, onClose }: No
       currentNodeId.current = node.id;
       setSaveState('idle');
       setActiveTab('Briefing');
+      setKnowledgeCheckDone(false); // Reset check when switching nodes
     }
   }, [node, initialNote]);
 
@@ -330,6 +335,24 @@ export default function NodeDrawer({ node, roadmapId, initialNote, onClose }: No
                     </div>
                   </div>
 
+                  {/* ── Senior Insight Callout ── */}
+                  {node.seniorInsight && (
+                    <div className="relative overflow-hidden rounded-xl border border-indigo-500/30 bg-gradient-to-br from-indigo-950/60 via-slate-900/80 to-slate-950/60 p-4">
+                      {/* Ambient glow */}
+                      <div className="absolute -top-4 -right-4 w-20 h-20 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+                      <div className="relative">
+                        <div className="flex items-center gap-2 mb-2.5">
+                          <div className="w-6 h-6 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center flex-shrink-0">
+                            <Lightbulb className="w-3.5 h-3.5 text-indigo-400" />
+                          </div>
+                          <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.15em]">Senior Insight</p>
+                          <span className="ml-auto text-[9px] font-bold text-indigo-500/50 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded-full">Staff Engineer</span>
+                        </div>
+                        <p className="text-sm text-indigo-100/80 leading-relaxed italic">{node.seniorInsight}</p>
+                      </div>
+                    </div>
+                  )}
+
                   {node.status === 'LOCKED' && (
                     <div className="rounded-xl border border-slate-700/40 bg-slate-900/30 p-4 flex items-start gap-3">
                       <Lock className="w-4 h-4 text-slate-600 flex-shrink-0 mt-0.5" />
@@ -420,30 +443,76 @@ export default function NodeDrawer({ node, roadmapId, initialNote, onClose }: No
 
             {/* ── Sticky Action Strip ──────────────────────────────────── */}
             {node.status === 'UNLOCKED' && (
-              <div className="flex-shrink-0 p-4 border-t border-slate-800/60 bg-slate-950/80 backdrop-blur-sm">
-                <button
-                  onClick={handleComplete}
-                  disabled={isCompleting}
-                  className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl
-                    font-bold text-sm text-white transition-all duration-200
-                    bg-gradient-to-r from-violet-600 to-indigo-600
-                    hover:from-violet-500 hover:to-indigo-500
-                    hover:shadow-[0_0_28px_rgba(139,92,246,0.4)]
-                    active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed
-                    focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
-                >
-                  {isCompleting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Securing Objective...
-                    </>
-                  ) : (
-                    <>
-                      <ShieldCheck className="w-4 h-4" />
-                      Secure Objective (Mark Complete)
-                    </>
-                  )}
-                </button>
+              <div className="flex-shrink-0 border-t border-slate-800/60 bg-slate-950/80 backdrop-blur-sm">
+
+                {/* Knowledge Check Callout — only shown if node has a check */}
+                {node.knowledgeCheck && (
+                  <div className="mx-4 mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+                    <div className="flex items-start gap-2.5 mb-3">
+                      <div className="w-6 h-6 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1">Knowledge Check</p>
+                        <p className="text-xs text-amber-200/80 leading-relaxed">{node.knowledgeCheck}</p>
+                      </div>
+                    </div>
+
+                    {/* Checkbox confirmation */}
+                    <button
+                      onClick={() => setKnowledgeCheckDone((v) => !v)}
+                      className="flex items-center gap-2.5 w-full group"
+                      aria-pressed={knowledgeCheckDone}
+                    >
+                      <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-all duration-200
+                        ${knowledgeCheckDone
+                          ? 'bg-amber-500 border-amber-500'
+                          : 'bg-transparent border border-amber-500/40 group-hover:border-amber-500/70'
+                        }`}>
+                        {knowledgeCheckDone
+                          ? <CheckSquare className="w-3.5 h-3.5 text-slate-950" />
+                          : <Square className="w-3.5 h-3.5 text-amber-500/40 group-hover:text-amber-500/70" />}
+                      </div>
+                      <span className={`text-xs font-semibold transition-colors ${
+                        knowledgeCheckDone ? 'text-amber-400' : 'text-slate-500 group-hover:text-slate-400'
+                      }`}>
+                        I have successfully completed this requirement.
+                      </span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Secure Objective button */}
+                <div className="p-4">
+                  <button
+                    onClick={handleComplete}
+                    disabled={isCompleting || (!!node.knowledgeCheck && !knowledgeCheckDone)}
+                    className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl
+                      font-bold text-sm text-white transition-all duration-200
+                      bg-gradient-to-r from-violet-600 to-indigo-600
+                      hover:from-violet-500 hover:to-indigo-500
+                      hover:shadow-[0_0_28px_rgba(139,92,246,0.4)]
+                      active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:from-slate-700 disabled:to-slate-700
+                      focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+                  >
+                    {isCompleting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Securing Objective...
+                      </>
+                    ) : (!!node.knowledgeCheck && !knowledgeCheckDone) ? (
+                      <>
+                        <Lock className="w-4 h-4" />
+                        Complete the Check Above First
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="w-4 h-4" />
+                        Secure Objective (Mark Complete)
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             )}
 

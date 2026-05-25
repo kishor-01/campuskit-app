@@ -35,6 +35,41 @@ export async function generateNodeBriefingAction(
   }
 }
 
+// ─── 1b. Node Briefing + Knowledge Check + Senior Insight (combined) ──────────
+export async function generateNodeBriefingAndCheckAction(
+  roadmapTitle: string,
+  nodeTitle: string,
+  nodeType: string,
+) {
+  await requireAdmin();
+
+  const prompt = `You are a Senior Staff Engineer creating learning content for a developer studying "${roadmapTitle}". The topic is: "${nodeTitle}" (node type: ${nodeType}).
+
+Respond with ONLY valid JSON in this exact structure — no markdown fences, no extra text:
+{
+  "briefing": "<100-150 word technical briefing in Markdown. Bold key terms, use inline code. Direct and authoritative. Explain the Why and the How.>",
+  "knowledgeCheck": "<A single practical action-oriented sentence starting with a verb (e.g. 'Build...', 'Implement...', 'Explain...'). A concrete task proving mastery. No markdown.>",
+  "seniorInsight": "<1-2 sentences of brutal production truth or interview reality. Start with 'In production...' or 'Interviewers will ask...' or 'Most engineers miss...'. Sound like an experienced Staff Engineer giving insider advice. No markdown, no fluff.>"
+}`;
+
+  try {
+    const rawResult = await aiProvider.runWithFallback(prompt);
+    // Strip any accidental markdown fences before parsing
+    const cleaned = rawResult.trim().replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+    const parsed = JSON.parse(cleaned);
+    if (!parsed.briefing || !parsed.knowledgeCheck) throw new Error('Incomplete AI response');
+    return {
+      success: true,
+      briefing: parsed.briefing as string,
+      knowledgeCheck: parsed.knowledgeCheck as string,
+      seniorInsight: (parsed.seniorInsight as string) || null,
+    };
+  } catch (error: any) {
+    console.error('[Co-Pilot] Briefing+Check+Insight generation failed:', error);
+    return { success: false, error: error.message || 'Failed to generate content.' };
+  }
+}
+
 // ─── 2. Arsenal Resource Description Generator ────────────────────────────────
 export async function generateArsenalDescriptionAction(
   resourceTitle: string,

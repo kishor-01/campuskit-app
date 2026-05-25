@@ -102,3 +102,86 @@ export async function getUserDashboardDataAction(): Promise<{
     activeRoadmaps,
   };
 }
+
+// ─── Recommendation Engine ────────────────────────────────────────────────────
+// Extracts topic keywords from the user's active/completed roadmap titles and
+// prerequisite tags, then finds Opportunities that hasSome match on skillsRequired.
+export async function getRecommendedOpportunitiesAction() {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) return [];
+
+  // 1. Get roadmaps the user has touched (≥1 completed node)
+  const progressRecords = await prisma.userNodeProgress.findMany({
+    where: { userId, status: 'COMPLETED' },
+    select: { nodeId: true },
+  });
+  if (progressRecords.length === 0) return [];
+
+  const completedNodeIds = progressRecords.map((p) => p.nodeId);
+
+  const activeNodes = await prisma.learningNode.findMany({
+    where: { id: { in: completedNodeIds } },
+    select: { roadmapId: true },
+    distinct: ['roadmapId'],
+  });
+  if (activeNodes.length === 0) return [];
+
+  const roadmapIds = activeNodes.map((n) => n.roadmapId);
+
+  // 2. Fetch roadmap titles and prerequisite tags as keyword sources
+  const roadmaps = await prisma.roadmap.findMany({
+    where: { id: { in: roadmapIds } },
+    select: { title: true, prerequisites: true },
+  });
+
+  // 3. Build keyword set — extract meaningful words from titles + prerequisites
+  const STOP_WORDS = new Set([
+    'the', 'a', 'an', 'and', 'or', 'of', 'to', 'in', 'for', 'with', 'on', 'at',
+    'from', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'it', 'its',
+    'this', 'that', 'complete', 'guide', 'full', 'course', 'fundamentals',
+    'introduction', 'intro', 'basics', 'advanced', 'master', 'mastery', 'learning',
+    'roadmap', 'path', 'zero', 'hero',
+  ]);
+
+  const keywords = new Set<string>();
+
+  for (const roadmap of roadmaps) {
+    // Tokenize title into individual meaningful words
+    roadmap.title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s.#+]/g, ' ')
+      .split(/\s+/)
+      .filter((w) => w.length >= 3 && !STOP_WORDS.has(w))
+      .forEach((w) => keywords.add(w));
+
+    // Add full title as a compound keyword
+    keywords.add(roadmap.title.trim());
+
+    // Add prerequisites as-is (they are already skill tags)
+    roadmap.prerequisites.forEach((p) => keywords.add(p.trim()));
+  }
+
+  if (keywords.size === 0) return [];
+
+  const keywordArray = [...keywords];
+
+  // 4. Query PUBLISHED opportunities — hasSome match against skillsRequired
+  const matches = await prisma.opportunity.findMany({
+    where: {
+      status: 'PUBLISHED',
+      skillsRequired: { hasSome: keywordArray },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 20, // over-fetch for JS-side tier sorting
+  });
+
+  if (matches.length === 0) return [];
+
+  // 5. Sort by tier priority: TIER_1 > TIER_2 > TIER_3
+  const TIER_RANK: Record<string, number> = { TIER_1: 0, TIER_2: 1, TIER_3: 2 };
+  return matches
+    .sort((a, b) => (TIER_RANK[a.tier] ?? 2) - (TIER_RANK[b.tier] ?? 2))
+    .slice(0, 4);
+}
+

@@ -11,8 +11,7 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
   const isRootPage = pathname === '/';
 
   const isRoadmapDetail = pathname.startsWith('/roadmaps/') && pathname.split('/').length === 3;
-  const isLifemap = pathname === '/lifemap';
-  const isFullScreenCanvas = isRoadmapDetail || isLifemap;
+  const isFullScreenCanvas = isRoadmapDetail;
 
   if (isOnboarding) {
     return (

@@ -268,3 +268,69 @@ export async function completeOnboarding(data: { domain: string; level: string; 
     return { error: 'Failed to complete onboarding. Please try again.' };
   }
 }
+
+// ─── Phase 20: Initialization Sequence ───────────────────────────────────────
+export async function completeOnboardingAction(data: {
+  username: string;
+  education: string;
+  objective: string;
+}) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { error: 'Unauthorized: not signed in' };
+  }
+
+  const { username, education, objective } = data;
+
+  // Validate username format
+  const usernameClean = username.replace(/^@/, '').trim().toLowerCase();
+  if (!usernameClean || usernameClean.length < 3) {
+    return { error: 'Username must be at least 3 characters.' };
+  }
+  if (!/^[a-z0-9_]+$/.test(usernameClean)) {
+    return { error: 'Username may only contain lowercase letters, numbers, and underscores.' };
+  }
+  if (!education || !objective) {
+    return { error: 'All fields are required.' };
+  }
+
+  // Check uniqueness — exclude current user (in case they reload and re-submit)
+  const existing = await prisma.user.findFirst({
+    where: { username: usernameClean, NOT: { id: session.user.id } },
+    select: { id: true },
+  });
+  if (existing) {
+    return { error: 'That username is already taken. Choose another.' };
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: session.user.id },
+        data: {
+          username: usernameClean,
+          education,
+          objective,
+          onboarded: true,
+        },
+      });
+
+      // Achievement notification
+      await tx.notification.create({
+        data: {
+          userId: session.user.id,
+          title: 'Profile Initialized',
+          message: `Welcome to the Constellation, @${usernameClean}. Your mission begins now.`,
+          type: 'ACHIEVEMENT',
+        },
+      });
+    });
+
+    revalidatePath('/dashboard');
+    revalidatePath('/profile');
+    return { success: true };
+  } catch (error: any) {
+    console.error('[completeOnboardingAction]', error);
+    return { error: 'Failed to initialize profile. Please try again.' };
+  }
+}

@@ -1,314 +1,391 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Layout, 
-  Server, 
-  Layers, 
-  Brain, 
-  GraduationCap, 
-  Terminal, 
-  Zap, 
-  Briefcase, 
-  Compass, 
-  FolderGit2, 
-  ChevronRight, 
-  ChevronLeft, 
-  Loader2 
+import {
+  Layout,
+  Server,
+  Layers,
+  Brain,
+  Database,
+  Shield,
+  Loader2,
+  AtSign,
+  GraduationCap,
+  CheckCircle2,
+  Sparkles,
+  ArrowRight,
+  Cpu,
 } from 'lucide-react';
-import { completeOnboarding } from '@/actions/userActions';
+import { completeOnboardingAction } from '@/actions/userActions';
 import toast from 'react-hot-toast';
 
-// Types for options
-interface OnboardingOption {
-  id: string;
-  label: string;
-  description: string;
-  icon: React.ComponentType<any>;
-}
-
-// Step Data Configs
-const DOMAIN_OPTIONS: OnboardingOption[] = [
-  { id: 'Frontend', label: 'Frontend', description: 'User Interfaces, Animations, Web Apps', icon: Layout },
-  { id: 'Backend', label: 'Backend', description: 'APIs, Databases, Scalability, Systems', icon: Server },
-  { id: 'Full Stack', label: 'Full Stack', description: 'End-to-end applications, devops', icon: Layers },
-  { id: 'AI/Data', label: 'AI/Data', description: 'Machine Learning, Analytics, Big Data', icon: Brain },
+// ─── Objective Cards Config ───────────────────────────────────────────────────
+const OBJECTIVES = [
+  {
+    id: 'Frontend Systems',
+    label: 'Frontend Systems',
+    description: 'UI architecture, animations, and performance-obsessed web apps.',
+    icon: Layout,
+    color: 'from-violet-500/20 to-indigo-500/20',
+    border: 'border-violet-500/40',
+    iconColor: 'text-violet-400',
+    glowColor: 'shadow-violet-500/20',
+  },
+  {
+    id: 'Backend Architecture',
+    label: 'Backend Architecture',
+    description: 'Distributed systems, APIs, databases, and scalability patterns.',
+    icon: Server,
+    color: 'from-cyan-500/20 to-blue-500/20',
+    border: 'border-cyan-500/40',
+    iconColor: 'text-cyan-400',
+    glowColor: 'shadow-cyan-500/20',
+  },
+  {
+    id: 'AI & Data',
+    label: 'AI & Data',
+    description: 'Machine learning pipelines, analytics, and AI-powered products.',
+    icon: Brain,
+    color: 'from-emerald-500/20 to-teal-500/20',
+    border: 'border-emerald-500/40',
+    iconColor: 'text-emerald-400',
+    glowColor: 'shadow-emerald-500/20',
+  },
+  {
+    id: 'Full-Stack',
+    label: 'Full-Stack',
+    description: 'End-to-end ownership — from pixel to cloud.',
+    icon: Layers,
+    color: 'from-amber-500/20 to-orange-500/20',
+    border: 'border-amber-500/40',
+    iconColor: 'text-amber-400',
+    glowColor: 'shadow-amber-500/20',
+  },
+  {
+    id: 'DevOps & Platform',
+    label: 'DevOps & Platform',
+    description: 'Infrastructure as code, CI/CD, and reliability engineering.',
+    icon: Shield,
+    color: 'from-rose-500/20 to-red-500/20',
+    border: 'border-rose-500/40',
+    iconColor: 'text-rose-400',
+    glowColor: 'shadow-rose-500/20',
+  },
+  {
+    id: 'Systems & Low-Level',
+    label: 'Systems & Low-Level',
+    description: 'Compilers, OS internals, embedded, and performance engineering.',
+    icon: Cpu,
+    color: 'from-slate-400/20 to-slate-500/20',
+    border: 'border-slate-500/40',
+    iconColor: 'text-slate-300',
+    glowColor: 'shadow-slate-500/20',
+  },
 ];
 
-const LEVEL_OPTIONS: OnboardingOption[] = [
-  { id: 'Student/Initiate', label: 'Student / Initiate', description: 'Starting out, learning fundamentals', icon: GraduationCap },
-  { id: 'Junior', label: 'Junior', description: 'Some building experience, seeking growth', icon: Terminal },
-  { id: 'Mid-Level', label: 'Mid-Level', description: 'Refining patterns, architecting projects', icon: Zap },
+const EDUCATION_OPTIONS = [
+  { value: '1st Year', label: '1st Year — Just started the journey.' },
+  { value: '2nd Year', label: '2nd Year — Building foundations.' },
+  { value: '3rd Year', label: '3rd Year — Hitting my stride.' },
+  { value: '4th Year', label: '4th Year — Final approach.' },
+  { value: 'Graduated', label: 'Graduated — In the field.' },
+  { value: 'Self-Taught', label: 'Self-Taught — No institution, just grit.' },
 ];
 
-const OBJECTIVE_OPTIONS: OnboardingOption[] = [
-  { id: 'Land a Job', label: 'Land a Job', description: 'Succeed in interviews, build resume-boosters', icon: Briefcase },
-  { id: 'Master Skills', label: 'Master Skills', description: 'Learn advanced concepts, deep dive topics', icon: Compass },
-  { id: 'Build Portfolio', label: 'Build Portfolio', description: 'Create production-ready projects', icon: FolderGit2 },
-];
-
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function OnboardingPage() {
   const router = useRouter();
-  const { data: session, status, update } = useSession();
-  
-  // Onboarding Selection States
-  const [step, setStep] = useState(1);
-  const [selectedDomain, setSelectedDomain] = useState<string>('');
-  const [selectedLevel, setSelectedLevel] = useState<string>('');
-  const [selectedObjective, setSelectedObjective] = useState<string>('');
+  const { update } = useSession();
+
+  const [username, setUsername] = useState('');
+  const [education, setEducation] = useState('');
+  const [objective, setObjective] = useState('');
+  const [usernameError, setUsernameError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white">
-        <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground text-sm tracking-wider">Syncing secure connection...</p>
-      </div>
-    );
-  }
+  const validateUsername = useCallback((val: string) => {
+    const clean = val.replace(/^@/, '').trim().toLowerCase();
+    if (!clean) { setUsernameError(''); return; }
+    if (clean.length < 3) { setUsernameError('At least 3 characters required.'); return; }
+    if (!/^[a-z0-9_]+$/.test(clean)) { setUsernameError('Only lowercase letters, numbers, underscores.'); return; }
+    setUsernameError('');
+  }, []);
 
-  // Next / Back handlers
-  const handleNext = () => {
-    if (step < 3) {
-      setStep((prev) => prev + 1);
-    }
-  };
+  const canSubmit =
+    username.replace(/^@/, '').trim().length >= 3 &&
+    !usernameError &&
+    education !== '' &&
+    objective !== '';
 
-  const handleBack = () => {
-    if (step > 1) {
-      setStep((prev) => prev - 1);
-    }
-  };
-
-  // Submit action handler
   const handleSubmit = async () => {
-    if (!selectedDomain || !selectedLevel || !selectedObjective) {
-      toast.error('Please complete all selections.');
-      return;
-    }
-
+    if (!canSubmit || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const res = await completeOnboarding({
-        domain: selectedDomain,
-        level: selectedLevel,
-        objective: selectedObjective,
-      });
-
-      if (res.error) {
-        toast.error(res.error);
+      const result = await completeOnboardingAction({ username, education, objective });
+      if (result.error) {
+        toast.error(result.error);
+        if (result.error.includes('username')) setUsernameError(result.error);
         setIsSubmitting(false);
-      } else {
-        toast.success('Onboarding complete!');
-        // Refresh NextAuth token/session client-side before redirect
-        await update();
-        router.push('/profile');
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      toast.error('Something went wrong during onboarding.');
+      toast.success('Profile initialized. Welcome to the Constellation.');
+      // Refresh NextAuth JWT so onboarded flag is updated client-side
+      await update();
+      router.push('/dashboard');
+    } catch {
+      toast.error('Something went wrong. Please try again.');
       setIsSubmitting(false);
     }
   };
 
-  // Check if current step has a valid selection
-  const canProceed = () => {
-    if (step === 1) return !!selectedDomain;
-    if (step === 2) return !!selectedLevel;
-    if (step === 3) return !!selectedObjective;
-    return false;
-  };
-
-  // Get current step details
-  const getStepConfig = () => {
-    switch (step) {
-      case 1:
-        return {
-          title: 'What is your primary focus?',
-          subtitle: 'We will personalize your recommended roadmaps and career opportunities.',
-          options: DOMAIN_OPTIONS,
-          selected: selectedDomain,
-          setSelected: setSelectedDomain,
-        };
-      case 2:
-        return {
-          title: 'What is your current experience level?',
-          subtitle: 'This adjusts the difficulty of resources and sets your starting passport rank.',
-          options: LEVEL_OPTIONS,
-          selected: selectedLevel,
-          setSelected: setSelectedLevel,
-        };
-      case 3:
-      default:
-        return {
-          title: 'What is your main goal?',
-          subtitle: 'Define your ultimate objective to customize your daily desk targets.',
-          options: OBJECTIVE_OPTIONS,
-          selected: selectedObjective,
-          setSelected: setSelectedObjective,
-        };
-    }
-  };
-
-  const currentStep = getStepConfig();
-  const progressPercent = (step / 3) * 100;
-
-  // Animation variants for horizontal snapping slide transitions
-  const stepVariants = {
-    initial: { x: 50, opacity: 0 },
-    animate: { x: 0, opacity: 1 },
-    exit: { x: -50, opacity: 0 },
-  };
-
-  const springTransition = {
-    type: 'spring' as const,
-    stiffness: 300,
-    damping: 30,
-  };
-
   return (
-    <div className="relative min-h-screen bg-slate-950 text-white flex flex-col justify-between overflow-hidden">
-      {/* Decorative premium gradient background blobs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />
+    <div className="relative min-h-screen bg-[#020817] text-slate-100 overflow-hidden">
+      {/* Ambient background glows */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden>
+        <div className="absolute top-0 left-1/4 w-[700px] h-[400px] rounded-full bg-violet-600/8 blur-[140px]" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[400px] rounded-full bg-indigo-600/6 blur-[120px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full bg-cyan-600/4 blur-[100px]" />
+      </div>
 
-      {/* Top Header & Progress Bar */}
-      <header className="w-full max-w-4xl mx-auto px-6 pt-8 md:pt-12 relative z-10">
-        <div className="flex justify-between items-center mb-4">
-          <span className="text-lg font-bold tracking-widest text-primary bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">
-            SENIOFY
-          </span>
-          <span className="text-xs font-semibold text-slate-500 tracking-wider">
-            STEP {step} OF 3
-          </span>
-        </div>
-        {/* Progress Bar Container */}
-        <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-          <motion.div 
-            className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"
-            initial={{ width: '33.33%' }}
-            animate={{ width: `${progressPercent}%` }}
-            transition={{ duration: 0.3 }}
-          />
-        </div>
-      </header>
+      {/* Constellation dot grid background */}
+      <div
+        className="fixed inset-0 pointer-events-none opacity-[0.03]"
+        style={{
+          backgroundImage: 'radial-gradient(circle, #94a3b8 1px, transparent 1px)',
+          backgroundSize: '32px 32px',
+        }}
+        aria-hidden
+      />
 
-      {/* Main Flow Form Container */}
-      <main className="flex-grow flex items-center justify-center px-4 py-8 relative z-10">
-        <div className="w-full max-w-3xl">
-          <AnimatePresence mode="wait">
+      <div className="relative z-10 min-h-screen flex flex-col">
+        {/* Logo / Header */}
+        <header className="flex-shrink-0 flex items-center justify-between px-6 sm:px-10 py-6">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
+              <Sparkles className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-sm font-black tracking-[0.15em] text-slate-200 uppercase">Seniofy</span>
+          </div>
+          <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Initialization Sequence</p>
+        </header>
+
+        {/* Main content */}
+        <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-8">
+          <div className="w-full max-w-2xl">
+
+            {/* Hero heading */}
             <motion.div
-              key={step}
-              variants={stepVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={springTransition}
-              className="flex flex-col text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="text-center mb-10"
             >
-              {/* Question Headings */}
-              <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-3 text-slate-100">
-                {currentStep.title}
-              </h2>
-              <p className="text-sm md:text-base text-slate-400 mb-10 max-w-lg mx-auto">
-                {currentStep.subtitle}
+              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-3">
+                New Engineer Detected
               </p>
+              <h1 className="text-3xl sm:text-4xl font-black text-slate-100 tracking-tight mb-3">
+                Initialize Your Profile.
+              </h1>
+              <p className="text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+                Before you enter the constellation, declare your identity and your mission. This takes 30 seconds.
+              </p>
+            </motion.div>
 
-              {/* Grid Options Cards */}
-              <div className={`grid gap-4 w-full max-w-2xl mx-auto ${
-                currentStep.options.length === 4 
-                  ? 'grid-cols-1 sm:grid-cols-2' 
-                  : 'grid-cols-1 sm:grid-cols-3'
-              }`}>
-                {currentStep.options.map((opt) => {
-                  const Icon = opt.icon;
-                  const isSelected = currentStep.selected === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      onClick={() => currentStep.setSelected(opt.id)}
-                      className={`relative flex flex-col items-center sm:items-start text-center sm:text-left p-6 rounded-2xl border transition-all duration-300 hover:-translate-y-1 cursor-pointer group select-none ${
-                        isSelected 
-                          ? 'border-primary ring-2 ring-primary/40 bg-primary/10 text-white shadow-[0_0_20px_rgba(59,130,246,0.15)]' 
-                          : 'border-slate-800/80 bg-slate-900/40 backdrop-blur-md text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                      }`}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
+              className="space-y-7"
+            >
+              {/* ── Username field ── */}
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                  Username
+                </label>
+                <div className={`flex items-center gap-2 rounded-xl border bg-slate-900/60 px-4 py-3 transition-all
+                  ${usernameError
+                    ? 'border-red-500/50 ring-2 ring-red-500/20'
+                    : username.length >= 3 && !usernameError
+                      ? 'border-emerald-500/40 ring-2 ring-emerald-500/10'
+                      : 'border-slate-800/60 focus-within:border-violet-500/50 focus-within:ring-2 focus-within:ring-violet-500/10'
+                  }`}
+                >
+                  <AtSign className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                  <input
+                    id="onboarding-username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => {
+                      setUsername(e.target.value);
+                      validateUsername(e.target.value);
+                    }}
+                    placeholder="your_handle"
+                    autoComplete="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    className="flex-1 bg-transparent text-sm text-slate-100 placeholder-slate-600 outline-none font-mono"
+                  />
+                  {username.length >= 3 && !usernameError && (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  )}
+                </div>
+                <AnimatePresence>
+                  {usernameError && (
+                    <motion.p
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="text-[11px] text-red-400 mt-1.5 pl-1"
                     >
-                      {/* Icon Circle */}
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 ${
-                        isSelected 
-                          ? 'bg-primary text-white scale-110' 
-                          : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700/60 group-hover:text-slate-200'
-                      }`}>
-                        <Icon className="w-6 h-6" />
-                      </div>
-                      
-                      {/* Labels */}
-                      <h3 className={`font-bold text-lg mb-1 ${
-                        isSelected ? 'text-white' : 'text-slate-200 group-hover:text-white'
-                      }`}>
+                      {usernameError}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* ── Education dropdown ── */}
+              <div>
+                <label htmlFor="onboarding-education" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                  Education
+                </label>
+                <div className="relative">
+                  <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                  <select
+                    id="onboarding-education"
+                    value={education}
+                    onChange={(e) => setEducation(e.target.value)}
+                    className={`w-full rounded-xl border bg-slate-900/60 pl-10 pr-4 py-3 text-sm outline-none transition-all appearance-none cursor-pointer
+                      ${education
+                        ? 'border-violet-500/40 text-slate-100'
+                        : 'border-slate-800/60 text-slate-500'
+                      }
+                      focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/10`}
+                  >
+                    <option value="" disabled>Select your current status…</option>
+                    {EDUCATION_OPTIONS.map((opt) => (
+                      <option
+                        key={opt.value}
+                        value={opt.value}
+                        className="bg-slate-900 text-slate-100"
+                      >
                         {opt.label}
-                      </h3>
-                      <p className="text-xs text-slate-500 leading-relaxed max-w-[200px] sm:max-w-none">
-                        {opt.description}
-                      </p>
-                    </button>
-                  );
-                })}
+                      </option>
+                    ))}
+                  </select>
+                  {/* Custom dropdown chevron */}
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Objective Grid ── */}
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                  Primary Objective — Select One
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {OBJECTIVES.map((obj) => {
+                    const Icon = obj.icon;
+                    const isSelected = objective === obj.id;
+                    return (
+                      <button
+                        key={obj.id}
+                        type="button"
+                        onClick={() => setObjective(obj.id)}
+                        className={`relative group flex items-start gap-3.5 p-4 rounded-2xl border transition-all duration-200 text-left
+                          ${isSelected
+                            ? `bg-gradient-to-br ${obj.color} ${obj.border} shadow-lg ${obj.glowColor}`
+                            : 'border-slate-800/60 bg-slate-900/40 hover:border-slate-700/60 hover:bg-slate-900/70'
+                          }`}
+                      >
+                        {/* Selected indicator */}
+                        {isSelected && (
+                          <div className="absolute top-3 right-3">
+                            <CheckCircle2 className={`w-3.5 h-3.5 ${obj.iconColor}`} />
+                          </div>
+                        )}
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all
+                          ${isSelected
+                            ? `bg-gradient-to-br ${obj.color} border ${obj.border}`
+                            : 'bg-slate-800 border border-slate-700/60 group-hover:border-slate-600'
+                          }`}
+                        >
+                          <Icon className={`w-4.5 h-4.5 ${isSelected ? obj.iconColor : 'text-slate-500 group-hover:text-slate-300'} transition-colors`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-bold leading-tight ${isSelected ? 'text-slate-100' : 'text-slate-300 group-hover:text-slate-100'} transition-colors`}>
+                            {obj.label}
+                          </p>
+                          <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5 line-clamp-2">
+                            {obj.description}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ── Submit CTA ── */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={!canSubmit || isSubmitting}
+                  className={`relative w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl font-bold text-sm transition-all duration-300
+                    ${canSubmit && !isSubmitting
+                      ? 'bg-gradient-to-r from-violet-600 via-indigo-600 to-violet-600 bg-[length:200%_100%] hover:bg-[position:100%] text-white shadow-[0_0_30px_rgba(139,92,246,0.35)] hover:shadow-[0_0_45px_rgba(139,92,246,0.5)] active:scale-[0.98]'
+                      : 'bg-slate-900 border border-slate-800/60 text-slate-600 cursor-not-allowed'
+                    }`}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Initializing…
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Enter the Constellation
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+
+                  {/* Animated glow border when ready */}
+                  {canSubmit && !isSubmitting && (
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-violet-500/20 to-indigo-500/20 blur-xl -z-10" />
+                  )}
+                </button>
+
+                {!canSubmit && (
+                  <p className="text-center text-[11px] text-slate-600 mt-3">
+                    {!username.replace(/^@/, '').trim()
+                      ? 'Enter a username to continue.'
+                      : !education
+                        ? 'Select your education status.'
+                        : !objective
+                          ? 'Choose your primary objective.'
+                          : ''}
+                  </p>
+                )}
               </div>
             </motion.div>
-          </AnimatePresence>
-        </div>
-      </main>
+          </div>
+        </main>
 
-      {/* Bottom Actions Bar */}
-      <footer className="w-full max-w-4xl mx-auto px-6 pb-8 md:pb-12 flex justify-between items-center relative z-10">
-        {/* Back Button */}
-        {step > 1 ? (
-          <button
-            onClick={handleBack}
-            disabled={isSubmitting}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-slate-800 bg-slate-900/50 hover:bg-slate-900 text-slate-400 hover:text-white transition-all cursor-pointer text-sm font-semibold disabled:opacity-50"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Back
-          </button>
-        ) : (
-          <div /> // Spacer
-        )}
-
-        {/* Next / Submit Button */}
-        {step < 3 ? (
-          <button
-            onClick={handleNext}
-            disabled={!canProceed()}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-primary hover:bg-primary/90 text-white transition-all cursor-pointer text-sm font-semibold shadow-lg shadow-primary/20 disabled:opacity-30 disabled:pointer-events-none"
-          >
-            Continue
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        ) : (
-          <button
-            onClick={handleSubmit}
-            disabled={!canProceed() || isSubmitting}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white transition-all cursor-pointer text-sm font-semibold shadow-lg shadow-blue-500/20 disabled:opacity-30 disabled:pointer-events-none"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Finalizing...
-              </>
-            ) : (
-              <>
-                Complete Profile
-                <ChevronRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
-        )}
-      </footer>
+        {/* Footer */}
+        <footer className="flex-shrink-0 py-6 text-center">
+          <p className="text-[10px] text-slate-700">
+            Your data stays with you. No spam. No noise. Just the work.
+          </p>
+        </footer>
+      </div>
     </div>
   );
 }

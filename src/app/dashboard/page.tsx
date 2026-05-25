@@ -3,13 +3,14 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
-import { getUserDashboardDataAction } from '@/actions/dashboardActions';
+import { getUserDashboardDataAction, getRecommendedOpportunitiesAction } from '@/actions/dashboardActions';
 import OnboardingMatrix from '@/components/dashboard/OnboardingMatrix';
+import OpportunityCard from '@/components/OpportunityCard';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
   Zap, CheckCircle2, BarChart3, ArrowRight, BookOpen,
-  Flame, Trophy, Map, ChevronRight,
+  Flame, Trophy, Map, ChevronRight, Crosshair, Sparkles,
 } from 'lucide-react';
 
 export const metadata = {
@@ -36,7 +37,7 @@ export default async function DashboardPage() {
   if (!session?.user?.id) redirect('/');
 
   // Parallel-fetch dashboard data and streak stats
-  const [dashboardData, userStats, totalContributions] = await Promise.all([
+  const [dashboardData, userStats, totalContributions, recommendedOpportunities] = await Promise.all([
     getUserDashboardDataAction(),
     prisma.user.findUnique({
       where: { id: session.user.id },
@@ -47,6 +48,7 @@ export default async function DashboardPage() {
       },
     }),
     prisma.analyticsEvent.count({ where: { userId: session.user.id } }),
+    getRecommendedOpportunitiesAction(),
   ]);
 
   if (!dashboardData) redirect('/');
@@ -295,6 +297,61 @@ export default async function DashboardPage() {
             </div>
           )}
         </div>
+
+        {/* ── Career Bridge — Recommended Opportunities ───────────────── */}
+        {recommendedOpportunities.length > 0 && (
+          <div>
+            {/* Section Header */}
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                {/* Glowing icon */}
+                <div className="relative w-8 h-8 flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-amber-500/20 to-indigo-500/20 blur-sm" />
+                  <div className="relative w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500/10 to-indigo-500/10 border border-amber-500/20 flex items-center justify-center">
+                    <Crosshair className="w-4 h-4 text-amber-400" />
+                  </div>
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-200 tracking-tight">Target Coordinates Acquired</h2>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Opportunities matched to your active missions</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="w-3 h-3 text-amber-400" />
+                <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-full uppercase tracking-wider">
+                  {recommendedOpportunities.length} match{recommendedOpportunities.length !== 1 ? 'es' : ''} found
+                </span>
+              </div>
+            </div>
+
+            {/* Gradient top accent line */}
+            <div className="h-px w-full bg-gradient-to-r from-transparent via-amber-500/30 to-indigo-500/20 mb-5" />
+
+            {/* Opportunity cards grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {recommendedOpportunities.map((opp) => (
+                <div key={opp.id} className="relative">
+                  {/* Match Found badge */}
+                  <div className="absolute -top-2 -right-1 z-10 flex items-center gap-1 bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full shadow-lg shadow-amber-500/20">
+                    <Crosshair className="w-2.5 h-2.5" />
+                    Match
+                  </div>
+                  <OpportunityCard opportunity={opp} />
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 text-center">
+              <Link
+                href="/opportunities"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-amber-400 transition-colors"
+              >
+                View all opportunities <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+        )}
+
       </div>
     </main>
   );

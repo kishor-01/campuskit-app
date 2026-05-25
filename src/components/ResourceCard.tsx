@@ -11,7 +11,8 @@ import {
   Users as UsersIcon, 
   ArrowUpRight as ArrowUpRightIcon, 
   Flag as FlagIcon, 
-  X as XIcon 
+  X as XIcon,
+  Lightbulb as LightbulbIcon,
 } from 'lucide-react';
 import { toggleSaveResource, reportResourceAction } from '@/actions';
 import { Card, CardContent } from '@/components/ui/card';
@@ -199,6 +200,14 @@ export default function ResourceCard({
                 </p>
               </div>
 
+              {/* Senior Insight */}
+              {resource.seniorInsight && resource.seniorInsight !== 'Pending senior insight' && (
+                <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-indigo-500/5 border border-indigo-500/15 mb-3">
+                  <LightbulbIcon className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-indigo-200/70 leading-relaxed italic line-clamp-2">{resource.seniorInsight}</p>
+                </div>
+              )}
+
               <div className="flex items-center justify-between border-t border-border/50 pt-3">
                 <div className="flex items-center gap-4">
                   <span className="text-xs text-muted-foreground">
@@ -314,6 +323,14 @@ export default function ResourceCard({
             <p className="text-sm text-muted-foreground line-clamp-2 mb-4 leading-relaxed flex-grow">
               {resource.description}
             </p>
+
+            {/* Senior Insight */}
+            {resource.seniorInsight && resource.seniorInsight !== 'Pending senior insight' && (
+              <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-indigo-500/5 border border-indigo-500/15 mb-4">
+                <LightbulbIcon className="w-3 h-3 text-indigo-400 flex-shrink-0 mt-0.5" />
+                <p className="text-[11px] text-indigo-200/70 leading-relaxed italic line-clamp-2">{resource.seniorInsight}</p>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between mt-auto border-t border-border/50 pt-3">

@@ -176,6 +176,8 @@ export default async function RoadmapDetailPage({
     id: n.id,
     title: n.title,
     briefing: n.briefing,
+    knowledgeCheck: n.knowledgeCheck ?? null,
+    seniorInsight: n.seniorInsight ?? null,
     type: n.type as 'concept' | 'practice' | 'milestone',
     positionX: n.positionX,
     positionY: n.positionY,

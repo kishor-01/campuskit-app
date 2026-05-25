@@ -70,11 +70,11 @@ export async function updateNodePositionAction(
   return { success: true };
 }
 
-// ─── 3. Update node data (title, type, briefing) ──────────────────────────────
+// ─── 3. Update node data (title, type, briefing, knowledgeCheck, seniorInsight) ────────
 export async function updateLearningNodeDataAction(
   nodeId: string,
   slug: string,
-  data: { title: string; type: string; briefing: string }
+  data: { title: string; type: string; briefing: string; knowledgeCheck?: string; seniorInsight?: string }
 ) {
   await requireAdmin();
 
@@ -84,6 +84,8 @@ export async function updateLearningNodeDataAction(
       title: data.title,
       type: data.type,
       briefing: data.briefing,
+      knowledgeCheck: data.knowledgeCheck ?? null,
+      seniorInsight: data.seniorInsight ?? null,
     },
   });
 

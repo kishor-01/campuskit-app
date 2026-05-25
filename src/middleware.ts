@@ -61,17 +61,18 @@ export default async function middleware(req: NextRequest) {
       // ──────────────────────────────────────────────
       if (isLoggedIn) {
         const onboarded = session.user?.onboarded;
-        if (onboarded !== true && pathname !== "/onboarding") {
-          const routesToIntercept = ["/profile", "/opportunities"];
-          const isInterceptTarget = isProtected || routesToIntercept.some((r) => pathname.startsWith(r));
-          if (isInterceptTarget) {
-            console.log("🧩 [Middleware] User not onboarded — redirecting to /onboarding");
-            return NextResponse.redirect(new URL("/onboarding", req.url));
-          }
+        const isOnboardingRoute = pathname === '/onboarding';
+
+        // Gate: non-onboarded user hitting ANY protected route → send to /onboarding
+        if (onboarded !== true && !isOnboardingRoute && isProtected) {
+          console.log('🧩 [Middleware] User not onboarded — redirecting to /onboarding');
+          return NextResponse.redirect(new URL('/onboarding', req.url));
         }
-        if (onboarded === true && pathname === "/onboarding") {
-          console.log("🧩 [Middleware] User already onboarded — redirecting from /onboarding to /dashboard");
-          return NextResponse.redirect(new URL("/dashboard", req.url));
+
+        // Inverse: already-onboarded user landing on /onboarding → send to /dashboard
+        if (onboarded === true && isOnboardingRoute) {
+          console.log('🧩 [Middleware] User already onboarded — redirecting from /onboarding to /dashboard');
+          return NextResponse.redirect(new URL('/dashboard', req.url));
         }
       }
 

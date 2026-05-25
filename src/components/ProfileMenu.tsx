@@ -18,7 +18,6 @@ import {
   Eye,
   UserCheck,
   Settings,
-  Map,
   LayoutDashboard,
 } from "lucide-react";
 import { Role } from "@prisma/client";
@@ -165,14 +164,6 @@ export default function ProfileMenu() {
               >
                 <User className="w-4 h-4 mr-3" /> 
                 My Profile
-              </Link>
-              <Link 
-                href="/lifemap" 
-                onClick={() => setIsOpen(false)}
-                className="flex items-center w-full px-4 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              >
-                <Map className="w-4 h-4 mr-3 text-indigo-400" /> 
-                Lifemap
               </Link>
               <Link 
                 href="/profile/edit" 

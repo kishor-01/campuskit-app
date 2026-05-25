@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Menu as MenuIcon, Bell as BellIcon, Map, LayoutDashboard, Zap } from "lucide-react";
+import { Menu as MenuIcon, Bell as BellIcon, LayoutDashboard, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import MobileMoreMenu from "./MobileMoreMenu";
 
@@ -33,7 +33,6 @@ export default React.memo(function Navbar() {
       return [
         { href: "/dashboard", label: "Dashboard" },
         ...NAV_ITEMS,
-        { href: "/lifemap", label: "Lifemap" },
       ];
     }
     return NAV_ITEMS;
@@ -74,9 +73,6 @@ export default React.memo(function Navbar() {
                 >
                   {item.label === "Dashboard" && (
                     <LayoutDashboard className="w-4 h-4 mr-1.5 text-violet-400 inline-block align-text-bottom" />
-                  )}
-                  {item.label === "Lifemap" && (
-                    <Map className="w-4 h-4 mr-1.5 text-indigo-400 inline-block align-text-bottom" />
                   )}
                   {item.label}
                   {isActive(item.href) && (

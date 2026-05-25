@@ -34,6 +34,8 @@ export interface ConstellationNode {
   id: string;
   title: string;
   briefing: string;
+  knowledgeCheck: string | null;
+  seniorInsight: string | null;
   type: string;
   positionX: number;
   positionY: number;

@@ -6,7 +6,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
-  Save, Trash2, Loader2, BookOpen, Zap, Trophy, SlidersHorizontal,
+  Save, Trash2, Loader2, BookOpen, Zap, Trophy, Settings,
   Link2, Plus, Crown, GraduationCap, Book, Wrench, FileText, X, Sparkles, Eye, PencilLine,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -16,7 +16,7 @@ import {
   createAffiliateResourceAction,
   deleteAffiliateResourceAction,
 } from '@/actions/forgeActions';
-import { generateNodeBriefingAction, generateArsenalDescriptionAction } from '@/actions/forgeCopilotActions';
+import { generateNodeBriefingAndCheckAction, generateArsenalDescriptionAction } from '@/actions/forgeCopilotActions';
 import type { ForgeNodeData } from './ForgeCanvas';
 import type { AffiliateResourceItem } from '@/app/roadmaps/[slug]/ConstellationCanvas';
 
@@ -124,6 +124,8 @@ export default function ForgeInspector({
   const [title, setTitle] = useState('');
   const [type, setType] = useState('concept');
   const [briefing, setBriefing] = useState('');
+  const [knowledgeCheck, setKnowledgeCheck] = useState('');
+  const [seniorInsight, setSeniorInsight] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -147,6 +149,8 @@ export default function ForgeInspector({
     setTitle(node.title);
     setType(node.type);
     setBriefing(node.briefing);
+    setKnowledgeCheck(node.knowledgeCheck ?? '');
+    setSeniorInsight(node.seniorInsight ?? '');
     setIsDirty(false);
     setTab('node');
     setShowAddForm(false);
@@ -168,6 +172,8 @@ export default function ForgeInspector({
         title: title.trim() || 'Untitled',
         type,
         briefing,
+        knowledgeCheck: knowledgeCheck.trim() || undefined,
+        seniorInsight: seniorInsight.trim() || undefined,
       });
       if (!result.success) throw new Error();
       onNodeUpdate({ ...node, title: title.trim() || 'Untitled', type, briefing });
@@ -178,25 +184,25 @@ export default function ForgeInspector({
     } finally {
       setIsSaving(false);
     }
-  }, [node, isSaving, title, type, briefing, slug, onNodeUpdate]);
+  }, [node, isSaving, title, type, briefing, knowledgeCheck, seniorInsight, slug, onNodeUpdate]);
 
-  // ── AI Co-Pilot Generation ─────────────────────────────────────────────
+  // ── AI Co-Pilot Generation (Briefing + Knowledge Check) ──────────────
   const handleGenerateBriefing = useCallback(async () => {
     if (!title.trim() || isGenerating) return;
     setIsGenerating(true);
     try {
-      // In a real app we'd pass the actual roadmap title. For now we use the slug as a stand-in or 
-      // fetch it from context, but slug works fine for prompt context.
-      const roadmapContextTitle = slug.replace(/-/g, ' '); 
-      const result = await generateNodeBriefingAction(roadmapContextTitle, title.trim(), type);
-      
+      const roadmapContextTitle = slug.replace(/-/g, ' ');
+      const result = await generateNodeBriefingAndCheckAction(roadmapContextTitle, title.trim(), type);
+
       if (!result.success || !result.briefing) {
         throw new Error(result.error || 'AI generation failed');
       }
-      
+
       setBriefing(result.briefing);
+      if (result.knowledgeCheck) setKnowledgeCheck(result.knowledgeCheck);
+      if (result.seniorInsight) setSeniorInsight(result.seniorInsight);
       markDirty();
-      toast.success('Briefing generated via Co-Pilot');
+      toast.success('Briefing + Knowledge Check + Senior Insight generated ✨');
     } catch (err: any) {
       toast.error(err.message || 'Failed to generate intel');
     } finally {
@@ -301,7 +307,7 @@ export default function ForgeInspector({
           <div className="flex-shrink-0 px-5 py-4 border-b border-slate-800/60 bg-slate-900/40">
             <div className="flex items-center gap-2.5 mb-3">
               <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-violet-400" />
+                <Settings className="w-3.5 h-3.5 text-violet-400" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Inspector</p>
@@ -456,6 +462,56 @@ export default function ForgeInspector({
                     />
                   )}
                   <p className="text-[10px] text-slate-600 mt-1.5">{briefing.length} chars · Markdown supported</p>
+                </div>
+
+                {/* ── Knowledge Check ── */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label htmlFor="forge-node-kc" className="block text-[10px] font-bold text-amber-500 uppercase tracking-widest">
+                      Knowledge Check
+                    </label>
+                    <span className="text-[9px] font-bold text-amber-500/60 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      Prove It Protocol
+                    </span>
+                  </div>
+                  <textarea
+                    id="forge-node-kc"
+                    value={knowledgeCheck}
+                    onChange={(e) => { setKnowledgeCheck(e.target.value); markDirty(); }}
+                    rows={3}
+                    placeholder="e.g. Build a custom React hook that debounces an API call..."
+                    className="w-full resize-none rounded-xl border border-amber-500/20 bg-amber-500/5
+                      px-3 py-2.5 text-sm text-slate-300 placeholder-slate-600 leading-relaxed
+                      focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/40
+                      transition-all text-[13px]"
+                    spellCheck={false}
+                  />
+                  <p className="text-[10px] text-slate-600 mt-1.5">Students must confirm this task before marking the node complete.</p>
+                </div>
+
+                {/* ── Senior Insight ── */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label htmlFor="forge-node-si" className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
+                      Senior Insight
+                    </label>
+                    <span className="text-[9px] font-bold text-indigo-400/60 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      Mentorship Voice
+                    </span>
+                  </div>
+                  <textarea
+                    id="forge-node-si"
+                    value={seniorInsight}
+                    onChange={(e) => { setSeniorInsight(e.target.value); markDirty(); }}
+                    rows={3}
+                    placeholder="e.g. In production, most engineers overlook React's concurrent mode until they hit stale closures in effects..."
+                    className="w-full resize-none rounded-xl border border-indigo-500/20 bg-indigo-500/5
+                      px-3 py-2.5 text-sm text-slate-300 placeholder-slate-600 leading-relaxed
+                      focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40
+                      transition-all text-[13px]"
+                    spellCheck={false}
+                  />
+                  <p className="text-[10px] text-slate-600 mt-1.5">Brutal production truth shown to students as a mentor callout.</p>
                 </div>
               </div>
             )}
@@ -638,7 +694,7 @@ export default function ForgeInspector({
         /* Empty state */
         <div className="flex flex-col items-center justify-center h-full text-center px-6">
           <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mb-4">
-            <SlidersHorizontal className="w-5 h-5 text-slate-600" />
+            <Settings className="w-5 h-5 text-slate-600" />
           </div>
           <p className="text-sm font-semibold text-slate-500">No Node Selected</p>
           <p className="text-xs text-slate-600 mt-1.5 leading-relaxed max-w-[200px]">

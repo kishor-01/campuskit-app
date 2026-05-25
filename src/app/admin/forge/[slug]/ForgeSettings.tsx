@@ -109,11 +109,11 @@ export default function ForgeSettings({ roadmap }: ForgeSettingsProps) {
         onClick={() => setIsOpen(true)}
         className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-lg
           bg-slate-900 text-slate-400 border border-slate-800 hover:border-slate-700 hover:text-slate-200
-          transition-all duration-200"
+          transition-all duration-200 shadow-sm"
         id="forge-settings-btn"
         title="Roadmap Settings"
       >
-        <Settings className="w-3.5 h-3.5" />
+        <Settings className="w-4 h-4 text-slate-400 group-hover:text-slate-300" />
         Settings
       </button>
 

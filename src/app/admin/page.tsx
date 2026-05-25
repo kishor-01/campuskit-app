@@ -1,244 +1,225 @@
-// src/app/admin/page.tsx - Updated with role-based UI
-import prisma from "@/lib/prisma";
-import Link from "next/link";
-import { Users, Book, Map, Layers3, Briefcase, FileText, Link as LinkIcon, Shield, BarChart3, Flag, Inbox } from "lucide-react";
-import { checkPermission, isUserAtLeast, getCurrentUser } from "@/lib/auth-utils";
-import { Permission, Role } from "@prisma/client";
+import React from 'react';
+import Link from 'next/link';
+import { 
+  Users, 
+  Map, 
+  Briefcase, 
+  FileText, 
+  Shield, 
+  BarChart3, 
+  TrendingUp,
+  Activity,
+  ArrowUpRight,
+  BookOpen,
+  Layers3,
+  Link2,
+  Inbox,
+  FolderGit2,
+  FlagTriangleRight,
+} from 'lucide-react';
+import { checkPermission, isUserAtLeast, getCurrentUser } from '@/lib/auth-utils';
+import { Permission, Role } from '@prisma/client';
+import { getAdminKpisAction, getNodeBottlenecksAction } from '@/actions/analyticsActions';
+import BottleneckChart from '@/components/admin/BottleneckChart';
+
+export const metadata = {
+  title: 'Admin Command Center | Seniofy',
+};
 
 export default async function AdminPage() {
   const currentUser = await getCurrentUser();
+  const isAdmin = await isUserAtLeast(Role.ADMIN);
   
-  // Only fetch data if user has appropriate permissions
-  const [
-    userCount,
-    resourceCount,
-    categoryCount,
-    roadmapCount,
-    opportunityCount,
-    articleCount,
-    affiliateLinkCount,
-    pendingResourceCount,
-    pendingSubmissionCount,
-    pendingOpportunityCount,
-    pendingReportCount,
-    unreadInboxCount,
-    canManageUsers,
-    canManageBlog,
-    canManageAffiliates,
-    canModerateResources,
-    canModerateOpportunities,
-    isAtLeastEditor,
-  ] = await Promise.all([
-    (await checkPermission(Permission.USER_READ)) ? prisma.user.count() : 0,
-    prisma.resource.count(),
-    prisma.category.count(),
-    prisma.roadmap.count(),
-    prisma.opportunity.count(),
-    prisma.article.count(),
-    prisma.affiliateLink.count(),
-    prisma.resource.count({ where: { status: 'PENDING' } }),
-    prisma.resourceSubmission.count({ where: { status: 'PENDING' } }),
-    prisma.opportunity.count({ where: { status: 'PENDING' } }),
-    prisma.contentReport.count({ where: { status: 'PENDING' } }),
-    prisma.contactMessage.count({ where: { status: 'UNREAD' } }),
-    checkPermission(Permission.USER_MANAGE),
-    checkPermission(Permission.BLOG_WRITE),
-    checkPermission(Permission.AFFILIATE_MANAGE),
-    checkPermission(Permission.RESOURCE_MODERATE),
-    checkPermission(Permission.OPPORTUNITY_MODERATE),
-    isUserAtLeast(Role.EDITOR),
-  ]);
-
-  const StatCard = ({ title, value, subtitle, href, icon, requiredPermission }: { 
-    title: string; 
-    value: number; 
-    subtitle?: string; 
-    href?: string; 
-    icon: React.ReactNode;
-    requiredPermission?: Permission;
-  }) => {
-    if (requiredPermission && !canManageUsers && requiredPermission === Permission.USER_MANAGE) {
-      return null;
-    }
-
-    const Inner = () => (
-      <div className="bg-muted/50 p-4 rounded-lg hover:shadow-md transition-shadow h-full flex items-start gap-4 border border-transparent hover:border-border">
-        <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center text-muted-foreground flex-shrink-0">
-          {icon}
-        </div>
-        <div>
-          <p className="text-xl font-bold text-foreground">{value}</p>
-          <p className="text-sm text-muted-foreground">{title}</p>
-          {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
-        </div>
+  if (!currentUser || !isAdmin) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <p className="text-slate-500 font-medium">Unauthorized Access</p>
       </div>
     );
+  }
 
-    return href ? <Link href={href} className="focus:outline-none focus:ring-2 focus:ring-primary rounded-lg"><Inner /></Link> : <div><Inner /></div>;
-  };
+  // Fetch KPI & Bottleneck data
+  const [kpis, bottlenecks] = await Promise.all([
+    getAdminKpisAction().catch(() => ({ totalUsers: 0, newSignups: 0, activeMissions: 0 })),
+    getNodeBottlenecksAction().catch(() => []),
+  ]);
+
+  const canManageUsers = await checkPermission(Permission.USER_MANAGE);
+  const canManageBlog = await checkPermission(Permission.BLOG_WRITE);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="mb-8 flex justify-between items-center">
+    <div className="min-h-screen bg-[#020817] p-4 sm:p-8">
+      {/* ── Header ── */}
+      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-extrabold text-foreground mb-2">Admin Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back! Your role: <span className="font-semibold capitalize">{currentUser?.role?.toLowerCase().replace('_', ' ')}</span>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+              <BarChart3 className="w-4 h-4 text-indigo-400" />
+            </div>
+            <h1 className="text-2xl font-black text-slate-100 tracking-tight">Command Center</h1>
+          </div>
+          <p className="text-sm text-slate-500 font-medium">
+            SaaS Analytics & Workspace Management
           </p>
         </div>
-        {currentUser?.role === Role.SUPER_ADMIN && (
-          <div className="flex items-center gap-2 px-3 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-full text-sm">
-            <Shield size={16} />
+        
+        {currentUser.role === Role.SUPER_ADMIN && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full text-[11px] font-bold tracking-widest uppercase shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+            <Shield className="w-3 h-3" />
             Super Admin
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <StatCard 
-          title="Total Users" 
-          value={userCount} 
-          icon={<Users size={20} />}
-          requiredPermission={Permission.USER_READ}
-        />
-        <StatCard 
-          title="Total Resources" 
-          value={resourceCount} 
-          subtitle={`${categoryCount} categories`} 
-          href="/admin/resources" 
-          icon={<Book size={20} />} 
-        />
-        <StatCard 
-          title="Total Roadmaps" 
-          value={roadmapCount} 
-          href="/admin/roadmaps" 
-          icon={<Map size={20} />} 
-        />
-        <StatCard 
-          title="Total Opportunities" 
-          value={opportunityCount} 
-          href="/admin/opportunities" 
-          icon={<Briefcase size={20} />} 
-        />
+      {/* ── Bento Grid ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 max-w-7xl">
         
-        {/* Conditional cards based on permissions */}
-        {canManageBlog && (
-          <StatCard 
-            title="Total Articles" 
-            value={articleCount} 
-            href="/admin/blog" 
-            icon={<FileText size={20} />} 
-          />
-        )}
-        {canManageAffiliates && (
-          <StatCard 
-            title="Affiliate Links" 
-            value={affiliateLinkCount} 
-            href="/admin/affiliates" 
-            icon={<LinkIcon size={20} />} 
-          />
-        )}
-        <StatCard 
-          title="User Reports" 
-          value={pendingReportCount} 
-          subtitle="Pending review" 
-          href="/admin/moderation" 
-          icon={<Flag size={20} />} 
-        />
-        <StatCard 
-          title="Inbox Messages" 
-          value={unreadInboxCount} 
-          subtitle="Unread" 
-          href="/admin/inbox" 
-          icon={<Inbox size={20} />} 
-        />
-      </div>
-
-      {/* Moderation Section - Only show if user can moderate */}
-      {(canModerateResources || canModerateOpportunities) && (
-        <div className="lg:col-span-2 bg-muted/50 p-6 rounded-lg border border-transparent hover:border-border transition-colors mb-6">
-          <h2 className="text-xl font-bold mb-3">Moderation Queues</h2>
-          <p className="text-sm text-muted-foreground">Review pending submissions for resources and opportunities.</p>
-          <div className="mt-4 flex flex-wrap gap-4">
-            {canModerateResources && (
-              <Link href="/admin/resources?tab=PENDING" className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-semibold hover:bg-primary/90">
-                Review Resources
-                {pendingResourceCount > 0 && (
-                  <span className="ml-2 inline-block py-0.5 px-2 rounded-full text-xs font-semibold bg-primary-foreground text-primary">
-                    {pendingResourceCount}
-                  </span>
-                )}
-              </Link>
-            )}
-            {canModerateResources && (
-              <Link href="/admin/submissions" className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-semibold hover:bg-blue-700">
-                Community Submissions
-                {pendingSubmissionCount > 0 && (
-                  <span className="ml-2 inline-block py-0.5 px-2 rounded-full text-xs font-semibold bg-white text-blue-600">
-                    {pendingSubmissionCount}
-                  </span>
-                )}
-              </Link>
-            )}
-            {canModerateOpportunities && (
-              <Link href="/admin/opportunities?tab=PENDING" className="inline-flex items-center px-4 py-2 bg-secondary text-secondary-foreground rounded-md text-sm font-semibold hover:bg-secondary/80">
-                Review Opportunities
-                {pendingOpportunityCount > 0 && (
-                  <span className="ml-2 inline-block py-0.5 px-2 rounded-full text-xs font-semibold bg-secondary-foreground text-secondary">
-                    {pendingOpportunityCount}
-                  </span>
-                )}
-              </Link>
-            )}
+        {/* ── Top Row: KPIs ── */}
+        <div className="md:col-span-1 bg-slate-900/50 border border-slate-800/60 rounded-3xl p-5 flex flex-col justify-between hover:border-indigo-500/30 transition-all">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Users</p>
+            <Users className="w-4 h-4 text-slate-600" />
+          </div>
+          <div>
+            <p className="text-4xl font-black text-slate-100">{kpis.totalUsers.toLocaleString()}</p>
           </div>
         </div>
-      )}
 
-      {/* Quick Actions with permission checks */}
-      <div className="bg-muted/50 p-6 rounded-lg border border-transparent hover:border-border transition-colors">
-        <h2 className="text-xl font-bold mb-3">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-          <Link href="/admin/resources" className="px-3 py-2 bg-background border border-muted rounded-md text-sm hover:bg-muted transition-colors text-center">
-            Manage Resources
-          </Link>
-          <Link href="/admin/categories" className="px-3 py-2 bg-background border border-muted rounded-md text-sm hover:bg-muted transition-colors text-center">
-            Manage Categories
-          </Link>
-          <Link href="/admin/roadmaps" className="px-3 py-2 bg-background border border-muted rounded-md text-sm hover:bg-muted transition-colors text-center">
-            Manage Roadmaps
-          </Link>
-          
-          {canManageBlog && (
-            <Link href="/admin/blog" className="px-3 py-2 bg-background border border-muted rounded-md text-sm hover:bg-muted transition-colors text-center">
-              Manage Blog
-            </Link>
-          )}
-          
-          <Link href="/admin/opportunities" className="px-3 py-2 bg-background border border-muted rounded-md text-sm hover:bg-muted transition-colors text-center">
-            Manage Opportunities
-          </Link>
-          
-          {canManageAffiliates && (
-            <Link href="/admin/affiliates" className="px-3 py-2 bg-background border border-muted rounded-md text-sm hover:bg-muted transition-colors text-center">
-              Manage Affiliates
-            </Link>
-          )}
-          
-          {canManageUsers && (
-            <Link href="/admin/users" className="px-3 py-2 bg-background border border-muted rounded-md text-sm hover:bg-muted transition-colors text-center">
-              Manage Users
-            </Link>
-          )}
-          <Link href="/admin/analytics" className="px-3 py-2 bg-primary text-primary-foreground border border-primary rounded-md text-sm font-semibold hover:bg-primary/90 transition-colors text-center flex items-center justify-center gap-1.5">
-            <BarChart3 size={14} /> Platform Analytics
-          </Link>
-          <Link href="/admin/moderation" className="px-3 py-2 bg-background border border-muted rounded-md text-sm hover:bg-muted transition-colors text-center flex items-center justify-center gap-1.5">
-            <Flag size={14} /> Moderation
-          </Link>
-          <Link href="/admin/inbox" className="px-3 py-2 bg-background border border-muted rounded-md text-sm hover:bg-muted transition-colors text-center flex items-center justify-center gap-1.5">
-            <Inbox size={14} /> Inbox
-          </Link>
+        <div className="md:col-span-1 bg-slate-900/50 border border-slate-800/60 rounded-3xl p-5 flex flex-col justify-between hover:border-indigo-500/30 transition-all">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">30-Day Signups</p>
+            <TrendingUp className="w-4 h-4 text-emerald-500" />
+          </div>
+          <div>
+            <p className="text-4xl font-black text-slate-100">{kpis.newSignups.toLocaleString()}</p>
+            <p className="text-xs font-bold text-emerald-400 mt-2 flex items-center gap-1">
+              <ArrowUpRight className="w-3 h-3" />
+              Active Growth
+            </p>
+          </div>
         </div>
+
+        <div className="md:col-span-1 lg:col-span-2 bg-slate-900/50 border border-slate-800/60 rounded-3xl p-5 flex flex-col justify-between hover:border-indigo-500/30 transition-all relative overflow-hidden">
+          {/* Decorative background glow */}
+          <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-indigo-500/20 blur-3xl rounded-full pointer-events-none" />
+          
+          <div className="flex items-center justify-between mb-4 relative z-10">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Active Missions</p>
+            <Activity className="w-4 h-4 text-indigo-400" />
+          </div>
+          <div className="relative z-10">
+            <p className="text-4xl font-black text-slate-100">{kpis.activeMissions.toLocaleString()}</p>
+            <p className="text-xs font-bold text-slate-500 mt-2">
+              Learners actively traversing the graph
+            </p>
+          </div>
+        </div>
+
+        {/* ── Middle Row: Bottlenecks Chart ── */}
+        <div className="md:col-span-3 lg:col-span-4 bg-slate-900/40 border border-slate-800/60 rounded-3xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-sm font-bold text-slate-200">Learning Node Bottlenecks</h2>
+              <p className="text-xs text-slate-500 font-medium mt-1">
+                Nodes with the highest ratio of attempts to successful completions.
+              </p>
+            </div>
+            <div className="px-3 py-1 bg-slate-800/50 rounded-lg border border-slate-700/50 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Top 5 Blocks
+            </div>
+          </div>
+          <BottleneckChart data={bottlenecks} />
+        </div>
+
+        {/* ── Bottom Row: SaaS Navigation ── */}
+        <div className="md:col-span-3 lg:col-span-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          
+          <Link href="/admin" className="group p-4 bg-slate-900/50 border border-slate-800/60 rounded-2xl hover:bg-slate-800 hover:border-slate-700 transition-all">
+            <div className="w-8 h-8 bg-slate-950 rounded-xl flex items-center justify-center mb-3 border border-slate-800 group-hover:border-indigo-500/50 transition-colors">
+              <BarChart3 className="w-4 h-4 text-indigo-400" />
+            </div>
+            <p className="text-sm font-bold text-slate-200">Analytics</p>
+            <p className="text-[10px] text-slate-500 mt-1">Dashboard</p>
+          </Link>
+
+          {canManageUsers && (
+            <Link href="/admin/users" className="group p-4 bg-slate-900/50 border border-slate-800/60 rounded-2xl hover:bg-slate-800 hover:border-slate-700 transition-all">
+              <div className="w-8 h-8 bg-slate-950 rounded-xl flex items-center justify-center mb-3 border border-slate-800 group-hover:border-indigo-500/50 transition-colors">
+                <Users className="w-4 h-4 text-emerald-400" />
+              </div>
+              <p className="text-sm font-bold text-slate-200">Users</p>
+              <p className="text-[10px] text-slate-500 mt-1">Manage accounts</p>
+            </Link>
+          )}
+
+          <Link href="/admin/roadmaps" className="group p-4 bg-slate-900/50 border border-slate-800/60 rounded-2xl hover:bg-slate-800 hover:border-slate-700 transition-all">
+            <div className="w-8 h-8 bg-slate-950 rounded-xl flex items-center justify-center mb-3 border border-slate-800 group-hover:border-indigo-500/50 transition-colors">
+              <Map className="w-4 h-4 text-amber-400" />
+            </div>
+            <p className="text-sm font-bold text-slate-200">Roadmaps</p>
+            <p className="text-[10px] text-slate-500 mt-1">V2 Graph Forge</p>
+          </Link>
+
+          <Link href="/admin/resources" className="group p-4 bg-slate-900/50 border border-slate-800/60 rounded-2xl hover:bg-slate-800 hover:border-slate-700 transition-all">
+            <div className="w-8 h-8 bg-slate-950 rounded-xl flex items-center justify-center mb-3 border border-slate-800 group-hover:border-indigo-500/50 transition-colors">
+              <BookOpen className="w-4 h-4 text-cyan-400" />
+            </div>
+            <p className="text-sm font-bold text-slate-200">Resources</p>
+            <p className="text-[10px] text-slate-500 mt-1">Library & moderation</p>
+          </Link>
+
+          <Link href="/admin/opportunities" className="group p-4 bg-slate-900/50 border border-slate-800/60 rounded-2xl hover:bg-slate-800 hover:border-slate-700 transition-all">
+            <div className="w-8 h-8 bg-slate-950 rounded-xl flex items-center justify-center mb-3 border border-slate-800 group-hover:border-indigo-500/50 transition-colors">
+              <Briefcase className="w-4 h-4 text-pink-400" />
+            </div>
+            <p className="text-sm font-bold text-slate-200">Opportunities</p>
+            <p className="text-[10px] text-slate-500 mt-1">Jobs & gigs</p>
+          </Link>
+
+          {canManageBlog && (
+            <Link href="/admin/blog" className="group p-4 bg-slate-900/50 border border-slate-800/60 rounded-2xl hover:bg-slate-800 hover:border-slate-700 transition-all">
+              <div className="w-8 h-8 bg-slate-950 rounded-xl flex items-center justify-center mb-3 border border-slate-800 group-hover:border-indigo-500/50 transition-colors">
+                <FileText className="w-4 h-4 text-violet-400" />
+              </div>
+              <p className="text-sm font-bold text-slate-200">Blog</p>
+              <p className="text-[10px] text-slate-500 mt-1">Content engine</p>
+            </Link>
+          )}
+
+          <Link href="/admin/categories" className="group p-4 bg-slate-900/50 border border-slate-800/60 rounded-2xl hover:bg-slate-800 hover:border-slate-700 transition-all">
+            <div className="w-8 h-8 bg-slate-950 rounded-xl flex items-center justify-center mb-3 border border-slate-800 group-hover:border-indigo-500/50 transition-colors">
+              <Layers3 className="w-4 h-4 text-sky-400" />
+            </div>
+            <p className="text-sm font-bold text-slate-200">Categories</p>
+            <p className="text-[10px] text-slate-500 mt-1">Taxonomy</p>
+          </Link>
+
+          <Link href="/admin/submissions" className="group p-4 bg-slate-900/50 border border-slate-800/60 rounded-2xl hover:bg-slate-800 hover:border-slate-700 transition-all">
+            <div className="w-8 h-8 bg-slate-950 rounded-xl flex items-center justify-center mb-3 border border-slate-800 group-hover:border-indigo-500/50 transition-colors">
+              <Inbox className="w-4 h-4 text-lime-400" />
+            </div>
+            <p className="text-sm font-bold text-slate-200">Submissions</p>
+            <p className="text-[10px] text-slate-500 mt-1">Community queue</p>
+          </Link>
+
+          <Link href="/admin/affiliates" className="group p-4 bg-slate-900/50 border border-slate-800/60 rounded-2xl hover:bg-slate-800 hover:border-slate-700 transition-all">
+            <div className="w-8 h-8 bg-slate-950 rounded-xl flex items-center justify-center mb-3 border border-slate-800 group-hover:border-indigo-500/50 transition-colors">
+              <Link2 className="w-4 h-4 text-rose-400" />
+            </div>
+            <p className="text-sm font-bold text-slate-200">Affiliates</p>
+            <p className="text-[10px] text-slate-500 mt-1">Partner links</p>
+          </Link>
+
+          <Link href="/admin/moderation" className="group p-4 bg-slate-900/50 border border-slate-800/60 rounded-2xl hover:bg-slate-800 hover:border-red-900/40 transition-all">
+            <div className="w-8 h-8 bg-slate-950 rounded-xl flex items-center justify-center mb-3 border border-slate-800 group-hover:border-red-500/40 transition-colors">
+              <FlagTriangleRight className="w-4 h-4 text-red-400" />
+            </div>
+            <p className="text-sm font-bold text-slate-200">Reports</p>
+            <p className="text-[10px] text-slate-500 mt-1">Moderation queue</p>
+          </Link>
+
+        </div>
+
       </div>
     </div>
   );
