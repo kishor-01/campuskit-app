@@ -81,7 +81,7 @@ export default function SignupPage() {
   }, [state, router]);
 
   const handleGoogleSignIn = async () => {
-    await signIn("google", { callbackUrl: "/" });
+    await signIn("google", { callbackUrl: "/dashboard" });
   };
 
   // Show loading state during redirect
