@@ -12,6 +12,7 @@ import { logLoginFailed, logLoginSuccess } from '@/lib/audit-logger';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  trustHost: true,
   adapter: PrismaAdapter(prisma) as any,
 
   providers: [
