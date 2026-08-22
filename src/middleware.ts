@@ -10,7 +10,10 @@ export default async function middleware(req: NextRequest) {
   const url = req.nextUrl.clone();
   const pathname = url.pathname;
 
-  const sessionToken = req.cookies.get("authjs.session-token")?.value;
+    // FIX: Look for both standard dev cookies and production __Secure- cookies
+  const sessionToken = req.cookies.get("authjs.session-token")?.value || 
+                       req.cookies.get("__Secure-authjs.session-token")?.value;
+                       
   const callbackCookie = req.cookies.get("authjs.callback-url")?.value;
 
   // Handle login redirects for already authenticated users
@@ -20,6 +23,7 @@ export default async function middleware(req: NextRequest) {
     res.cookies.set("authjs.callback-url", "", { maxAge: 0, path: "/" });
     return res;
   }
+
 
   if (callbackCookie && callbackCookie.includes("/login")) {
     console.log("🧩 [Middleware] Clearing authjs.callback-url because it points to /login");
