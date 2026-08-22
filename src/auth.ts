@@ -76,6 +76,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         process.env.GOOGLE_CLIENT_SECRET ||
         process.env.AUTH_GOOGLE_SECRET ||
         "",
+      allowDangerousEmailAccountLinking: true, // Google verifies email ownership
     }),
   ],
 
