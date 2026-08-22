@@ -50,13 +50,6 @@ export default function LoginPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-  // Redirect if already logged in
-  useEffect(() => {
-    if (session?.user) {
-      router.push(callbackUrl);
-    }
-  }, [session, callbackUrl, router]);
-
   // Show success messages
   useEffect(() => {
     if (verifiedParam === 'true') {
