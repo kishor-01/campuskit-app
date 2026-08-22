@@ -47,6 +47,20 @@ export default async function middleware(req: NextRequest) {
 
       if (session instanceof Response) {
           console.log("🧩 [Middleware] Auth handler returned a response (e.g., redirect).");
+          
+          // FIX: Intercept the dynamic Vercel deployment URL on sign-out/redirects
+          const redirectUrlHeader = session.headers.get("Location");
+          if (redirectUrlHeader) {
+              try {
+                  const parsedUrl = new URL(redirectUrlHeader);
+                  // Force the internal redirect path to be cleanly built on top of your live domain
+                  const cleanRedirect = new URL(parsedUrl.pathname + parsedUrl.search, req.url);
+                  return NextResponse.redirect(cleanRedirect);
+              } catch (e) {
+                  // Fallback safely if url parsing fails
+                  return session;
+              }
+          }
           return session;
       }
 
