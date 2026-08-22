@@ -54,7 +54,7 @@ export const authConfig = {
       return session;
     },
 
-    // REMOVED the broken redirect block entirely so src/auth.ts handles it cleanly
+    // ⚠️ REMOVED the redirect callback – it is now in src/auth.ts
   },
 
   providers: [],
