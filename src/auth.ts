@@ -159,10 +159,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
 
     async redirect({ url, baseUrl }) {
-      // Redirect to /dashboard after login unless a specific callbackUrl was set
-      if (url === baseUrl || url === `${baseUrl}/`) return `${baseUrl}/dashboard`;
+       // If the target URL contains the callback redirect parameter, force it relative
       if (url.startsWith("/")) return `${baseUrl}${url}`;
-      if (new URL(url).origin === baseUrl) return url;
+       // Safe fallback: force route directly to the main relative dashboard layout
       return `${baseUrl}/dashboard`;
     },
   },
