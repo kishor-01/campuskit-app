@@ -1,4 +1,4 @@
-//src/auth.ts
+// src/auth.ts
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
@@ -158,10 +158,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     },
 
+    // ✅ FIXED: Redirect callback that respects relative URLs and same‑origin absolute URLs
     async redirect({ url, baseUrl }) {
-       // If the target URL contains the callback redirect parameter, force it relative
+      // Allows relative callback URLs
       if (url.startsWith("/")) return `${baseUrl}${url}`;
-       // Safe fallback: force route directly to the main relative dashboard layout
+      // Allows callback URLs on the same origin
+      try {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.origin === baseUrl) return url;
+      } catch {
+        // ignore invalid URL
+      }
+      // Fallback to dashboard
       return `${baseUrl}/dashboard`;
     },
   },
