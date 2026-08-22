@@ -1,29 +1,26 @@
 // src/middleware.ts
 import { NextResponse, type NextRequest } from "next/server";
-import NextAuth from "next-auth";
-import { authConfig } from "./auth.config";
+import { auth as nextAuthHandler } from "@/auth"; // FIX: Import the complete consolidated auth module directly
 
 console.log("🧩 [Middleware] File loaded");
-const { auth: nextAuthHandler } = NextAuth(authConfig);
 
 export default async function middleware(req: NextRequest) {
   const url = req.nextUrl.clone();
   const pathname = url.pathname;
 
-    // FIX: Look for both standard dev cookies and production __Secure- cookies
+  // Track session cookies for both Local Development and Secure Production Vercel environments
   const sessionToken = req.cookies.get("authjs.session-token")?.value || 
                        req.cookies.get("__Secure-authjs.session-token")?.value;
                        
   const callbackCookie = req.cookies.get("authjs.callback-url")?.value;
 
-  // Handle login redirects for already authenticated users
+  // Handle login page bypass for already authenticated users
   if (pathname === "/login" && sessionToken) {
     console.log("🧩 [Middleware] Authenticated user hit /login — redirecting to /dashboard");
     const res = NextResponse.redirect(new URL("/dashboard", req.url));
     res.cookies.set("authjs.callback-url", "", { maxAge: 0, path: "/" });
     return res;
   }
-
 
   if (callbackCookie && callbackCookie.includes("/login")) {
     console.log("🧩 [Middleware] Clearing authjs.callback-url because it points to /login");
@@ -47,21 +44,19 @@ export default async function middleware(req: NextRequest) {
   const isProtected = !isPublic;
 
   try {
+      // Execute the unified engine handler containing the Google OAuth schema configuration
       const session = await nextAuthHandler(req as any) as any;
 
       if (session instanceof Response) {
-          console.log("🧩 [Middleware] Auth handler returned a response (e.g., redirect).");
+          console.log("🧩 [Middleware] Auth handler returned an absolute routing response.");
           
-          // FIX: Intercept the dynamic Vercel deployment URL on sign-out/redirects
           const redirectUrlHeader = session.headers.get("Location");
           if (redirectUrlHeader) {
               try {
                   const parsedUrl = new URL(redirectUrlHeader);
-                  // Force the internal redirect path to be cleanly built on top of your live domain
                   const cleanRedirect = new URL(parsedUrl.pathname + parsedUrl.search, req.url);
                   return NextResponse.redirect(cleanRedirect);
               } catch (e) {
-                  // Fallback safely if url parsing fails
                   return session;
               }
           }
@@ -81,15 +76,13 @@ export default async function middleware(req: NextRequest) {
         const onboarded = session.user?.onboarded;
         const isOnboardingRoute = pathname === '/onboarding';
 
-        // Gate: non-onboarded user hitting ANY protected route → send to /onboarding
         if (onboarded !== true && !isOnboardingRoute && isProtected) {
           console.log('🧩 [Middleware] User not onboarded — redirecting to /onboarding');
           return NextResponse.redirect(new URL('/onboarding', req.url));
         }
 
-        // Inverse: already-onboarded user landing on /onboarding → send to /dashboard
         if (onboarded === true && isOnboardingRoute) {
-          console.log('🧩 [Middleware] User already onboarded — redirecting from /onboarding to /dashboard');
+          console.log('🧩 [Middleware] User already onboarded — redirecting to /dashboard');
           return NextResponse.redirect(new URL('/dashboard', req.url));
         }
       }
