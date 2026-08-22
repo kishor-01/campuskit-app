@@ -113,7 +113,7 @@ export default function LoginPage() {
     setErrorMessage(null);
     setSuccessMessage(null);
     // Fix: Remove await since signIn returns void for OAuth
-    signIn("google", { callbackUrl });
+    signIn("google", { callbackUrl: "/dashboard" });
   };
 
   // Show loading state during redirect
