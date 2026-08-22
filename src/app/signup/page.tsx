@@ -49,13 +49,6 @@ export default function SignupPage() {
   const router = useRouter();
   const { data: session } = useSession();
 
-  // ✅ Redirect if already logged in
-  useEffect(() => {
-    if (session?.user) {
-      router.push("/");
-    }
-  }, [session, router]);
-
   // ✅ Handle successful registration with OTP flow
   useEffect(() => {
     if (state?.success) {
