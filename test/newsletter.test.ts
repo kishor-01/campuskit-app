@@ -10,8 +10,11 @@ vi.mock('../src/lib/prisma', () => ({
   },
 }));
 
-vi.mock('../src/lib/rateLimiter', () => ({ default: vi.fn(async () => ({ limited: false, remaining: 4, resetIn: 60 })) }));
+const mockRateLimit = vi.hoisted(() => vi.fn());
+vi.mock('../src/lib/rateLimiter', () => ({ default: mockRateLimit, rateLimit: mockRateLimit }));
 vi.mock('../src/lib/email-service', () => ({ emailService: { sendOtpEmail: vi.fn(async () => ({ success: true })) } }));
+// Prevent `new Resend(...)` from throwing when RESEND_API_KEY is absent in CI
+vi.mock('../src/lib/email', () => ({ sendNewsletterWelcome: vi.fn(async () => {}) }));
 
 import prisma from '../src/lib/prisma';
 import rateLimit from '../src/lib/rateLimiter';
@@ -27,6 +30,8 @@ function makeReq(body: any) {
 describe('Newsletter route', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    // Restore default mock implementations after resetAllMocks clears them
+    mockRateLimit.mockResolvedValue({ limited: false, remaining: 4, resetIn: 60 });
   });
 
   it('creates a new subscriber when none exists', async () => {
