@@ -27,6 +27,8 @@ interface SandboxEditorProps {
   nodeTitle: string;
   initialContent: string; // HTML string (empty string if no note yet)
   onSaveStateChange: (state: SaveState) => void;
+  /** Optional: called on every content update with the latest HTML (for AI verification) */
+  onContentChange?: (html: string) => void;
 }
 
 // ─── Toolbar Button ────────────────────────────────────────────────────────────
@@ -78,6 +80,7 @@ export default function SandboxEditor({
   nodeTitle,
   initialContent,
   onSaveStateChange,
+  onContentChange,
 }: SandboxEditorProps) {
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentNodeId = useRef(nodeId);
@@ -143,7 +146,9 @@ export default function SandboxEditor({
       },
     },
     onUpdate: ({ editor }) => {
-      triggerSave(editor.getHTML());
+      const html = editor.getHTML();
+      triggerSave(html);
+      onContentChange?.(html);
     },
     immediatelyRender: false,
   });

@@ -1,10 +1,12 @@
 // src/app/roadmaps/[slug]/NodeDrawer.tsx
-// Constellation Engine — Sliding Side-Panel Drawer for V2 Skill Nodes (Phase 3)
+// Phase 21 — Spatial Workspace & AI Verification Gate
+// 3-tab workspace: Briefing · Co-Pilot · Execution Log
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import toast from 'react-hot-toast';
 import {
   X,
   BookOpen,
@@ -22,21 +24,34 @@ import {
   Crown,
   CloudUpload,
   Cloud,
-  CheckSquare,
-  Square,
   Lightbulb,
+  Bot,
+  Terminal,
+  Sparkles,
+  AlertCircle,
+  CheckCheck,
 } from 'lucide-react';
 import { completeNodeAction } from '@/actions/nodeProgressActions';
+import { verifyExecutionAction } from '@/actions/verificationActions';
 import SandboxEditor from '@/components/roadmap/SandboxEditor';
+import NodeTutor from '@/components/roadmap/NodeTutor';
 import type { ConstellationNode, AffiliateResourceItem } from './ConstellationCanvas';
 import type { NodeStatus } from '@/lib/graphEngine';
 
 // ─── Tabs ──────────────────────────────────────────────────────────────────────
-const TABS = ['Briefing', 'Arsenal', 'Sandbox'] as const;
-type Tab = (typeof TABS)[number];
+const TABS = [
+  { id: 'Briefing',       label: '📖 Briefing',       icon: BookOpen  },
+  { id: 'CoPilot',        label: '🤖 Co-Pilot',        icon: Bot       },
+  { id: 'ExecutionLog',   label: '💻 Execution Log',   icon: Terminal  },
+] as const;
+
+type TabId = typeof TABS[number]['id'];
 
 // ─── Save indicator state ─────────────────────────────────────────────────────
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+
+// ─── Verification state ───────────────────────────────────────────────────────
+type VerifyState = 'idle' | 'verifying' | 'passed' | 'failed';
 
 // ─── Type metadata ────────────────────────────────────────────────────────────
 const TYPE_META = {
@@ -100,7 +115,6 @@ function PremiumResourceCard({ resource }: { resource: AffiliateResourceItem }) 
         hover:shadow-violet-500/5 focus:outline-none focus-visible:ring-2
         focus-visible:ring-violet-500"
     >
-      {/* Premium badge */}
       {resource.isPremium && (
         <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5
           rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
@@ -108,8 +122,6 @@ function PremiumResourceCard({ resource }: { resource: AffiliateResourceItem }) 
           <span className="text-[9px] font-bold tracking-widest uppercase">Premium</span>
         </div>
       )}
-
-      {/* Type badge + icon */}
       <div className="flex items-center gap-2.5">
         <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${colorClass}`}>
           <TypeIcon className="w-4 h-4" />
@@ -118,38 +130,17 @@ function PremiumResourceCard({ resource }: { resource: AffiliateResourceItem }) 
           {resource.type}
         </span>
       </div>
-
-      {/* Title */}
       <p className="text-sm font-bold text-slate-100 leading-snug group-hover:text-violet-300 transition-colors pr-10">
         {resource.title}
       </p>
-
-      {/* Description */}
       <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">
         {resource.description}
       </p>
-
-      {/* CTA */}
       <div className="flex items-center gap-1.5 text-xs font-semibold text-violet-400 group-hover:text-violet-300 transition-colors mt-auto pt-1">
         <span>Open Resource</span>
         <ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
       </div>
     </a>
-  );
-}
-
-// ─── Arsenal Empty State ──────────────────────────────────────────────────────
-function ArsenalEmpty() {
-  return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-slate-800/60 border border-slate-700/50 flex items-center justify-center mb-4">
-        <ShieldCheck className="w-6 h-6 text-slate-600" />
-      </div>
-      <p className="text-sm font-semibold text-slate-500 mb-1">No Arsenal Yet</p>
-      <p className="text-xs text-slate-600 max-w-[200px] leading-relaxed">
-        Curated resources for this node are being assembled by the team.
-      </p>
-    </div>
   );
 }
 
@@ -164,20 +155,26 @@ interface NodeDrawerProps {
 
 // ─── Main Drawer ──────────────────────────────────────────────────────────────
 export default function NodeDrawer({ node, roadmapId, initialNote, onClose }: NodeDrawerProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('Briefing');
+  const [activeTab, setActiveTab] = useState<TabId>('Briefing');
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [isCompleting, setIsCompleting] = useState(false);
-  const [knowledgeCheckDone, setKnowledgeCheckDone] = useState(false);
+  const [verifyState, setVerifyState] = useState<VerifyState>('idle');
+  const [verifyFeedback, setVerifyFeedback] = useState<string>('');
   const currentNodeId = useRef<string | null>(null);
 
-  // ── Sync note content when node changes ──────────────────────────────────
+  // ── Track editor content for verification ────────────────────────────────
+  const editorContentRef = useRef<string>('');
+
+  // ── Sync state when node changes ─────────────────────────────────────────
   useEffect(() => {
     if (!node) return;
     if (node.id !== currentNodeId.current) {
       currentNodeId.current = node.id;
       setSaveState('idle');
       setActiveTab('Briefing');
-      setKnowledgeCheckDone(false); // Reset check when switching nodes
+      setVerifyState('idle');
+      setVerifyFeedback('');
+      editorContentRef.current = initialNote || '';
     }
   }, [node, initialNote]);
 
@@ -191,7 +188,7 @@ export default function NodeDrawer({ node, roadmapId, initialNote, onClose }: No
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [node, onClose]);
 
-  // ── Complete node ────────────────────────────────────────────────────────
+  // ── Complete node (called after AI passes verification) ──────────────────
   const handleComplete = useCallback(async () => {
     if (!node || isCompleting) return;
     setIsCompleting(true);
@@ -200,10 +197,56 @@ export default function NodeDrawer({ node, roadmapId, initialNote, onClose }: No
       onClose();
     } catch (e) {
       console.error('[NodeDrawer] completeNodeAction failed:', e);
+      toast.error('Failed to mark node complete. Please try again.');
     } finally {
       setIsCompleting(false);
     }
   }, [node, roadmapId, isCompleting, onClose]);
+
+  // ── AI Verification Gate ─────────────────────────────────────────────────
+  const handleVerify = useCallback(async () => {
+    if (!node || verifyState === 'verifying') return;
+
+    const submissionText = editorContentRef.current;
+    const knowledgeCheck = node.knowledgeCheck;
+
+    if (!knowledgeCheck) {
+      // No check required — complete directly
+      await handleComplete();
+      return;
+    }
+
+    // Strip HTML to plain text for AI evaluation
+    const textContent = submissionText.replace(/<[^>]*>/g, '').trim();
+
+    if (!textContent || textContent.length < 10) {
+      toast.error('Write your execution log first — describe what you built or did.');
+      return;
+    }
+
+    setVerifyState('verifying');
+    setVerifyFeedback('');
+
+    const result = await verifyExecutionAction(textContent, knowledgeCheck);
+
+    if (!result.success) {
+      setVerifyState('idle');
+      toast.error(result.error || 'Verification failed. Please try again.');
+      return;
+    }
+
+    setVerifyFeedback(result.feedback);
+
+    if (result.passed) {
+      setVerifyState('passed');
+      toast.success(`✅ ${result.feedback}`, { duration: 5000 });
+      // Auto-complete after a short delay so the user sees the success state
+      setTimeout(() => handleComplete(), 1200);
+    } else {
+      setVerifyState('failed');
+      // Show inline feedback — no auto-complete
+    }
+  }, [node, verifyState, handleComplete]);
 
   // ── Derived display data ─────────────────────────────────────────────────
   const isOpen = node !== null;
@@ -214,9 +257,11 @@ export default function NodeDrawer({ node, roadmapId, initialNote, onClose }: No
   const statusMeta = node ? STATUS_META[node.status] : STATUS_META.LOCKED;
   const StatusIcon = statusMeta.icon;
 
+  const hasKnowledgeCheck = Boolean(node?.knowledgeCheck);
+
   return (
     <>
-      {/* ── Backdrop ─────────────────────────────────────────────────────── */}
+      {/* ── Backdrop ───────────────────────────────────────────────────── */}
       <div
         className={`fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm transition-opacity duration-500 ${
           isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
@@ -225,20 +270,20 @@ export default function NodeDrawer({ node, roadmapId, initialNote, onClose }: No
         aria-hidden="true"
       />
 
-      {/* ── Sliding Panel / Bottom Sheet ───────────────────────────────────────── */}
+      {/* ── Sliding Panel / Bottom Sheet ───────────────────────────────── */}
       <div
         role="dialog"
         aria-modal="true"
         aria-label={node?.title ?? 'Node details'}
-        className={`fixed bottom-0 left-0 w-full h-[90vh] rounded-t-3xl md:rounded-none md:bottom-auto md:left-auto md:right-0 md:top-0 md:h-full md:w-[45vw] lg:w-[38vw] z-50
-          bg-slate-950/95 backdrop-blur-xl md:border-l md:border-slate-800/80 border-t border-slate-800/80 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] md:shadow-2xl
+        className={`fixed bottom-0 left-0 w-full h-[92vh] rounded-t-3xl md:rounded-none md:bottom-auto md:left-auto md:right-0 md:top-0 md:h-full md:w-[47vw] lg:w-[40vw] z-50
+          bg-slate-950/97 backdrop-blur-xl md:border-l md:border-slate-800/80 border-t border-slate-800/80 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] md:shadow-2xl
           flex flex-col
           transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
           ${isOpen ? 'translate-y-0 md:translate-x-0 md:translate-y-0' : 'translate-y-full md:translate-x-full md:translate-y-0'}`}
       >
         {node && (
           <>
-            {/* ── Hero Banner ──────────────────────────────────────────── */}
+            {/* ── Hero Header ──────────────────────────────────────────── */}
             <div className="relative flex-shrink-0 px-6 pt-6 pb-5 border-b border-slate-800/60
               bg-gradient-to-br from-slate-900/80 via-slate-950 to-slate-950">
               {/* Close */}
@@ -276,31 +321,53 @@ export default function NodeDrawer({ node, roadmapId, initialNote, onClose }: No
               <h2 className="text-xl font-extrabold text-slate-100 tracking-tight leading-snug pr-8">
                 {node.title}
               </h2>
+
+              {/* Glowing Senior Insight callout (always visible in header when present) */}
+              {node.seniorInsight && (
+                <div className="relative overflow-hidden rounded-xl border border-indigo-500/30
+                  bg-gradient-to-br from-indigo-950/60 via-slate-900/80 to-slate-950/60 p-3.5 mt-4">
+                  {/* Ambient glow */}
+                  <div className="absolute -top-4 -right-4 w-20 h-20 bg-indigo-500/15 rounded-full blur-2xl pointer-events-none" />
+                  <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-violet-500/10 rounded-full blur-2xl pointer-events-none" />
+                  <div className="relative flex items-start gap-2.5">
+                    <div className="w-6 h-6 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Lightbulb className="w-3.5 h-3.5 text-indigo-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.15em]">
+                          Senior Insight
+                        </p>
+                        <span className="text-[9px] font-bold text-indigo-500/50 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded-full">
+                          Staff Engineer
+                        </span>
+                      </div>
+                      <p className="text-xs text-indigo-100/80 leading-relaxed italic">
+                        {node.seniorInsight}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* ── Tabs ────────────────────────────────────────────────── */}
+            {/* ── Tab Navigation ───────────────────────────────────────── */}
             <div className="flex-shrink-0 flex border-b border-slate-800/60 bg-slate-950/50">
               {TABS.map((tab) => {
-                const showBadge = tab === 'Arsenal' && node.affiliateResources.length > 0;
+                const isActive = activeTab === tab.id;
                 return (
                   <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`flex-1 py-3 text-xs font-bold tracking-wider uppercase transition-all duration-200
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex-1 py-3 text-[10px] font-bold tracking-wider uppercase transition-all duration-200
                       focus:outline-none focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-violet-500
-                      relative
-                      ${activeTab === tab
+                      relative whitespace-nowrap px-1
+                      ${isActive
                         ? 'text-violet-400 border-b-2 border-violet-500 bg-violet-500/5'
                         : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30 border-b-2 border-transparent'
                       }`}
                   >
-                    {tab}
-                    {showBadge && (
-                      <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full
-                        bg-violet-500/20 text-violet-400 text-[9px] font-bold">
-                        {node.affiliateResources.length}
-                      </span>
-                    )}
+                    {tab.label}
                   </button>
                 );
               })}
@@ -309,7 +376,7 @@ export default function NodeDrawer({ node, roadmapId, initialNote, onClose }: No
             {/* ── Tab Content ──────────────────────────────────────────── */}
             <div className="flex-1 overflow-y-auto min-h-0">
 
-              {/* — BRIEFING TAB — */}
+              {/* ─── TAB 1: BRIEFING ─── */}
               {activeTab === 'Briefing' && (
                 <div className="p-6 space-y-5">
                   <div>
@@ -318,13 +385,24 @@ export default function NodeDrawer({ node, roadmapId, initialNote, onClose }: No
                     </p>
                     <div className="rounded-xl border border-slate-800/60 bg-slate-900/40 p-4">
                       {node.briefing ? (
-                        <div className="prose prose-invert prose-sm max-w-none
+                        <div className="
+                          prose prose-invert prose-indigo prose-sm max-w-none
                           prose-headings:text-slate-200 prose-headings:font-bold prose-headings:mb-2 prose-headings:mt-3
                           prose-p:text-slate-300 prose-p:leading-relaxed prose-p:my-1.5
                           prose-strong:text-slate-100 prose-strong:font-semibold
+                          prose-em:text-slate-300/90
                           prose-code:text-violet-300 prose-code:bg-violet-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none
+                          prose-pre:bg-slate-900/80 prose-pre:border prose-pre:border-slate-700/50 prose-pre:rounded-xl
                           prose-li:text-slate-300 prose-li:my-0.5
-                          prose-ul:my-2 prose-ol:my-2">
+                          prose-ul:my-2 prose-ol:my-2
+                          prose-blockquote:border-indigo-500/40 prose-blockquote:text-slate-400 prose-blockquote:bg-indigo-950/30 prose-blockquote:rounded-r-lg prose-blockquote:py-0.5
+                          prose-hr:border-slate-700/50
+                          prose-table:w-full prose-table:border-collapse
+                          prose-thead:border-b prose-thead:border-indigo-500/30
+                          prose-th:bg-indigo-950/50 prose-th:text-indigo-200 prose-th:font-bold prose-th:text-xs prose-th:px-3 prose-th:py-2 prose-th:border prose-th:border-indigo-500/30
+                          prose-td:text-slate-300 prose-td:text-xs prose-td:px-3 prose-td:py-2 prose-td:border prose-td:border-indigo-500/20
+                          prose-tr:border-b prose-tr:border-slate-800/60
+                        ">
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>
                             {node.briefing}
                           </ReactMarkdown>
@@ -335,20 +413,16 @@ export default function NodeDrawer({ node, roadmapId, initialNote, onClose }: No
                     </div>
                   </div>
 
-                  {/* ── Senior Insight Callout ── */}
-                  {node.seniorInsight && (
-                    <div className="relative overflow-hidden rounded-xl border border-indigo-500/30 bg-gradient-to-br from-indigo-950/60 via-slate-900/80 to-slate-950/60 p-4">
-                      {/* Ambient glow */}
-                      <div className="absolute -top-4 -right-4 w-20 h-20 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
-                      <div className="relative">
-                        <div className="flex items-center gap-2 mb-2.5">
-                          <div className="w-6 h-6 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center flex-shrink-0">
-                            <Lightbulb className="w-3.5 h-3.5 text-indigo-400" />
-                          </div>
-                          <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.15em]">Senior Insight</p>
-                          <span className="ml-auto text-[9px] font-bold text-indigo-500/50 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded-full">Staff Engineer</span>
-                        </div>
-                        <p className="text-sm text-indigo-100/80 leading-relaxed italic">{node.seniorInsight}</p>
+                  {/* Arsenal resources (if any) */}
+                  {node.affiliateResources.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
+                        Reference Arsenal
+                      </p>
+                      <div className="flex flex-col gap-3">
+                        {node.affiliateResources.map((resource) => (
+                          <PremiumResourceCard key={resource.id} resource={resource} />
+                        ))}
                       </div>
                     </div>
                   )}
@@ -373,38 +447,24 @@ export default function NodeDrawer({ node, roadmapId, initialNote, onClose }: No
                 </div>
               )}
 
-              {/* — ARSENAL TAB — */}
-              {activeTab === 'Arsenal' && (
-                <div className="p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                      Curated Reference Arsenal
-                    </p>
-                    {node.affiliateResources.length > 0 && (
-                      <span className="text-[10px] text-slate-600">
-                        {node.affiliateResources.length} resource{node.affiliateResources.length > 1 ? 's' : ''}
-                      </span>
-                    )}
-                  </div>
-
-                  {node.affiliateResources.length > 0 ? (
-                    <div className="flex flex-col gap-3">
-                      {node.affiliateResources.map((resource) => (
-                        <PremiumResourceCard key={resource.id} resource={resource} />
-                      ))}
-                    </div>
-                  ) : (
-                    <ArsenalEmpty />
-                  )}
+              {/* ─── TAB 2: CO-PILOT ─── */}
+              {activeTab === 'CoPilot' && (
+                <div className="p-6 flex flex-col h-full min-h-[400px]">
+                  <NodeTutor
+                    nodeId={node.id}
+                    nodeTitle={node.title}
+                    briefing={node.briefing}
+                    seniorInsight={node.seniorInsight}
+                  />
                 </div>
               )}
 
-              {/* — SANDBOX TAB — */}
-              {activeTab === 'Sandbox' && (
+              {/* ─── TAB 3: EXECUTION LOG ─── */}
+              {activeTab === 'ExecutionLog' && (
                 <div className="p-6 flex flex-col gap-3">
                   <div className="flex items-center justify-between flex-shrink-0">
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                      Study Sandbox
+                      Execution Log
                     </p>
                     {/* Save state indicator */}
                     <span className={`flex items-center gap-1.5 text-[9px] font-semibold transition-all duration-300 ${
@@ -424,99 +484,139 @@ export default function NodeDrawer({ node, roadmapId, initialNote, onClose }: No
                     </span>
                   </div>
 
-                  {/* ✔ TipTap rich-text editor */}
-                  {node && (
-                    <SandboxEditor
-                      nodeId={node.id}
-                      nodeTitle={node.title}
-                      initialContent={initialNote}
-                      onSaveStateChange={setSaveState}
-                    />
-                  )}
+                  {/* TipTap editor — captures text for AI verification */}
+                  <SandboxEditor
+                    nodeId={node.id}
+                    nodeTitle={node.title}
+                    initialContent={initialNote}
+                    onSaveStateChange={setSaveState}
+                    onContentChange={(html) => {
+                      editorContentRef.current = html;
+                    }}
+                  />
 
                   <p className="text-[10px] text-slate-600 leading-relaxed flex-shrink-0">
-                    Rich text notes — Bold, Italic, Code, Headings, Lists. Synced to your account automatically.
+                    Document what you built, ran, or discovered. This log is sent to the AI verifier when you click &quot;Verify Execution&quot; below.
                   </p>
                 </div>
               )}
             </div>
 
-            {/* ── Sticky Action Strip ──────────────────────────────────── */}
+            {/* ── Sticky Action Strip — only for UNLOCKED nodes ────────── */}
             {node.status === 'UNLOCKED' && (
-              <div className="flex-shrink-0 border-t border-slate-800/60 bg-slate-950/80 backdrop-blur-sm">
+              <div className="flex-shrink-0 border-t border-slate-800/60 bg-slate-950/90 backdrop-blur-sm">
 
-                {/* Knowledge Check Callout — only shown if node has a check */}
+                {/* Knowledge Check requirement box */}
                 {node.knowledgeCheck && (
                   <div className="mx-4 mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
-                    <div className="flex items-start gap-2.5 mb-3">
+                    <div className="flex items-start gap-2.5 mb-2">
                       <div className="w-6 h-6 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
                       </div>
                       <div>
-                        <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1">Knowledge Check</p>
-                        <p className="text-xs text-amber-200/80 leading-relaxed">{node.knowledgeCheck}</p>
+                        <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1">
+                          Prove It — Knowledge Check
+                        </p>
+                        <p className="text-xs text-amber-200/80 leading-relaxed">
+                          {node.knowledgeCheck}
+                        </p>
                       </div>
                     </div>
-
-                    {/* Checkbox confirmation */}
-                    <button
-                      onClick={() => setKnowledgeCheckDone((v) => !v)}
-                      className="flex items-center gap-2.5 w-full group"
-                      aria-pressed={knowledgeCheckDone}
-                    >
-                      <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-all duration-200
-                        ${knowledgeCheckDone
-                          ? 'bg-amber-500 border-amber-500'
-                          : 'bg-transparent border border-amber-500/40 group-hover:border-amber-500/70'
-                        }`}>
-                        {knowledgeCheckDone
-                          ? <CheckSquare className="w-3.5 h-3.5 text-slate-950" />
-                          : <Square className="w-3.5 h-3.5 text-amber-500/40 group-hover:text-amber-500/70" />}
-                      </div>
-                      <span className={`text-xs font-semibold transition-colors ${
-                        knowledgeCheckDone ? 'text-amber-400' : 'text-slate-500 group-hover:text-slate-400'
-                      }`}>
-                        I have successfully completed this requirement.
-                      </span>
-                    </button>
+                    <p className="text-[10px] text-amber-500/50 pl-8">
+                      Document your execution in the 💻 Execution Log tab, then verify below.
+                    </p>
                   </div>
                 )}
 
-                {/* Secure Objective button */}
+                {/* AI Feedback Banner */}
+                {verifyState === 'failed' && verifyFeedback && (
+                  <div className="mx-4 mt-3 rounded-xl border border-red-500/30 bg-red-500/5 p-3 flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-1">
+                        Verification Failed
+                      </p>
+                      <p className="text-xs text-red-200/80 leading-relaxed">{verifyFeedback}</p>
+                    </div>
+                  </div>
+                )}
+
+                {verifyState === 'passed' && verifyFeedback && (
+                  <div className="mx-4 mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 flex items-start gap-2.5">
+                    <CheckCheck className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">
+                        Verified ✓
+                      </p>
+                      <p className="text-xs text-emerald-200/80 leading-relaxed">{verifyFeedback}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action button */}
                 <div className="p-4">
-                  <button
-                    onClick={handleComplete}
-                    disabled={isCompleting || (!!node.knowledgeCheck && !knowledgeCheckDone)}
-                    className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl
-                      font-bold text-sm text-white transition-all duration-200
-                      bg-gradient-to-r from-violet-600 to-indigo-600
-                      hover:from-violet-500 hover:to-indigo-500
-                      hover:shadow-[0_0_28px_rgba(139,92,246,0.4)]
-                      active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:from-slate-700 disabled:to-slate-700
-                      focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
-                  >
-                    {isCompleting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Securing Objective...
-                      </>
-                    ) : (!!node.knowledgeCheck && !knowledgeCheckDone) ? (
-                      <>
-                        <Lock className="w-4 h-4" />
-                        Complete the Check Above First
-                      </>
-                    ) : (
-                      <>
-                        <ShieldCheck className="w-4 h-4" />
-                        Secure Objective (Mark Complete)
-                      </>
-                    )}
-                  </button>
+                  {hasKnowledgeCheck ? (
+                    /* Verify Execution button */
+                    <button
+                      onClick={handleVerify}
+                      disabled={verifyState === 'verifying' || verifyState === 'passed' || isCompleting}
+                      className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl
+                        font-bold text-sm text-white transition-all duration-200
+                        bg-gradient-to-r from-violet-600 to-indigo-600
+                        hover:from-violet-500 hover:to-indigo-500
+                        hover:shadow-[0_0_28px_rgba(139,92,246,0.4)]
+                        active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed
+                        disabled:from-slate-700 disabled:to-slate-700
+                        focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+                    >
+                      {verifyState === 'verifying' || isCompleting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          {isCompleting ? 'Securing Objective...' : 'AI is reviewing your work...'}
+                        </>
+                      ) : verifyState === 'passed' ? (
+                        <>
+                          <CheckCheck className="w-4 h-4" />
+                          Objective Secured!
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          Verify Execution
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    /* No knowledge check — standard complete button */
+                    <button
+                      onClick={handleComplete}
+                      disabled={isCompleting}
+                      className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl
+                        font-bold text-sm text-white transition-all duration-200
+                        bg-gradient-to-r from-violet-600 to-indigo-600
+                        hover:from-violet-500 hover:to-indigo-500
+                        hover:shadow-[0_0_28px_rgba(139,92,246,0.4)]
+                        active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:from-slate-700 disabled:to-slate-700
+                        focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+                    >
+                      {isCompleting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Securing Objective...
+                        </>
+                      ) : (
+                        <>
+                          <ShieldCheck className="w-4 h-4" />
+                          Secure Objective (Mark Complete)
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Close-only strip for completed/locked nodes */}
+            {/* Close-only strip for completed / locked nodes */}
             {node.status !== 'UNLOCKED' && (
               <div className="flex-shrink-0 p-4 border-t border-slate-800/60 bg-slate-950/80">
                 <button

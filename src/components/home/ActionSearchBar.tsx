@@ -72,7 +72,7 @@ export default function ActionSearchBar() {
     if (!input.trim()) return;
     
     // Non-blocking telemetry
-    trackEvent("HERO_SEARCH", { mode, input }).catch(console.error);
+    trackEvent("HERO_SEARCH", null, { mode, input }).catch(console.error);
 
     if (mode === "learn") {
       router.push(`/roadmaps?search=${encodeURIComponent(input)}`);

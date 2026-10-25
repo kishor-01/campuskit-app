@@ -283,7 +283,7 @@ export async function completeStepAction(stepId: string, isCompleted: boolean) {
       });
 
       // Trigger gamification / analytics
-      trackEvent('ROADMAP_STEP_COMPLETED', {
+      trackEvent('ROADMAP_STEP_COMPLETED', null, {
         stepId,
         roadmapId: step.roadmapId,
         stepTitle: step.title,

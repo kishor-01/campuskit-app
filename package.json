@@ -12,6 +12,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.80",
     "@auth/prisma-adapter": "^2.10.0",
     "@codesandbox/sandpack-react": "^2.20.0",
     "@dnd-kit/core": "^6.3.1",
@@ -44,6 +45,7 @@
     "@types/bcrypt": "^6.0.0",
     "@upstash/redis": "^1.23.0",
     "@xyflow/react": "^12.10.2",
+    "ai": "^6.0.193",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
