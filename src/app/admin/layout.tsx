@@ -1,0 +1,8 @@
+// src/app/admin/layout.tsx
+import { ReactNode } from "react";
+
+export const dynamic = "force-dynamic";
+
+export default function AdminLayout({ children }: { children: ReactNode }) {
+  return <>{children}</>;
+}

@@ -1,6 +1,6 @@
 // src/app/api/check-username/route.ts
 // Real-time username availability endpoint.
-// Rate-limited, no auth required (public — needed before account creation).
+// Rate-limited, no auth required (public â€” needed before account creation).
 
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     reqHeaders.get("x-real-ip") ||
     "unknown";
 
-  // 30 checks per minute per IP — generous for typing, tight enough to stop scraping
+  // 30 checks per minute per IP â€” generous for typing, tight enough to stop scraping
   const rl = await rateLimit(`check-username:${ip}`, 30, 60);
   if (rl.limited) {
     return NextResponse.json(

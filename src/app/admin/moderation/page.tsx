@@ -2,6 +2,8 @@
 import prisma from "@/lib/prisma";
 import ModerationClient from "./ModerationClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function ModerationPage() {
   const reports = await prisma.contentReport.findMany({
     orderBy: { createdAt: "desc" },
