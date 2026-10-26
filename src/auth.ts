@@ -160,7 +160,15 @@ export const {
       token,
       user,
       account,
+      trigger,
+      session: sessionData,
     }) {
+      // ── Client called update({ onboarded: true }) from onboarding page ──
+      // Merge the flag immediately so the next request (middleware) sees it.
+      if (trigger === 'update' && sessionData?.onboarded === true) {
+        token.onboarded = true;
+      }
+
       // When the user first signs in, copy the user information
       // into the JWT.
       if (user) {
@@ -182,14 +190,10 @@ export const {
       // Database-backed JWT validation
       // ----------------------------------------------------------
       //
-      // IMPORTANT:
-      // This code is intentionally ONLY in auth.ts.
+      // Skip on 'update' triggers: the DB write (completeOnboardingAction)
+      // and the JWT update race each other. Trust what the client sent.
       //
-      // auth.ts runs server-side where Prisma is available.
-      // auth.config.ts does NOT contain this database call and
-      // therefore remains safe for Middleware / Proxy.
-      //
-      if (token.sub) {
+      if (token.sub && trigger !== 'update') {
         try {
           const dbUser =
             await prisma.user.findUnique({
@@ -240,8 +244,11 @@ export const {
 
           token.image = dbUser.image;
 
-          token.onboarded =
-            dbUser.onboarded;
+          // Only sync onboarded from DB if it's true — never go backward.
+          // Once onboarded=true is in the token (from update() or DB), keep it.
+          if (dbUser.onboarded === true || token.onboarded !== true) {
+            token.onboarded = dbUser.onboarded;
+          }
         } catch (error) {
           console.error(
             "[AUTH] Error checking session version:",

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -97,7 +96,6 @@ const EDUCATION_OPTIONS = [
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function OnboardingPage() {
-  const router = useRouter();
   const { update } = useSession();
 
   const [username, setUsername] = useState('');
@@ -132,9 +130,12 @@ export default function OnboardingPage() {
         return;
       }
       toast.success('Profile initialized. Welcome to the Constellation.');
-      // Refresh NextAuth JWT so onboarded flag is updated client-side
-      await update();
-      router.push('/dashboard');
+      // Force the JWT to pick up onboarded:true — pass the flag so the
+      // session callback can merge it without a DB round-trip.
+      await update({ onboarded: true });
+      // Hard navigation ensures the middleware reads the refreshed JWT cookie
+      // instead of the stale one that still has onboarded:false.
+      window.location.href = '/dashboard';
     } catch {
       toast.error('Something went wrong. Please try again.');
       setIsSubmitting(false);
