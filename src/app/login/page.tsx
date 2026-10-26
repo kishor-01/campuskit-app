@@ -13,6 +13,7 @@ import {
   Eye,
   EyeOff,
   MailCheck,
+  Info,
 } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 
@@ -63,17 +64,13 @@ export default function LoginPage() {
 
   const { data: session } = useSession();
 
-  const callbackParam =
-    searchParams.get("callbackUrl");
+  const callbackParam = searchParams.get("callbackUrl");
+  const verifiedParam  = searchParams.get("verified");
+  const resetParam     = searchParams.get("reset");
+  const hintParam      = searchParams.get("hint");   // 'exists' when redirected from signup
+  const emailParam     = searchParams.get("email");  // pre-fill from signup redirect
 
-  const verifiedParam =
-    searchParams.get("verified");
-
-  const resetParam =
-    searchParams.get("reset");
-
-  const callbackUrl =
-    callbackParam || "/";
+  const callbackUrl = callbackParam || "/";
 
   const [showPassword, setShowPassword] =
     useState(false);
@@ -92,20 +89,12 @@ export default function LoginPage() {
   // ------------------------------------------------------------
   useEffect(() => {
     if (verifiedParam === "true") {
-      setSuccessMessage(
-        "Email verified successfully! You can now log in."
-      );
+      setSuccessMessage("Email verified successfully! You can now log in.");
     }
-
     if (resetParam === "true") {
-      setSuccessMessage(
-        "Password reset successfully! You can now log in with your new password."
-      );
+      setSuccessMessage("Password reset successfully! You can now log in with your new password.");
     }
-  }, [
-    verifiedParam,
-    resetParam,
-  ]);
+  }, [verifiedParam, resetParam]);
 
   // ------------------------------------------------------------
   // Credentials login
@@ -275,10 +264,25 @@ export default function LoginPage() {
               className="mb-6 p-3 bg-green-500/10 text-green-600 border border-green-500/20 rounded-lg flex items-center space-x-2"
             >
               <MailCheck className="w-4 h-4" />
+              <span className="text-sm">{successMessage}</span>
+            </motion.div>
+          )}
 
-              <span className="text-sm">
-                {successMessage}
-              </span>
+          {/* Email-already-exists hint — shown when redirected from signup */}
+          {hintParam === "exists" && emailParam && (
+            <motion.div
+              variants={itemVariants}
+              className="mb-6 flex items-start gap-2.5 bg-blue-500/10 border border-blue-500/20 rounded-lg px-4 py-3"
+            >
+              <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-blue-300">
+                Looks like <span className="font-semibold">{emailParam}</span> is already registered.
+                {" "}Log in below, or{" "}
+                <Link href="/forgot-password" className="underline hover:text-blue-200">
+                  reset your password
+                </Link>
+                {" "}if you forgot it.
+              </p>
             </motion.div>
           )}
 
@@ -293,17 +297,17 @@ export default function LoginPage() {
               value={callbackUrl}
             />
 
-            {/* Login */}
+            {/* Login — pre-filled when redirected from signup */}
             <motion.div variants={itemVariants}>
               <div className="relative">
                 <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-
                 <input
                   name="login"
                   type="text"
                   placeholder="Email or Username"
                   required
                   autoComplete="username"
+                  defaultValue={emailParam || ""}
                   className="w-full p-3 pl-10 bg-background border border-muted rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
                 />
               </div>

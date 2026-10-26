@@ -53,12 +53,30 @@ export async function registerUser(prevState: any, formData: FormData) {
       return { success: false, message: "All fields are required." };
     }
 
-    const existingUser = await prisma.user.findFirst({
-      where: { OR: [{ email }, { username }] },
-    });
+    // ── Check email and username conflicts separately for precise UX ──
+    const [emailConflict, usernameConflict] = await Promise.all([
+      prisma.user.findUnique({ where: { email }, select: { id: true } }),
+      prisma.user.findUnique({ where: { username }, select: { id: true } }),
+    ]);
 
-    if (existingUser) {
-      return { success: false, message: "User with that email or username already exists." };
+    if (emailConflict) {
+      // Email is already registered — guide the user to log in instead.
+      return {
+        success: false,
+        conflict: 'email' as const,
+        message: "An account with this email already exists.",
+        redirectToLogin: true,
+        email,
+      };
+    }
+
+    if (usernameConflict) {
+      // Username taken — let the user choose another without losing other fields.
+      return {
+        success: false,
+        conflict: 'username' as const,
+        message: "That username is already taken. Please choose another.",
+      };
     }
 
     // Hash password
