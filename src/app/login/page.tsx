@@ -70,7 +70,7 @@ export default function LoginPage() {
   const hintParam      = searchParams.get("hint");   // 'exists' when redirected from signup
   const emailParam     = searchParams.get("email");  // pre-fill from signup redirect
 
-  const callbackUrl = callbackParam || "/";
+  const callbackUrl = callbackParam || "/dashboard";
 
   const [showPassword, setShowPassword] =
     useState(false);

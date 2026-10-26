@@ -110,6 +110,20 @@ export const {
 
         await logLoginSuccess(user.id);
 
+        // Auto-heal onboarded flag if user already completed profile in the past
+        let isOnboarded = Boolean(user.onboarded);
+        if (!isOnboarded && user.education && user.objective) {
+          try {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { onboarded: true },
+            });
+            isOnboarded = true;
+          } catch (e) {
+            console.error("[AUTH] Error auto-healing onboarded:", e);
+          }
+        }
+
         return {
           id: user.id,
           email: user.email,
@@ -122,7 +136,7 @@ export const {
             user.role === Role.ADMIN ||
             user.role === Role.SUPER_ADMIN,
 
-          onboarded: user.onboarded,
+          onboarded: isOnboarded,
         };
       },
     }),
@@ -153,6 +167,8 @@ export const {
   // Callbacks
   // ==============================================================
   callbacks: {
+    ...authConfig.callbacks,
+
     // ------------------------------------------------------------
     // JWT
     // ------------------------------------------------------------
@@ -163,27 +179,15 @@ export const {
       trigger,
       session: sessionData,
     }) {
-      // ── Client called update({ onboarded: true }) from onboarding page ──
-      // Merge the flag immediately so the next request (middleware) sees it.
-      if (trigger === 'update' && sessionData?.onboarded === true) {
-        token.onboarded = true;
-      }
-
-      // When the user first signs in, copy the user information
-      // into the JWT.
-      if (user) {
-        token.role =
-          (user as any).role || Role.VIEWER;
-
-        token.isAdmin =
-          (user as any).role === Role.ADMIN ||
-          (user as any).role === Role.SUPER_ADMIN;
-
-        token.sessionVersion =
-          (user as any).sessionVersion || 0;
-
-        token.onboarded =
-          (user as any).onboarded;
+      // 1. Run base edge-safe jwt logic first
+      if (authConfig.callbacks?.jwt) {
+        token = await authConfig.callbacks.jwt({
+          token,
+          user,
+          account,
+          trigger,
+          session: sessionData,
+        });
       }
 
       // ----------------------------------------------------------
@@ -206,12 +210,28 @@ export const {
                 role: true,
                 image: true,
                 onboarded: true,
+                username: true,
+                education: true,
+                objective: true,
               },
             });
 
           // User no longer exists.
           if (!dbUser) {
             return null as any;
+          }
+
+          // Auto-heal legacy accounts that already have profile data
+          if (!dbUser.onboarded && dbUser.education && dbUser.objective) {
+            try {
+              await prisma.user.update({
+                where: { id: token.sub },
+                data: { onboarded: true },
+              });
+              dbUser.onboarded = true;
+            } catch (e) {
+              console.error("[AUTH] Auto-heal onboarded error:", e);
+            }
           }
 
           // OAuth login:
@@ -243,11 +263,14 @@ export const {
             dbUser.role === Role.SUPER_ADMIN;
 
           token.image = dbUser.image;
+          if (dbUser.username) {
+            token.username = dbUser.username;
+          }
 
           // Only sync onboarded from DB if it's true — never go backward.
           // Once onboarded=true is in the token (from update() or DB), keep it.
           if (dbUser.onboarded === true || token.onboarded !== true) {
-            token.onboarded = dbUser.onboarded;
+            token.onboarded = Boolean(dbUser.onboarded);
           }
         } catch (error) {
           console.error(

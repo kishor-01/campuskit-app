@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -96,13 +97,28 @@ const EDUCATION_OPTIONS = [
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function OnboardingPage() {
-  const { update } = useSession();
+  const router = useRouter();
+  const { data: session, status, update } = useSession();
 
   const [username, setUsername] = useState('');
   const [education, setEducation] = useState('');
   const [objective, setObjective] = useState('');
   const [usernameError, setUsernameError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // If user is already onboarded, send them directly to dashboard
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.onboarded) {
+      router.replace('/dashboard');
+    }
+  }, [status, session, router]);
+
+  // Pre-fill username from session if available
+  useEffect(() => {
+    if (session?.user?.username && !username) {
+      setUsername(session.user.username);
+    }
+  }, [session, username]);
 
   const validateUsername = useCallback((val: string) => {
     const clean = val.replace(/^@/, '').trim().toLowerCase();
@@ -130,13 +146,17 @@ export default function OnboardingPage() {
         return;
       }
       toast.success('Profile initialized. Welcome to the Constellation.');
-      // Force the JWT to pick up onboarded:true — pass the flag so the
-      // session callback can merge it without a DB round-trip.
-      await update({ onboarded: true });
+      // Force the JWT to pick up onboarded:true
+      try {
+        await update({ onboarded: true });
+      } catch (err) {
+        console.warn('[Onboarding] Session update warning:', err);
+      }
       // Hard navigation ensures the middleware reads the refreshed JWT cookie
       // instead of the stale one that still has onboarded:false.
       window.location.href = '/dashboard';
-    } catch {
+    } catch (error) {
+      console.error('[Onboarding] Submit error:', error);
       toast.error('Something went wrong. Please try again.');
       setIsSubmitting(false);
     }
